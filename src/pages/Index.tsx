@@ -2,19 +2,51 @@
 import { useState } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
+import { PriceTable } from "@/components/PriceTable";
+import { processExcelFile } from "@/lib/excel";
 import { toast } from "sonner";
+import type { PriceItem } from "@/types/price";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [items, setItems] = useState<PriceItem[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileAccepted = (acceptedFile: File) => {
+  const handleFileAccepted = async (acceptedFile: File) => {
     setFile(acceptedFile);
-    toast.success("File uploaded successfully", {
-      description: "Analyzing price changes...",
-    });
+    setIsProcessing(true);
     
-    // TODO: Implement actual file processing and Shopify API integration
+    try {
+      const processedItems = await processExcelFile(acceptedFile);
+      setItems(processedItems);
+      
+      toast.success("Analysis complete", {
+        description: "Price changes have been processed successfully.",
+      });
+    } catch (error) {
+      toast.error("Error processing file", {
+        description: "Please check the file format and try again.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  const getAnalysisSummary = () => {
+    const increased = items.filter(item => item.status === 'increased');
+    const decreased = items.filter(item => item.status === 'decreased');
+    const discontinued = items.filter(item => item.status === 'discontinued');
+
+    return {
+      increasedItems: increased.length,
+      decreasedItems: decreased.length,
+      discontinuedItems: discontinued.length,
+      potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
+      potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
+    };
+  };
+
+  const summary = getAnalysisSummary();
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -29,14 +61,17 @@ const Index = () => {
         <FileUpload onFileAccepted={handleFileAccepted} />
       </div>
 
-      {file && (
-        <AnalysisSummary
-          increasedItems={12}
-          decreasedItems={8}
-          discontinuedItems={3}
-          potentialSavings={15000}
-          potentialLoss={8500}
-        />
+      {isProcessing && (
+        <div className="text-center text-muted-foreground">
+          Processing file...
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <>
+          <AnalysisSummary {...summary} />
+          <PriceTable items={items} />
+        </>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
 import { AIAnalysis } from "@/components/AIAnalysis";
 import { ShareDialog } from "@/components/ShareDialog";
+import { SupplierCorrespondence } from "@/components/SupplierCorrespondence";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
 import { initializeShopifyApp, getShopifyProducts, syncWithShopify } from "@/lib/shopifyApi";
@@ -11,7 +12,8 @@ import { initializeGadget, authenticateWithShopify } from "@/lib/gadgetApi";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis, ShopifyContext } from "@/types/price";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw, FileUp, FileText, Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain } from "lucide-react";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -315,25 +317,44 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <AnalysisSummary {...summary} />
-            </div>
-            <div className="md:col-span-1">
-              <AIAnalysis analysis={analysis} isLoading={isAnalyzing} />
-            </div>
-          </div>
-          
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
-            <Info className="h-4 w-4 text-blue-500" />
-            <p>
-              {isShopifyConnected 
-                ? "This analysis is integrated with your Shopify store data. You can sync price changes directly or export them."
-                : "You can export this analysis in Shopify-compatible format for easy importing."}
-            </p>
-          </div>
-          
-          <PriceTable items={items} />
+          <Tabs defaultValue="analysis" className="mt-8">
+            <TabsList className="w-full max-w-md mx-auto mb-4">
+              <TabsTrigger value="analysis" className="flex-1">
+                <FileBarChart2 className="w-4 h-4 mr-2" />
+                Analysis
+              </TabsTrigger>
+              <TabsTrigger value="communication" className="flex-1">
+                <Mail className="w-4 h-4 mr-2" />
+                Communication
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="analysis">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2">
+                  <AnalysisSummary {...summary} />
+                </div>
+                <div className="md:col-span-1">
+                  <AIAnalysis analysis={analysis} isLoading={isAnalyzing} />
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
+                <Info className="h-4 w-4 text-blue-500" />
+                <p>
+                  {isShopifyConnected 
+                    ? "This analysis is integrated with your Shopify store data. You can sync price changes directly or export them."
+                    : "You can export this analysis in Shopify-compatible format for easy importing."}
+                </p>
+              </div>
+              
+              <PriceTable items={items} />
+            </TabsContent>
+            
+            <TabsContent value="communication">
+              <SupplierCorrespondence />
+            </TabsContent>
+          </Tabs>
         </>
       )}
       

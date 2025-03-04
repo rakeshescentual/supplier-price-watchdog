@@ -14,7 +14,7 @@ export const useMarketData = (
   const [marketTrends, setMarketTrends] = useState<any | null>(null);
   
   // Enrich data with market info
-  const enrichDataWithMarketInfo = useCallback(async () => {
+  const enrichDataWithMarketInfo = useCallback(async (): Promise<PriceItem[] | void> => {
     if (items.length === 0) {
       toast.error("No items to enrich", {
         description: "Please upload a price list first.",
@@ -49,7 +49,7 @@ export const useMarketData = (
   }, [items, updateItems, onAnalysisNeeded]);
 
   // Fetch category trends
-  const fetchCategoryTrends = useCallback(async (category: string) => {
+  const fetchCategoryTrends = useCallback(async (category: string): Promise<any | void> => {
     if (!category.trim()) {
       toast.error("Invalid category", {
         description: "Please provide a valid category name.",

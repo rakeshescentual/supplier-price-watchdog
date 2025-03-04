@@ -34,8 +34,8 @@ interface FileAnalysisContextValue {
   analyzeData: (data: PriceItem[]) => Promise<PriceAnalysis | void>;
   exportForShopify: () => void;
   setItems: (items: PriceItem[]) => void;
-  enrichDataWithMarketInfo: () => Promise<void>;
-  fetchCategoryTrends: (category: string) => Promise<void>;
+  enrichDataWithMarketInfo: () => Promise<PriceItem[] | void>;
+  fetchCategoryTrends: (category: string) => Promise<any | void>;
 }
 
 const defaultSummary = {
@@ -196,7 +196,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
 
   const summary = getAnalysisSummary();
 
-  const value = {
+  const value: FileAnalysisContextValue = {
     file,
     items,
     isProcessing,

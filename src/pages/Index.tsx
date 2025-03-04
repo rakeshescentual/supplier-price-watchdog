@@ -14,9 +14,12 @@ import { FileAnalysisProvider, useFileAnalysis } from "@/contexts/FileAnalysisCo
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell } from "lucide-react";
+import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell, CalendarClock } from "lucide-react";
 import { Cog } from "lucide-react";
 import { Link } from "react-router-dom";
+import { GmailIntegration } from "@/components/gmail/GmailIntegration";
+import { GoogleCalendarIntegration } from "@/components/calendar/GoogleCalendarIntegration";
+import { GoogleShopifyAuth } from "@/components/auth/GoogleShopifyAuth";
 
 const useAnalysisHistory = () => {
   const [savedAnalyses, setSavedAnalyses] = useState<{
@@ -208,6 +211,10 @@ const IndexContent = () => {
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications
               </TabsTrigger>
+              <TabsTrigger value="google" className="flex-1">
+                <CalendarClock className="w-4 h-4 mr-2" />
+                Google
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="analysis">
@@ -273,6 +280,27 @@ const IndexContent = () => {
               <div className="mt-6">
                 <h3 className="text-lg font-medium mb-4">Products with Price Increases</h3>
                 <PriceTable items={items.filter(item => item.status === 'increased')} />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="google">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
+                  <GoogleShopifyAuth />
+                </div>
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <GmailIntegration />
+                    <GoogleCalendarIntegration />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
+                <Info className="h-4 w-4 text-blue-500" />
+                <p>
+                  Use Google Workspace integration to send email notifications about price changes and create calendar reminders for when the new prices take effect.
+                </p>
               </div>
             </TabsContent>
           </Tabs>

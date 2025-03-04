@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { ShopifyProvider } from "./contexts/ShopifyContext";
 import { FileAnalysisProvider } from "./contexts/FileAnalysisContext";
+import { GadgetConfigForm } from "./components/GadgetConfigForm";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,5 +41,3 @@ const App = () => (
 );
 
 export default App;
-
-import { GadgetConfigForm } from "./components/GadgetConfigForm";

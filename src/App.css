@@ -97,3 +97,47 @@
     opacity: 1;
   }
 }
+
+/* Escentual preview snippet styling */
+.preview-snippet {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Add some more responsive adjustments */
+@media (max-width: 480px) {
+  .card-header {
+    padding: 1rem;
+  }
+  
+  .card-content {
+    padding: 1rem;
+  }
+  
+  .card-footer {
+    padding: 1rem;
+  }
+  
+  .tabs-list {
+    gap: 0.25rem;
+  }
+  
+  pre {
+    font-size: 0.6rem;
+  }
+}
+
+/* Improved loading states */
+.loading-spinner {
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: currentColor;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

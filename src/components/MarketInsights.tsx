@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export const MarketInsights = () => {
   const { 
@@ -32,11 +33,15 @@ export const MarketInsights = () => {
   
   const [category, setCategory] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [popularCategories, setPopularCategories] = useState<string[]>([]);
   const hasMarketData = items.some(item => item.marketData !== undefined);
 
-  // Get most common categories from items for suggestions
-  const getCategories = () => {
-    if (items.length === 0) return [];
+  // Find popular categories when items change
+  useEffect(() => {
+    if (items.length === 0) {
+      setPopularCategories([]);
+      return;
+    }
     
     const categories = items
       .map(item => item.category || "")
@@ -46,16 +51,31 @@ export const MarketInsights = () => {
         return acc;
       }, {});
     
-    return Object.entries(categories)
+    const topCategories = Object.entries(categories)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([cat]) => cat);
-  };
-
-  const popularCategories = getCategories();
+      
+    setPopularCategories(topCategories);
+    
+    // Auto-select the most popular category if none is selected
+    if (topCategories.length > 0 && !category) {
+      setCategory(topCategories[0]);
+    }
+  }, [items, category]);
+  
+  // Clear any errors when dependencies change
+  useEffect(() => {
+    setError(null);
+  }, [category, items]);
   
   const handleFetchTrends = async () => {
-    if (!category) return;
+    if (!category) {
+      toast.error("Missing category", {
+        description: "Please enter or select a category first."
+      });
+      return;
+    }
     
     setError(null);
     try {
@@ -67,6 +87,13 @@ export const MarketInsights = () => {
   };
 
   const handleEnrichData = async () => {
+    if (items.length === 0) {
+      toast.error("No data to enrich", {
+        description: "Please upload a price list first."
+      });
+      return;
+    }
+    
     setError(null);
     try {
       await enrichDataWithMarketInfo();
@@ -75,6 +102,13 @@ export const MarketInsights = () => {
       console.error("Error enriching data:", err);
     }
   };
+
+  // Only fetch trends automatically once if popular category is selected
+  useEffect(() => {
+    if (popularCategories.length > 0 && !marketTrends && !isFetchingTrends && category) {
+      handleFetchTrends();
+    }
+  }, [popularCategories, marketTrends, isFetchingTrends, category]);
 
   return (
     <Card className="p-6">
@@ -195,7 +229,7 @@ export const MarketInsights = () => {
                 key={cat} 
                 variant="outline" 
                 size="sm"
-                className="text-xs"
+                className={`text-xs ${cat === category ? 'bg-muted' : ''}`}
                 onClick={() => setCategory(cat)}
               >
                 {cat}
@@ -205,7 +239,7 @@ export const MarketInsights = () => {
         )}
         
         {isFetchingTrends && (
-          <div className="space-y-2 mt-4">
+          <div className="space-y-2 mt-4 animate-pulse">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="h-20 w-full" />

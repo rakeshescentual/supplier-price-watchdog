@@ -1,4 +1,5 @@
 
+import { apiCache } from './api-cache';
 import type { ShopifyContext, PriceItem } from '@/types/price';
 
 // Gadget.dev API integration for Shopify app
@@ -7,29 +8,6 @@ export interface GadgetConfig {
   appId: string;
   environment: 'development' | 'production';
 }
-
-// Simple memory cache for API requests
-const apiCache = new Map<string, { data: any, timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Helper to retrieve from cache
-const getFromCache = (key: string) => {
-  const cached = apiCache.get(key);
-  if (!cached) return null;
-  
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_TTL) {
-    apiCache.delete(key);
-    return null;
-  }
-  
-  return cached.data;
-};
-
-// Helper to store in cache
-const storeInCache = (key: string, data: any) => {
-  apiCache.set(key, { data, timestamp: Date.now() });
-};
 
 /**
  * Initialize Gadget client with proper configuration
@@ -64,7 +42,7 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
     
     // Check cache first
     const cacheKey = `shopify_auth_${shop}`;
-    const cached = getFromCache(cacheKey);
+    const cached = apiCache.get<ShopifyContext>(cacheKey);
     if (cached) {
       console.log('Using cached authentication for shop:', shop);
       return cached;
@@ -78,7 +56,7 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
     };
     
     // Cache the result
-    storeInCache(cacheKey, authData);
+    apiCache.set(cacheKey, authData);
     
     return authData;
   } catch (error) {
@@ -98,7 +76,7 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
     console.log('Fetching Shopify products via Gadget.dev for shop:', context.shop);
     
     // Check cache first
-    const cached = getFromCache(cacheKey);
+    const cached = apiCache.get<any[]>(cacheKey);
     if (cached) {
       console.log('Using cached products for shop:', context.shop);
       return cached;
@@ -111,7 +89,7 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
     const products: any[] = [];
     
     // Cache the result
-    storeInCache(cacheKey, products);
+    apiCache.set(cacheKey, products);
     
     return products;
   } catch (error) {
@@ -176,39 +154,54 @@ export const processPdfWithGadget = async (file: File): Promise<any> => {
 export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
   console.log('Enriching price data with web search results via Gadget.dev');
   
-  // In a real implementation, this would use Gadget's Actions with proper
-  // batching, retries, and error handling
+  // Optimization: Batch items into smaller chunks for parallel processing
+  const batchSize = 50;
+  const batches = [];
   
-  // Mock implementation for development
-  return new Promise((resolve, reject) => {
-    // Simulate processing delay with some randomness
-    const processingTime = 1000 + (items.length * 50) + (Math.random() * 1000);
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+  
+  try {
+    // Mock implementation for development - with batching for large datasets
+    const enrichedBatches = await Promise.all(batches.map(batch => {
+      return new Promise<PriceItem[]>((resolve, reject) => {
+        // Simulate processing delay with some randomness
+        const processingTime = 500 + (batch.length * 20) + (Math.random() * 500);
+        
+        setTimeout(() => {
+          // Simulate occasional errors (5% chance)
+          if (Math.random() < 0.05) {
+            reject(new Error('Market data enrichment failed - simulated error'));
+            return;
+          }
+          
+          // Simulate enriched data by adding market information to items
+          const enrichedItems = batch.map(item => ({
+            ...item,
+            marketData: {
+              pricePosition: (['low', 'average', 'high'] as const)[Math.floor(Math.random() * 3)],
+              competitorPrices: Array(Math.floor(Math.random() * 5) + 1).fill(0).map(() => 
+                item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0
+              ),
+              averagePrice: item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0,
+              minPrice: item.newPrice ? Number((item.newPrice * 0.85).toFixed(2)) : 0,
+              maxPrice: item.newPrice ? Number((item.newPrice * 1.15).toFixed(2)) : 0
+            },
+            category: item.category || ['Electronics', 'Clothing', 'Food', 'Home', 'Beauty'][Math.floor(Math.random() * 5)]
+          }));
+          
+          resolve(enrichedItems);
+        }, processingTime);
+      });
+    }));
     
-    setTimeout(() => {
-      // Simulate occasional errors (5% chance)
-      if (Math.random() < 0.05) {
-        reject(new Error('Market data enrichment failed - simulated error'));
-        return;
-      }
-      
-      // Simulate enriched data by adding market information to items
-      const enrichedItems = items.map(item => ({
-        ...item,
-        marketData: {
-          pricePosition: (['low', 'average', 'high'] as const)[Math.floor(Math.random() * 3)],
-          competitorPrices: Array(Math.floor(Math.random() * 5) + 1).fill(0).map(() => 
-            item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0
-          ),
-          averagePrice: item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0,
-          minPrice: item.newPrice ? Number((item.newPrice * 0.85).toFixed(2)) : 0,
-          maxPrice: item.newPrice ? Number((item.newPrice * 1.15).toFixed(2)) : 0
-        },
-        category: item.category || ['Electronics', 'Clothing', 'Food', 'Home', 'Beauty'][Math.floor(Math.random() * 5)]
-      }));
-      
-      resolve(enrichedItems);
-    }, processingTime);
-  });
+    // Flatten batches back into a single array
+    return enrichedBatches.flat();
+  } catch (error) {
+    console.error("Error in batch processing:", error);
+    throw error;
+  }
 };
 
 /**
@@ -223,7 +216,7 @@ export const getMarketTrends = async (category: string): Promise<any> => {
   const cacheKey = `market_trends_${category.toLowerCase()}`;
   
   // Check cache first
-  const cached = getFromCache(cacheKey);
+  const cached = apiCache.get<any>(cacheKey);
   if (cached) {
     console.log(`Using cached market trends for category: ${category}`);
     return cached;
@@ -267,7 +260,7 @@ export const getMarketTrends = async (category: string): Promise<any> => {
       };
       
       // Store in cache
-      storeInCache(cacheKey, trends);
+      apiCache.set(cacheKey, trends);
       
       resolve(trends);
     }, processingTime);

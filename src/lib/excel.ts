@@ -1,7 +1,7 @@
-
 import * as XLSX from 'xlsx';
 import type { PriceItem, AnomalyStats } from '@/types/price';
 import { processPdfWithGadget } from './gadgetApi';
+import { excelWorker } from './excel-worker';
 
 export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
   return new Promise((resolve, reject) => {
@@ -159,7 +159,13 @@ export const processFile = async (file: File): Promise<PriceItem[]> => {
   if (file.type === 'application/pdf') {
     return processPdfFile(file);
   } else {
-    return processExcelFile(file);
+    // Use worker to process Excel files
+    try {
+      return await excelWorker.processFile(file);
+    } catch (error) {
+      console.error("Excel worker error, falling back to direct processing:", error);
+      return processExcelFile(file);
+    }
   }
 };
 

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { LightbulbIcon, RefreshCw } from "lucide-react";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { toast } from "sonner";
+import { PriceItem } from "@/types/price";
 
 export const PriceSuggestions = () => {
   const { items, setItems } = useFileAnalysis();

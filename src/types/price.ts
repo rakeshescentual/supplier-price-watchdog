@@ -1,3 +1,4 @@
+
 export interface PriceItem {
   sku: string;
   name: string;
@@ -40,6 +41,9 @@ export interface PriceItem {
     maxPrice?: number;
   };
   category?: string;
+  // Added for price suggestions functionality
+  suggestedPrice?: number;
+  suggestionReason?: string;
 }
 
 export interface PriceAnalysis {

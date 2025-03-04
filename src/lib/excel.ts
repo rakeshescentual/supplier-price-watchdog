@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import type { PriceItem, AnomalyStats } from '@/types/price';
 import { processPdfWithGadget } from './gadgetApi';
@@ -146,7 +147,7 @@ export const processPdfFile = async (file: File): Promise<PriceItem[]> => {
     }
     
     console.log(`PDF processing complete. ${result.length} items extracted.`);
-    return result || [];
+    return result;
   } catch (error) {
     console.error("Error processing PDF file:", error);
     throw error;

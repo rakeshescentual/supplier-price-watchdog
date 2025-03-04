@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import type { PriceItem, ShopifyContextType, ShopifyContext } from '@/types/price';
+import type { PriceItem, ShopifyContext as ShopifyContextType, ShopifyContextType as ShopifyProviderContextType } from '@/types/price';
 import { initializeShopifyApp, getShopifyProducts, syncWithShopify } from '@/lib/shopifyApi';
 import { getGadgetConfig, initGadgetClient, syncToShopifyViaGadget } from '@/lib/gadgetApi';
 
@@ -9,7 +9,7 @@ interface ShopifyProviderProps {
   children: React.ReactNode;
 }
 
-const ShopifyContext = createContext<ShopifyContextType | undefined>(undefined);
+const ShopifyContext = createContext<ShopifyProviderContextType | undefined>(undefined);
 
 export const useShopify = () => {
   const context = useContext(ShopifyContext);
@@ -20,7 +20,7 @@ export const useShopify = () => {
 };
 
 export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) => {
-  const [shopifyContext, setShopifyContext] = useState<ShopifyContext | null>(null);
+  const [shopifyContext, setShopifyContext] = useState<ShopifyContextType | null>(null);
   const [isShopifyConnected, setIsShopifyConnected] = useState(false);
   const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -54,7 +54,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   
   const connectToShopify = useCallback(async (shop: string, accessToken: string) => {
     try {
-      const newContext: ShopifyContext = { shop, accessToken };
+      const newContext: ShopifyContextType = { shop, accessToken };
       setShopifyContext(newContext);
       setIsShopifyConnected(true);
       
@@ -147,7 +147,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     }
   }, [shopifyContext, isGadgetInitialized]);
 
-  const value: ShopifyContextType = {
+  const value: ShopifyProviderContextType = {
     shopifyContext,
     isShopifyConnected,
     isGadgetInitialized,

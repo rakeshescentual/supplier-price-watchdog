@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Timeline } from "lucide-react";
+import { LineChart } from "lucide-react";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -60,7 +60,7 @@ export const PriceChangeTimeline = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Timeline className="h-5 w-5" />
+          <LineChart className="h-5 w-5" />
           Price Change Timeline
         </CardTitle>
         <CardDescription>

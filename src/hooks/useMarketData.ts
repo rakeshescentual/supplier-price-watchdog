@@ -2,7 +2,71 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { PriceItem, PriceAnalysis } from '@/types/price';
-import { enrichDataWithSearch, getMarketTrends, performBatchOperations } from '@/lib/gadgetApi';
+
+// Mock implementations of functions missing from gadgetApi
+const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
+  // Mock implementation
+  return items.map(item => ({
+    ...item,
+    marketData: {
+      pricePosition: ['low', 'average', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'average' | 'high',
+      competitorPrices: [
+        item.newPrice * 0.9,
+        item.newPrice * 1.0,
+        item.newPrice * 1.1,
+      ],
+      averagePrice: item.newPrice * 1.05,
+      minPrice: item.newPrice * 0.9,
+      maxPrice: item.newPrice * 1.2
+    },
+    category: ['Fragrance', 'Skincare', 'Makeup', 'Haircare'][Math.floor(Math.random() * 4)]
+  }));
+};
+
+const getMarketTrends = async (category: string): Promise<any> => {
+  // Mock implementation
+  return {
+    category,
+    trendData: {
+      monthlyTrend: [10, 12, 15, 14, 17, 19],
+      yearOverYear: 12.5,
+      seasonality: 'high',
+      marketShare: {
+        yourBrand: 15,
+        competitor1: 25,
+        competitor2: 30,
+        others: 30
+      },
+      priceIndexes: {
+        average: 100,
+        yourPosition: 95,
+        recommendation: 102
+      }
+    }
+  };
+};
+
+const performBatchOperations = async <T, R>(
+  items: T[],
+  processFn: (item: T) => Promise<R>,
+  batchSize = 50
+): Promise<R[]> => {
+  const results: R[] = [];
+  const batches = [];
+  
+  // Split items into batches
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+  
+  // Process batches sequentially to avoid rate limiting
+  for (const batch of batches) {
+    const batchResults = await Promise.all(batch.map(processFn));
+    results.push(...batchResults);
+  }
+  
+  return results;
+};
 
 export const useMarketData = (
   items: PriceItem[],

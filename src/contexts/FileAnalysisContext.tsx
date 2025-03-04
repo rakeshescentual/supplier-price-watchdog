@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
@@ -19,6 +20,8 @@ interface FileAnalysisContextValue {
   isEnrichingData: boolean;
   marketTrends: any | null;
   isFetchingTrends: boolean;
+  priceIncreaseEffectiveDate: Date;
+  setPriceIncreaseEffectiveDate: (date: Date) => void;
   summary: {
     totalItems: number;
     increasedItems: number;
@@ -56,6 +59,10 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // Add new state for price increase effective date - default to 30 days from now
+  const [priceIncreaseEffectiveDate, setPriceIncreaseEffectiveDate] = useState<Date>(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  );
   
   const { isShopifyConnected, loadShopifyData } = useShopify();
 
@@ -204,6 +211,8 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     isEnrichingData,
     marketTrends,
     isFetchingTrends,
+    priceIncreaseEffectiveDate,
+    setPriceIncreaseEffectiveDate,
     summary,
     handleFileAccepted,
     analyzeData,

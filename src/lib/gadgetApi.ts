@@ -1,4 +1,3 @@
-
 import type { PriceItem, ShopifyContext } from '@/types/price';
 import { shopifyCache } from './api-cache';
 
@@ -167,4 +166,104 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
     console.error("Error processing PDF with Gadget:", error);
     throw error;
   }
+};
+
+// Enrich data with market information using search
+export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
+  try {
+    const client = initGadgetClient();
+    if (!client) {
+      throw new Error("Gadget client not initialized");
+    }
+    
+    console.log("Enriching data with market information...");
+    
+    // In a real implementation, this would use the Gadget SDK to:
+    // 1. Send the items to a Gadget action that performs web search
+    // 2. Process the search results to extract market data
+    // 3. Return the enriched items
+    
+    // For now, return mock data
+    return items.map(item => ({
+      ...item,
+      marketData: {
+        pricePosition: ['low', 'average', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'average' | 'high',
+        competitorPrices: [
+          item.newPrice * 0.9,
+          item.newPrice * 1.0,
+          item.newPrice * 1.1,
+        ],
+        averagePrice: item.newPrice * 1.05,
+        minPrice: item.newPrice * 0.9,
+        maxPrice: item.newPrice * 1.2
+      },
+      category: ['Fragrance', 'Skincare', 'Makeup', 'Haircare'][Math.floor(Math.random() * 4)]
+    }));
+  } catch (error) {
+    console.error("Error enriching data with market information:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get market trends for a specific category
+ */
+export const getMarketTrends = async (category: string): Promise<any> => {
+  try {
+    const client = initGadgetClient();
+    if (!client) {
+      throw new Error("Gadget client not initialized");
+    }
+    
+    console.log(`Getting market trends for category: ${category}`);
+    
+    // For now, return mock data
+    return {
+      category,
+      trendData: {
+        monthlyTrend: [10, 12, 15, 14, 17, 19],
+        yearOverYear: 12.5,
+        seasonality: 'high',
+        marketShare: {
+          yourBrand: 15,
+          competitor1: 25,
+          competitor2: 30,
+          others: 30
+        },
+        priceIndexes: {
+          average: 100,
+          yourPosition: 95,
+          recommendation: 102
+        }
+      }
+    };
+  } catch (error) {
+    console.error(`Error getting market trends for ${category}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Perform batch operations on items
+ */
+export const performBatchOperations = async <T, R>(
+  items: T[],
+  processFn: (item: T) => Promise<R>,
+  batchSize = 50
+): Promise<R[]> => {
+  const results: R[] = [];
+  const batches = [];
+  
+  // Split items into batches
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+  
+  // Process batches sequentially to avoid rate limiting
+  for (const batch of batches) {
+    const batchResults = await Promise.all(batch.map(processFn));
+    results.push(...batchResults);
+  }
+  
+  return results;
 };

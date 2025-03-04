@@ -20,6 +20,8 @@ import { Link } from "react-router-dom";
 import { GmailIntegration } from "@/components/gmail/GmailIntegration";
 import { GoogleCalendarIntegration } from "@/components/calendar/GoogleCalendarIntegration";
 import { GoogleShopifyAuth } from "@/components/auth/GoogleShopifyAuth";
+import { PriceChangeTimeline } from "@/components/PriceChangeTimeline";
+import { PriceSuggestions } from "@/components/PriceSuggestions";
 
 const useAnalysisHistory = () => {
   const [savedAnalyses, setSavedAnalyses] = useState<{
@@ -225,6 +227,11 @@ const IndexContent = () => {
                 <div className="md:col-span-1">
                   <AIAnalysis analysis={analysis} isLoading={isAnalyzing} />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <PriceChangeTimeline />
+                <PriceSuggestions />
               </div>
               
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">

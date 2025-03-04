@@ -141,12 +141,12 @@ export const processPdfFile = async (file: File): Promise<PriceItem[]> => {
     console.log("Processing PDF file with Gadget...");
     const result = await processPdfWithGadget(file);
     
-    if (!result || !result.items) {
+    if (!result) {
       throw new Error("PDF processing did not return valid data");
     }
     
-    console.log(`PDF processing complete. ${result.items.length} items extracted.`);
-    return result.items || [];
+    console.log(`PDF processing complete. ${result.length} items extracted.`);
+    return result || [];
   } catch (error) {
     console.error("Error processing PDF file:", error);
     throw error;

@@ -78,6 +78,16 @@ export interface ShopifyAuthConfig {
 
 export interface ShopifyContext {
   shop: string;
-  token: string;
-  isOnline: boolean;
+  accessToken: string;
+}
+
+export interface ShopifyContextType {
+  shopifyContext: ShopifyContext | null;
+  isShopifyConnected: boolean;
+  isGadgetInitialized: boolean;
+  isSyncing: boolean;
+  connectToShopify: (shop: string, accessToken: string) => Promise<void>;
+  disconnectShopify: () => void;
+  syncToShopify: (items: PriceItem[]) => Promise<boolean>;
+  loadShopifyData?: () => Promise<PriceItem[]>;
 }

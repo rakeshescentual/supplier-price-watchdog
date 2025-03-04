@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { PriceItem, ShopifyContextType, ShopifyContext } from '@/types/price';
@@ -15,10 +16,7 @@ export const useShopify = () => {
   if (!context) {
     throw new Error("useShopify must be used within a ShopifyProvider");
   }
-  return {
-    ...context,
-    shopifyContext: context.shopifyContext,
-  };
+  return context;
 };
 
 export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) => {
@@ -84,6 +82,19 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     });
   }, []);
   
+  const loadShopifyData = useCallback(async (): Promise<PriceItem[]> => {
+    if (!shopifyContext) {
+      throw new Error("Shopify connection required");
+    }
+    
+    try {
+      return await getShopifyProducts(shopifyContext);
+    } catch (error) {
+      console.error("Error loading Shopify data:", error);
+      throw error;
+    }
+  }, [shopifyContext]);
+  
   const syncToShopify = useCallback(async (items: PriceItem[]): Promise<boolean> => {
     if (!shopifyContext) {
       toast.error("Shopify connection required", { 
@@ -96,7 +107,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     
     try {
       // Try with Gadget first if gadget is initialized
-      if (isGadgetInitialized()) {
+      if (isGadgetInitialized && initGadgetClient()?.ready) {
         console.log("Attempting to sync with Shopify via Gadget...");
         const result = await syncToShopifyViaGadget(shopifyContext, items);
         
@@ -134,7 +145,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     } finally {
       setIsSyncing(false);
     }
-  }, [shopifyContext]);
+  }, [shopifyContext, isGadgetInitialized]);
 
   const value: ShopifyContextType = {
     shopifyContext,
@@ -144,6 +155,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     connectToShopify,
     disconnectShopify,
     syncToShopify,
+    loadShopifyData
   };
 
   return (

@@ -111,3 +111,52 @@ export const getAnomalyStats = (items: PriceItem[]): AnomalyStats => {
     unmatched: items.filter(item => !item.isMatched).length
   };
 };
+
+export const exportToShopifyFormat = (items: PriceItem[]): Blob => {
+  const shopifyData = items.map(item => ({
+    'Handle': item.sku.toLowerCase().replace(/\s+/g, '-'),
+    'Title': item.name,
+    'Variant Price': item.newPrice.toFixed(2),
+    'Variant Compare At Price': item.oldPrice > item.newPrice ? item.oldPrice.toFixed(2) : '',
+    'Variant SKU': item.sku,
+    'Variant Barcode': item.newBarcode || item.oldBarcode || '',
+    'Vendor': item.newSupplierCode || item.oldSupplierCode || '',
+    'Tags': item.status === 'new' ? 'new,price_updated' : 'price_updated',
+    'Published': 'TRUE',
+    'Variant Inventory Qty': '0', // Placeholder, would need actual inventory data
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(shopifyData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+  
+  return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' }) as unknown as Blob;
+};
+
+export const mergeWithShopifyData = (excelItems: PriceItem[], shopifyItems: PriceItem[]): PriceItem[] => {
+  return excelItems.map(excelItem => {
+    const shopifyMatch = shopifyItems.find(shopifyItem => 
+      shopifyItem.sku === excelItem.sku || 
+      (shopifyItem.oldBarcode && excelItem.oldBarcode && shopifyItem.oldBarcode === excelItem.oldBarcode)
+    );
+    
+    if (shopifyMatch) {
+      return {
+        ...excelItem,
+        productId: shopifyMatch.productId,
+        variantId: shopifyMatch.variantId,
+        inventoryItemId: shopifyMatch.inventoryItemId,
+        inventoryLevel: shopifyMatch.inventoryLevel,
+        compareAtPrice: shopifyMatch.compareAtPrice,
+        tags: shopifyMatch.tags,
+        historicalSales: shopifyMatch.historicalSales,
+        lastOrderDate: shopifyMatch.lastOrderDate,
+        vendor: shopifyMatch.vendor,
+        metafields: shopifyMatch.metafields,
+        isMatched: true
+      };
+    }
+    
+    return excelItem;
+  });
+};

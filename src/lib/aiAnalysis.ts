@@ -1,4 +1,3 @@
-
 import type { PriceItem, PriceAnalysis, AnomalyStats } from "@/types/price";
 import { getAnomalyStats } from "./excel";
 
@@ -36,6 +35,30 @@ export const generateAIAnalysis = async (items: PriceItem[]): Promise<PriceAnaly
   const marginImpactText = itemsWithMargins.length > 0 ? 
     `Average margin ${averageMarginChange > 0 ? 'increase' : 'decrease'} of ${Math.abs(averageMarginChange).toFixed(2)}% across ${itemsWithMargins.length} products.` : 
     "No margin data available for analysis.";
+  
+  // Additional Shopify-specific analysis
+  const shopifyItems = items.filter(item => item.productId);
+  const itemsWithSales = shopifyItems.filter(item => item.historicalSales && item.historicalSales > 0);
+  
+  // Calculate inventory impact
+  const inventoryImpactText = shopifyItems.length > 0 ? 
+    `Analysis covers ${shopifyItems.length} products with inventory data. Consider prioritizing price adjustments for ${
+      shopifyItems.filter(item => (item.inventoryLevel || 0) > 10).length
+    } products with significant stock levels.` : 
+    "No Shopify inventory data available for analysis.";
+  
+  // Calculate sales trend impact
+  const salesTrendImpactText = itemsWithSales.length > 0 ?
+    `Price changes will impact ${itemsWithSales.length} products with recent sales history. ${
+      itemsWithSales.filter(item => item.status === 'increased').length
+    } products with price increases have active sales, which may affect conversion rates.` :
+    "No sales history available to assess impact on current selling products.";
+  
+  // Vendor analysis
+  const vendors = new Set(shopifyItems.map(item => item.vendor).filter(Boolean));
+  const vendorAnalysisText = vendors.size > 0 ?
+    `Price changes affect products from ${vendors.size} vendors. Consider reviewing vendor relationships and negotiating terms for frequent price changers.` :
+    "No vendor data available for analysis.";
   
   // Generate analysis
   const analysis: PriceAnalysis = {
@@ -85,7 +108,10 @@ export const generateAIAnalysis = async (items: PriceItem[]): Promise<PriceAnaly
         "No data anomalies detected in the price update."
     },
     
-    marginImpact: marginImpactText
+    marginImpact: marginImpactText,
+    inventoryImpact: inventoryImpactText,
+    salesTrendImpact: salesTrendImpactText,
+    vendorAnalysis: vendorAnalysisText
   };
   
   // Simulate API delay

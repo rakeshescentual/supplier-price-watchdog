@@ -7,7 +7,7 @@ export interface PriceItem {
   status: 'increased' | 'decreased' | 'discontinued' | 'unchanged' | 'new' | 'anomaly';
   difference: number;
   potentialImpact?: number;
-  // New fields
+  // Supplier information
   oldSupplierCode?: string;
   newSupplierCode?: string;
   oldBarcode?: string;
@@ -21,6 +21,17 @@ export interface PriceItem {
   marginChange?: number;
   anomalyType?: string[];
   isMatched: boolean;
+  // Shopify-specific fields
+  productId?: string;
+  variantId?: string;
+  inventoryItemId?: string;
+  inventoryLevel?: number;
+  compareAtPrice?: number;
+  metafields?: Record<string, any>;
+  tags?: string[];
+  historicalSales?: number;
+  lastOrderDate?: string;
+  vendor?: string;
 }
 
 export interface PriceAnalysis {
@@ -34,6 +45,10 @@ export interface PriceAnalysis {
     description: string;
   };
   marginImpact: string;
+  // Shopify-specific analysis
+  inventoryImpact?: string;
+  salesTrendImpact?: string;
+  vendorAnalysis?: string;
 }
 
 export interface AnomalyStats {
@@ -43,4 +58,18 @@ export interface AnomalyStats {
   barcodeChanges: number;
   packSizeChanges: number;
   unmatched: number;
+}
+
+// Shopify-specific interfaces
+export interface ShopifyAuthConfig {
+  apiKey: string;
+  scopes: string[];
+  hostName: string;
+  host: string;
+}
+
+export interface ShopifyContext {
+  shop: string;
+  token: string;
+  isOnline: boolean;
 }

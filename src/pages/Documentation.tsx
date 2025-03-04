@@ -30,9 +30,11 @@ const Documentation = () => {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[70vh] w-full pr-4">
-                <ReactMarkdown className="prose prose-sm max-w-none dark:prose-invert">
-                  {technicalDocumentation}
-                </ReactMarkdown>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>
+                    {technicalDocumentation}
+                  </ReactMarkdown>
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>
@@ -48,9 +50,11 @@ const Documentation = () => {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[70vh] w-full pr-4">
-                <ReactMarkdown className="prose prose-sm max-w-none dark:prose-invert">
-                  {gadgetIntegrationGuide}
-                </ReactMarkdown>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>
+                    {gadgetIntegrationGuide}
+                  </ReactMarkdown>
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>

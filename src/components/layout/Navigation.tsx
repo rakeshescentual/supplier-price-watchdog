@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { GoogleShopifyAuth } from "../GoogleShopifyAuth";
+import { GoogleShopifyAuth } from "@/components/auth/GoogleShopifyAuth";
 
 export function Navigation() {
   const location = useLocation();

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
@@ -16,8 +15,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell } from "lucide-react";
+import { Cog } from "lucide-react";
+import { Link } from "react-router-dom";
 
-// Add a new hook for analysis history persistence
 const useAnalysisHistory = () => {
   const [savedAnalyses, setSavedAnalyses] = useState<{
     id: string;
@@ -27,7 +27,6 @@ const useAnalysisHistory = () => {
     summary: { increasedItems: number; decreasedItems: number }
   }[]>([]);
 
-  // Load saved analyses from localStorage on component mount
   useEffect(() => {
     try {
       const savedData = localStorage.getItem('analysisHistory');
@@ -50,7 +49,7 @@ const useAnalysisHistory = () => {
       ...analysis
     };
     
-    const updatedAnalyses = [newAnalysis, ...savedAnalyses].slice(0, 10); // Keep last 10 analyses
+    const updatedAnalyses = [newAnalysis, ...savedAnalyses].slice(0, 10);
     setSavedAnalyses(updatedAnalyses);
     
     try {
@@ -101,7 +100,6 @@ const IndexContent = () => {
     }
   };
 
-  // Save analysis when a new file is processed
   useEffect(() => {
     if (file && items.length > 0 && summary) {
       saveAnalysis({
@@ -119,7 +117,7 @@ const IndexContent = () => {
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 animate-fade-up">
         <div className="text-center md:text-left space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Supplier Price Watch</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Price Management System</h1>
           <p className="text-lg text-muted-foreground">
             Upload your supplier price list to analyze changes and impacts
           </p>

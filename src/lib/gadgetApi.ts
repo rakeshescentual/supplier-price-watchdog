@@ -1,4 +1,4 @@
-
+import { Client } from "@gadgetinc/api-client-core";
 import { apiCache, gadgetCache } from './api-cache';
 import type { ShopifyContext, PriceItem } from '@/types/price';
 
@@ -25,17 +25,15 @@ interface GadgetResponse<T> {
 export const initializeGadget = (config: GadgetConfig) => {
   console.log('Initializing Gadget.dev client with config:', config);
   
-  // In a real implementation, this would initialize the Gadget client
-  // Using the recommended approach from Gadget docs:
-  // import { Client } from "@gadgetinc/api-client-core";
-  // const client = new Client({
-  //   endpoint: `https://api.gadget.app/api/v1/${config.appId}`,
-  //   authenticationMode: {
-  //     apiKey: config.apiKey,
-  //   },
-  // });
+  const client = new Client({
+    endpoint: `https://api.gadget.app/api/v1/${config.appId}`,
+    authenticationMode: {
+      apiKey: config.apiKey,
+    },
+  });
   
   return {
+    client,
     isConnected: true,
     environment: config.environment
   };
@@ -57,7 +55,9 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
       return cached;
     }
     
-    // Mock implementation for development
+    // In real implementation, this would use Gadget's API to get auth
+    // For example: const auth = await gadgetClient.shopifyAuth.getAuthForShop(shop);
+    // For now, we'll continue using the mock implementation
     const authData = {
       shop,
       token: 'gadget-managed-token',
@@ -78,7 +78,7 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
  * Fetch products via Gadget with proper caching and error handling
  * Uses Gadget's data APIs with cursor-based pagination
  */
-export const fetchShopifyProducts = async (context: ShopifyContext) => {
+export const fetchShopifyProducts = async (context: ShopifyContext, gadgetClient?: any) => {
   const cacheKey = `shopify_products_${context.shop}`;
   
   try {
@@ -91,10 +91,50 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
       return cached;
     }
     
-    // In a real implementation, this would use Gadget's data APIs with proper pagination
-    // Following Gadget.dev's recommended patterns with cursor-based pagination
+    // If we have a Gadget client, use it to fetch products
+    if (gadgetClient) {
+      // Example implementation using Gadget's data APIs
+      const response = await gadgetClient.shopifyProduct.findMany({
+        select: {
+          id: true,
+          title: true,
+          variants: {
+            edges: {
+              node: {
+                id: true,
+                price: true,
+                sku: true,
+                inventoryQuantity: true
+              }
+            }
+          }
+        },
+        first: 100 // Adjust based on your needs
+      });
+      
+      // Transform Gadget response to our format
+      const products = response.data.map((product: any) => {
+        const variant = product.variants.edges[0]?.node;
+        return {
+          sku: variant?.sku || '',
+          name: product.title,
+          oldPrice: parseFloat(variant?.price || '0'),
+          newPrice: parseFloat(variant?.price || '0'),
+          status: 'unchanged',
+          shopifyId: product.id,
+          inventoryQuantity: variant?.inventoryQuantity || 0
+        };
+      });
+      
+      // Cache the results
+      gadgetCache.set(cacheKey, products);
+      
+      return products;
+    }
     
-    // Mock implementation for development
+    // Mock implementation for development - same as before
+    // ... keep existing code (mock implementation for development)
+    
     const products: any[] = [];
     
     // Cache the result
@@ -111,14 +151,32 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
  * Sync data between Shopify and our app using Gadget's action API
  * Implements background job pattern from Gadget.dev docs
  */
-export const syncShopifyData = async (context: ShopifyContext) => {
+export const syncShopifyData = async (context: ShopifyContext, gadgetClient?: any, items?: PriceItem[]) => {
   try {
     console.log('Syncing data between Shopify and our app via Gadget.dev');
     
-    // In a real implementation, this would use Gadget's action API
-    // Following Gadget.dev's recommended approach for background jobs
+    if (gadgetClient && items && items.length > 0) {
+      // Create a background job in Gadget to handle the sync
+      const result = await gadgetClient.actions.priceSyncJob.run({
+        shop: context.shop,
+        items: items.map(item => ({
+          sku: item.sku,
+          oldPrice: item.oldPrice,
+          newPrice: item.newPrice,
+          status: item.status,
+          shopifyId: item.shopifyId
+        }))
+      });
+      
+      return { 
+        success: result.success, 
+        message: 'Data sync initiated via Gadget',
+        jobId: result.jobId 
+      };
+    }
     
-    return { success: true, message: 'Data sync initiated' };
+    // Mock implementation for development
+    return { success: true, message: 'Data sync initiated (mock)' };
   } catch (error) {
     console.error('Error syncing data via Gadget:', error);
     throw new Error(`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -129,13 +187,61 @@ export const syncShopifyData = async (context: ShopifyContext) => {
  * Process PDF file with Gadget for intelligent data extraction
  * Uses Gadget's file storage and processing capabilities
  */
-export const processPdfWithGadget = async (file: File): Promise<any> => {
+export const processPdfWithGadget = async (file: File, gadgetClient?: any): Promise<any> => {
   console.log('Processing PDF file with Gadget.dev');
   
-  // In a real implementation, this would use Gadget's file storage and processing
-  // with proper progress tracking and error handling
+  if (gadgetClient) {
+    try {
+      // Upload the file to Gadget's storage
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload the file
+      const uploadedFile = await gadgetClient.upload(formData);
+      
+      // Start the PDF processing job
+      const processingJob = await gadgetClient.actions.processPricePdf.run({
+        fileId: uploadedFile.id
+      });
+      
+      // Poll for job completion
+      let result;
+      let attempts = 0;
+      const maxAttempts = 30; // Wait up to 30 seconds
+      
+      while (attempts < maxAttempts) {
+        const jobStatus = await gadgetClient.job.findById(processingJob.jobId);
+        
+        if (jobStatus.status === 'completed') {
+          result = jobStatus.result;
+          break;
+        } else if (jobStatus.status === 'failed') {
+          throw new Error(`PDF processing job failed: ${jobStatus.error}`);
+        }
+        
+        // Wait before checking again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+      }
+      
+      if (!result) {
+        throw new Error('PDF processing timed out');
+      }
+      
+      return {
+        success: true,
+        message: 'PDF processed successfully via Gadget',
+        items: result.items || []
+      };
+    } catch (error) {
+      console.error('Error processing PDF with Gadget:', error);
+      throw error;
+    }
+  }
   
   // Mock implementation for development
+  // ... keep existing code (mock implementation with simulated processing)
+  
   return new Promise((resolve, reject) => {
     // Simulate API processing time with some random variation
     const processingTime = 1000 + Math.random() * 1000;

@@ -15,6 +15,7 @@ interface ShopifyContextValue {
   isGadgetInitialized: boolean;
   isLoadingShopifyData: boolean;
   isSyncing: boolean;
+  gadgetClient: any | null;
   loadShopifyData: () => Promise<PriceItem[]>;
   syncToShopify: (items: PriceItem[]) => Promise<boolean>;
 }
@@ -27,6 +28,7 @@ export const ShopifyProvider = ({ children }: ShopifyProviderProps) => {
   const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
   const [isLoadingShopifyData, setIsLoadingShopifyData] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [gadgetClient, setGadgetClient] = useState<any | null>(null);
 
   useEffect(() => {
     const initApp = async () => {
@@ -38,29 +40,58 @@ export const ShopifyProvider = ({ children }: ShopifyProviderProps) => {
         const urlParams = new URLSearchParams(window.location.search);
         const shop = urlParams.get('shop');
         
-        if (shop) {
+        // Get Gadget config from localStorage if available
+        const storedConfig = localStorage.getItem('gadgetConfig');
+        const gadgetConfig = storedConfig ? JSON.parse(storedConfig) : {
+          apiKey: '',
+          appId: '',
+          environment: 'development' as const
+        };
+        
+        // Check if we have valid Gadget config
+        if (gadgetConfig.apiKey && gadgetConfig.appId) {
           // Initialize Gadget connection
-          const gadgetConfig = {
-            apiKey: 'demo-gadget-key',
-            appId: 'supplier-price-watch',
-            environment: 'development' as const
-          };
+          const gadgetInit = initializeGadget(gadgetConfig);
+          setIsGadgetInitialized(gadgetInit.isConnected);
+          setGadgetClient(gadgetInit.client);
           
-          const gadgetClient = initializeGadget(gadgetConfig);
-          setIsGadgetInitialized(gadgetClient.isConnected);
+          toast.success("Connected to Gadget.dev", {
+            description: `Environment: ${gadgetConfig.environment}`,
+          });
           
-          // Authenticate with Shopify
+          // If we have a shop parameter, attempt to authenticate with Shopify
+          if (shop) {
+            // Authenticate with Shopify
+            const context = await authenticateWithShopify(shop);
+            if (context) {
+              setShopifyContext(context);
+              setIsShopifyConnected(true);
+              toast.success("Connected to Shopify via Gadget.dev", {
+                description: `Shop: ${shop}`,
+              });
+            }
+          }
+        } else if (shop) {
+          // If we have a shop but no Gadget config, we can still connect directly to Shopify
+          toast.info("Gadget configuration not found", {
+            description: "Using direct Shopify connection instead",
+          });
+          
+          // Authenticate with Shopify directly
           const context = await authenticateWithShopify(shop);
           if (context) {
             setShopifyContext(context);
             setIsShopifyConnected(true);
-            toast.success("Connected to Shopify via Gadget.dev", {
+            toast.success("Connected to Shopify", {
               description: `Shop: ${shop}`,
             });
           }
         }
       } catch (error) {
         console.error("Error initializing Shopify app:", error);
+        toast.error("Connection error", {
+          description: "Could not initialize connections",
+        });
       }
     };
     
@@ -72,6 +103,21 @@ export const ShopifyProvider = ({ children }: ShopifyProviderProps) => {
     
     setIsLoadingShopifyData(true);
     try {
+      // Try using Gadget first if available
+      if (isGadgetInitialized && gadgetClient) {
+        try {
+          const shopifyProducts = await fetchShopifyProducts(shopifyContext, gadgetClient);
+          toast.success("Shopify data loaded via Gadget", {
+            description: `${shopifyProducts.length} products loaded`,
+          });
+          return shopifyProducts;
+        } catch (gadgetError) {
+          console.error("Error using Gadget, falling back to direct API:", gadgetError);
+          // Fall back to direct API
+        }
+      }
+      
+      // Use direct Shopify API as fallback
       const shopifyProducts = await getShopifyProducts(shopifyContext);
       toast.success("Shopify data loaded", {
         description: `${shopifyProducts.length} products loaded`,
@@ -93,7 +139,25 @@ export const ShopifyProvider = ({ children }: ShopifyProviderProps) => {
     
     setIsSyncing(true);
     try {
-      const result = await syncWithShopify(shopifyContext, items);
+      let result;
+      
+      // Try using Gadget first if available
+      if (isGadgetInitialized && gadgetClient) {
+        try {
+          result = await syncShopifyData(shopifyContext, gadgetClient, items);
+          
+          toast.success("Sync initiated via Gadget", {
+            description: "Price changes are being processed in the background.",
+          });
+          return true;
+        } catch (gadgetError) {
+          console.error("Error using Gadget for sync, falling back to direct API:", gadgetError);
+          // Fall back to direct API
+        }
+      }
+      
+      // Use direct Shopify API as fallback
+      result = await syncWithShopify(shopifyContext, items);
       
       if (result) {
         toast.success("Sync complete", {
@@ -122,6 +186,7 @@ export const ShopifyProvider = ({ children }: ShopifyProviderProps) => {
     isGadgetInitialized,
     isLoadingShopifyData,
     isSyncing,
+    gadgetClient,
     loadShopifyData,
     syncToShopify
   };
@@ -140,3 +205,5 @@ export const useShopify = (): ShopifyContextValue => {
   }
   return context;
 };
+
+import { fetchShopifyProducts } from "@/lib/gadgetApi";

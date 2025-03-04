@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis, ShopifyContext } from "@/types/price";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain } from "lucide-react";
+import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail } from "lucide-react";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -27,19 +27,15 @@ const Index = () => {
   const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Initialize Shopify App and Gadget if in Shopify Admin
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Initialize Shopify App Bridge
         initializeShopifyApp();
         
-        // For demo purposes - in real implementation, this would come from App Bridge
         const urlParams = new URLSearchParams(window.location.search);
         const shop = urlParams.get('shop');
         
         if (shop) {
-          // Initialize Gadget
           const gadgetConfig = {
             apiKey: 'demo-gadget-key',
             appId: 'supplier-price-watch',
@@ -49,7 +45,6 @@ const Index = () => {
           const gadgetClient = initializeGadget(gadgetConfig);
           setIsGadgetInitialized(gadgetClient.isConnected);
           
-          // Authenticate with Shopify via Gadget
           const context = await authenticateWithShopify(shop);
           if (context) {
             setShopifyContext(context);
@@ -77,12 +72,10 @@ const Index = () => {
         description: `${shopifyProducts.length} products loaded`,
       });
       
-      // If we already have items from the uploaded file, merge them with Shopify data
       if (items.length > 0) {
         const mergedItems = mergeWithShopifyData(items, shopifyProducts);
         setItems(mergedItems);
         
-        // Re-run analysis with merged data
         analyzeData(mergedItems);
       }
     } catch (error) {
@@ -102,7 +95,6 @@ const Index = () => {
     try {
       const processedItems = await processFile(acceptedFile);
       
-      // If we're connected to Shopify, merge with Shopify data
       if (isShopifyConnected && shopifyContext) {
         setIsLoadingShopifyData(true);
         try {
@@ -115,7 +107,6 @@ const Index = () => {
             description: "Price changes have been processed and merged with Shopify data.",
           });
           
-          // Automatically start AI analysis
           analyzeData(mergedItems);
         } catch (shopifyError) {
           toast.error("Error loading Shopify data", {
@@ -134,7 +125,6 @@ const Index = () => {
           description: "Price changes have been processed successfully.",
         });
         
-        // Automatically start AI analysis
         analyzeData(processedItems);
       }
     } catch (error) {

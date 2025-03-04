@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { toast } from 'sonner';
 import type { PriceItem, ShopifyContext as ShopifyContextType, ShopifyContextType as ShopifyProviderContextType } from '@/types/price';
 import { initializeShopifyApp, getShopifyProducts, syncWithShopify } from '@/lib/shopifyApi';
-import { getGadgetConfig, initGadgetClient, syncToShopifyViaGadget } from '@/lib/gadgetApi';
+import { getGadgetConfig, initGadgetClient, authenticateShopify, syncToShopifyViaGadget } from '@/lib/gadgetApi';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;

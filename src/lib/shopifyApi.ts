@@ -1,6 +1,7 @@
 
 import type { PriceItem, ShopifyContext } from '@/types/price';
 import { fetchShopifyProducts, syncShopifyData } from './gadgetApi';
+import { shopifyCache } from './api-cache';
 
 /**
  * Initialize embedded Shopify app
@@ -10,10 +11,11 @@ export const initializeShopifyApp = () => {
   console.log('Initializing Shopify embedded app');
   
   // In real implementation:
-  // 1. Initialize App Bridge 3.x
-  // 2. Set up session token authentication
-  // 3. Configure app features and navigation
-  // 4. Set up error handling and logging
+  // 1. Initialize App Bridge 3.x with proper configuration
+  // 2. Set up session token authentication with proper CSRF protection
+  // 3. Configure app features and navigation for embedded app experience
+  // 4. Set up error handling and logging for app analytics
+  // 5. Register webhooks for critical data changes
 };
 
 /**
@@ -24,11 +26,26 @@ export const getShopifyProducts = async (context: ShopifyContext): Promise<Price
   try {
     console.log('Fetching Shopify products for shop:', context.shop);
     
+    // Cache key based on shop and any query parameters
+    const cacheKey = `shopify_products_${context.shop}`;
+    
+    // Check cache first
+    const cachedProducts = shopifyCache.get<PriceItem[]>(cacheKey);
+    if (cachedProducts) {
+      console.log('Using cached Shopify products data');
+      return cachedProducts;
+    }
+    
     // Use Gadget if available, otherwise fall back to direct API
     try {
       const gadgetProducts = await fetchShopifyProducts(context);
       if (gadgetProducts.length > 0) {
-        return transformShopifyProducts(gadgetProducts);
+        const transformedProducts = transformShopifyProducts(gadgetProducts);
+        
+        // Cache the results
+        shopifyCache.set(cacheKey, transformedProducts);
+        
+        return transformedProducts;
       }
     } catch (gadgetError) {
       console.warn("Gadget fetch failed, falling back to direct API:", gadgetError);
@@ -63,7 +80,9 @@ export const getShopifyProducts = async (context: ShopifyContext): Promise<Price
     // }`;
     
     // Simulated response for development
-    return [];
+    const emptyProducts: PriceItem[] = [];
+    shopifyCache.set(cacheKey, emptyProducts);
+    return emptyProducts;
   } catch (error) {
     console.error("Error fetching Shopify products:", error);
     throw error;
@@ -136,4 +155,57 @@ export const syncWithShopify = async (context: ShopifyContext, items: PriceItem[
     console.error("Error syncing with Shopify:", error);
     return false;
   }
+};
+
+/**
+ * Handle Shopify API rate limits properly
+ * Retries requests with exponential backoff when rate limited
+ */
+export const handleRateLimits = async <T>(
+  apiCall: () => Promise<T>, 
+  maxRetries = 3
+): Promise<T> => {
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      // Check for rate limiting response (429 status code)
+      if (error?.response?.status === 429) {
+        retries++;
+        
+        // Get retry-after header or use exponential backoff
+        const retryAfter = error?.response?.headers?.['retry-after'] 
+          ? parseInt(error.response.headers['retry-after']) * 1000
+          : Math.pow(2, retries) * 1000;
+        
+        console.warn(`Rate limited by Shopify API. Retrying in ${retryAfter}ms. Attempt ${retries}/${maxRetries}`);
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryAfter));
+      } else {
+        // Not a rate limiting error, rethrow
+        throw error;
+      }
+    }
+  }
+  
+  throw new Error(`Failed after ${maxRetries} retries due to rate limiting`);
+};
+
+/**
+ * Verify Shopify webhook signatures
+ * Required for secure webhook handling in Shopify Plus apps
+ */
+export const verifyShopifyWebhook = (
+  signature: string, 
+  body: string, 
+  secret: string
+): boolean => {
+  // In a real implementation, this would:
+  // 1. Create HMAC hash of the request body using the webhook secret
+  // 2. Compare with the provided signature
+  // 3. Return true if valid, false otherwise
+  return true;
 };

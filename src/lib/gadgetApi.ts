@@ -1,5 +1,5 @@
 
-import { apiCache } from './api-cache';
+import { apiCache, gadgetCache } from './api-cache';
 import type { ShopifyContext, PriceItem } from '@/types/price';
 
 // Gadget.dev API integration for Shopify app
@@ -7,6 +7,15 @@ export interface GadgetConfig {
   apiKey: string;
   appId: string;
   environment: 'development' | 'production';
+}
+
+// Interface for Gadget API response
+interface GadgetResponse<T> {
+  data: T;
+  meta?: {
+    cursor?: string;
+    hasNextPage?: boolean;
+  };
 }
 
 /**
@@ -42,7 +51,7 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
     
     // Check cache first
     const cacheKey = `shopify_auth_${shop}`;
-    const cached = apiCache.get<ShopifyContext>(cacheKey);
+    const cached = gadgetCache.get<ShopifyContext>(cacheKey);
     if (cached) {
       console.log('Using cached authentication for shop:', shop);
       return cached;
@@ -56,7 +65,7 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
     };
     
     // Cache the result
-    apiCache.set(cacheKey, authData);
+    gadgetCache.set(cacheKey, authData);
     
     return authData;
   } catch (error) {
@@ -76,7 +85,7 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
     console.log('Fetching Shopify products via Gadget.dev for shop:', context.shop);
     
     // Check cache first
-    const cached = apiCache.get<any[]>(cacheKey);
+    const cached = gadgetCache.get<any[]>(cacheKey);
     if (cached) {
       console.log('Using cached products for shop:', context.shop);
       return cached;
@@ -89,7 +98,7 @@ export const fetchShopifyProducts = async (context: ShopifyContext) => {
     const products: any[] = [];
     
     // Cache the result
-    apiCache.set(cacheKey, products);
+    gadgetCache.set(cacheKey, products);
     
     return products;
   } catch (error) {
@@ -216,7 +225,7 @@ export const getMarketTrends = async (category: string): Promise<any> => {
   const cacheKey = `market_trends_${category.toLowerCase()}`;
   
   // Check cache first
-  const cached = apiCache.get<any>(cacheKey);
+  const cached = gadgetCache.get<any>(cacheKey);
   if (cached) {
     console.log(`Using cached market trends for category: ${category}`);
     return cached;
@@ -260,9 +269,34 @@ export const getMarketTrends = async (category: string): Promise<any> => {
       };
       
       // Store in cache
-      apiCache.set(cacheKey, trends);
+      gadgetCache.set(cacheKey, trends);
       
       resolve(trends);
     }, processingTime);
   });
+};
+
+/**
+ * Perform batch operations using Gadget's Actions API
+ * Follows Gadget's recommended approach for bulk operations
+ */
+export const performBatchOperations = async <T>(
+  items: T[],
+  operation: (item: T) => Promise<any>,
+  batchSize = 50
+): Promise<any[]> => {
+  const batches = [];
+  
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+  
+  const results = [];
+  
+  for (const batch of batches) {
+    const batchResults = await Promise.allSettled(batch.map(operation));
+    results.push(...batchResults);
+  }
+  
+  return results;
 };

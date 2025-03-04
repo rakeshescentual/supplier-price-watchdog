@@ -2,13 +2,19 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { PriceItem, PriceAnalysis } from '@/types/price';
-import { enrichDataWithSearch, getMarketTrends } from '@/lib/gadgetApi';
+import { enrichDataWithSearch, getMarketTrends, performBatchOperations } from '@/lib/gadgetApi';
 
-export const useMarketData = (
-  items: PriceItem[],
-  updateItems: (items: PriceItem[]) => void,
-  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>
-) => {
+interface UseMarketDataProps {
+  items: PriceItem[];
+  updateItems: (items: PriceItem[]) => void;
+  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>;
+}
+
+export const useMarketData = ({
+  items,
+  updateItems,
+  onAnalysisNeeded
+}: UseMarketDataProps) => {
   const [isEnrichingData, setIsEnrichingData] = useState(false);
   const [isFetchingTrends, setIsFetchingTrends] = useState(false);
   const [marketTrends, setMarketTrends] = useState<any | null>(null);
@@ -100,6 +106,13 @@ export const useMarketData = (
     }
   }, []);
 
+  // Batch process items for market analysis
+  const batchProcessItems = useCallback(async (processFn: (item: PriceItem) => Promise<any>): Promise<any[]> => {
+    if (items.length === 0) return [];
+    
+    return performBatchOperations(items, processFn, 50);
+  }, [items]);
+
   // Reset error state
   const clearError = useCallback(() => {
     setLastError(null);
@@ -112,6 +125,7 @@ export const useMarketData = (
     lastError,
     enrichDataWithMarketInfo,
     fetchCategoryTrends,
+    batchProcessItems,
     clearError
   };
 };

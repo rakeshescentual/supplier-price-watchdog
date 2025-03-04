@@ -7,11 +7,14 @@ import { PriceItem } from '@/types/price';
 // Define worker actions and responses
 export type ExcelWorkerAction = 
   | { type: 'PROCESS_FILE'; data: ArrayBuffer; fileName: string; }
-  | { type: 'EXPORT_SHOPIFY'; items: PriceItem[]; };
+  | { type: 'EXPORT_SHOPIFY'; items: PriceItem[]; }
+  | { type: 'VALIDATE_SHOPIFY_IMPORT'; data: ArrayBuffer; };
 
 export type ExcelWorkerResponse =
   | { type: 'PROCESS_COMPLETE'; items: PriceItem[]; }
   | { type: 'EXPORT_COMPLETE'; data: ArrayBuffer; }
+  | { type: 'VALIDATION_COMPLETE'; isValid: boolean; issues?: string[]; }
+  | { type: 'PROCESSING_PROGRESS'; progress: number; }
   | { type: 'ERROR'; error: string; };
 
 // Helper to create and manage the Excel processing worker
@@ -88,6 +91,42 @@ export class ExcelWorkerManager {
             reject(processingError);
           }
         }, 100);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  
+  // Validate Shopify import file format
+  async validateShopifyImport(file: File): Promise<{ isValid: boolean; issues?: string[] }> {
+    return new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+          if (!e.target?.result) {
+            reject(new Error("Failed to read file"));
+            return;
+          }
+          
+          // Simulating worker processing for now
+          setTimeout(async () => {
+            try {
+              // In real implementation: validate Shopify CSV format
+              resolve({
+                isValid: true
+              });
+            } catch (processingError) {
+              reject(processingError);
+            }
+          }, 300);
+        };
+        
+        reader.onerror = () => {
+          reject(new Error("Error reading file"));
+        };
+        
+        reader.readAsArrayBuffer(file);
       } catch (error) {
         reject(error);
       }

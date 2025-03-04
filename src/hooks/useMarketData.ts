@@ -1,13 +1,13 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { PriceItem } from '@/types/price';
+import { PriceItem, PriceAnalysis } from '@/types/price';
 import { enrichDataWithSearch, getMarketTrends } from '@/lib/gadgetApi';
 
 export const useMarketData = (
   items: PriceItem[],
   updateItems: (items: PriceItem[]) => void,
-  onAnalysisNeeded?: (items: PriceItem[]) => void
+  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>
 ) => {
   const [isEnrichingData, setIsEnrichingData] = useState(false);
   const [isFetchingTrends, setIsFetchingTrends] = useState(false);

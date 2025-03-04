@@ -31,7 +31,7 @@ interface FileAnalysisContextValue {
     potentialLoss: number;
   };
   handleFileAccepted: (file: File) => Promise<void>;
-  analyzeData: (data: PriceItem[]) => Promise<void>;
+  analyzeData: (data: PriceItem[]) => Promise<PriceAnalysis | void>;
   exportForShopify: () => void;
   setItems: (items: PriceItem[]) => void;
   enrichDataWithMarketInfo: () => Promise<void>;
@@ -60,7 +60,32 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
   
   const { isShopifyConnected, loadShopifyData } = useShopify();
 
-  // Use our new market data hook
+  // First, define the analyzeData function since it's used by useMarketData hook
+  const analyzeData = useCallback(async (data: PriceItem[]): Promise<PriceAnalysis | void> => {
+    if (data.length === 0) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const result = await generateAIAnalysis(data);
+      setAnalysis(result);
+      
+      toast.success("AI analysis complete", {
+        description: "Insights and recommendations are ready.",
+      });
+      
+      return result;
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      toast.error("Error generating AI analysis", {
+        description: "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, []);
+
+  // Now we can use analyzeData inside useMarketData hook
   const { 
     isEnrichingData, 
     isFetchingTrends, 
@@ -116,30 +141,6 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       setIsProcessing(false);
     }
   };
-
-  const analyzeData = useCallback(async (data: PriceItem[]) => {
-    if (data.length === 0) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const result = await generateAIAnalysis(data);
-      setAnalysis(result);
-      
-      toast.success("AI analysis complete", {
-        description: "Insights and recommendations are ready.",
-      });
-      
-      return result;
-    } catch (error) {
-      console.error("AI analysis error:", error);
-      toast.error("Error generating AI analysis", {
-        description: "Please try again later.",
-      });
-      throw error;
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
 
   const exportForShopify = useCallback(() => {
     if (items.length === 0) {

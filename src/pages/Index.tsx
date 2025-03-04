@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
@@ -15,7 +14,7 @@ import { FileAnalysisProvider, useFileAnalysis } from "@/contexts/FileAnalysisCo
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle } from "lucide-react";
+import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell } from "lucide-react";
 
 const IndexContent = () => {
   const { 
@@ -139,6 +138,10 @@ const IndexContent = () => {
               <TabsTrigger value="communication" className="flex-1">
                 <Mail className="w-4 h-4 mr-2" />
                 Communication
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex-1">
+                <Bell className="w-4 h-4 mr-2" />
+                Notifications
               </TabsTrigger>
             </TabsList>
             

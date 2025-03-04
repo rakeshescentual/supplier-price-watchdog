@@ -1,7 +1,7 @@
-
 import { createContext, useContext, useState, ReactNode } from "react";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
+import { enrichDataWithSearch, getMarketTrends } from "@/lib/gadgetApi";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis } from "@/types/price";
 import { useShopify } from "./ShopifyContext";
@@ -16,6 +16,9 @@ interface FileAnalysisContextValue {
   isProcessing: boolean;
   analysis: PriceAnalysis | null;
   isAnalyzing: boolean;
+  isEnrichingData: boolean;
+  marketTrends: any | null;
+  isFetchingTrends: boolean;
   summary: {
     totalItems: number;
     increasedItems: number;
@@ -30,6 +33,8 @@ interface FileAnalysisContextValue {
   analyzeData: (data: PriceItem[]) => Promise<void>;
   exportForShopify: () => void;
   setItems: (items: PriceItem[]) => void;
+  enrichDataWithMarketInfo: () => Promise<void>;
+  fetchCategoryTrends: (category: string) => Promise<void>;
 }
 
 const defaultSummary = {
@@ -51,6 +56,9 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isEnrichingData, setIsEnrichingData] = useState(false);
+  const [marketTrends, setMarketTrends] = useState<any | null>(null);
+  const [isFetchingTrends, setIsFetchingTrends] = useState(false);
   
   const { isShopifyConnected, loadShopifyData } = useShopify();
 
@@ -144,6 +152,49 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     }
   };
 
+  const enrichDataWithMarketInfo = async () => {
+    if (items.length === 0) return;
+    
+    setIsEnrichingData(true);
+    try {
+      const enrichedItems = await enrichDataWithSearch(items);
+      setItems(enrichedItems);
+      
+      toast.success("Market data enrichment complete", {
+        description: "Items have been enriched with market insights.",
+      });
+      
+      // Update analysis with new data
+      if (enrichedItems.length > 0) {
+        analyzeData(enrichedItems);
+      }
+    } catch (error) {
+      toast.error("Error enriching data", {
+        description: "Could not fetch market data. Please try again later.",
+      });
+    } finally {
+      setIsEnrichingData(false);
+    }
+  };
+
+  const fetchCategoryTrends = async (category: string) => {
+    setIsFetchingTrends(true);
+    try {
+      const trends = await getMarketTrends(category);
+      setMarketTrends(trends);
+      
+      toast.success("Market trends fetched", {
+        description: `Market trends for ${category} are now available.`,
+      });
+    } catch (error) {
+      toast.error("Error fetching market trends", {
+        description: "Could not fetch market trends. Please try again later.",
+      });
+    } finally {
+      setIsFetchingTrends(false);
+    }
+  };
+
   const getAnalysisSummary = () => {
     if (items.length === 0) return defaultSummary;
     
@@ -173,11 +224,16 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     isProcessing,
     analysis,
     isAnalyzing,
+    isEnrichingData,
+    marketTrends,
+    isFetchingTrends,
     summary,
     handleFileAccepted,
     analyzeData,
     exportForShopify,
-    setItems
+    setItems,
+    enrichDataWithMarketInfo,
+    fetchCategoryTrends
   };
 
   return (

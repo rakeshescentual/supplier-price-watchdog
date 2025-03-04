@@ -3,18 +3,23 @@ import { useState } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
+import { AIAnalysis } from "@/components/AIAnalysis";
 import { processExcelFile } from "@/lib/excel";
+import { generateAIAnalysis } from "@/lib/aiAnalysis";
 import { toast } from "sonner";
-import type { PriceItem } from "@/types/price";
+import type { PriceItem, PriceAnalysis } from "@/types/price";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [items, setItems] = useState<PriceItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleFileAccepted = async (acceptedFile: File) => {
     setFile(acceptedFile);
     setIsProcessing(true);
+    setAnalysis(null);
     
     try {
       const processedItems = await processExcelFile(acceptedFile);
@@ -23,12 +28,35 @@ const Index = () => {
       toast.success("Analysis complete", {
         description: "Price changes have been processed successfully.",
       });
+      
+      // Automatically start AI analysis
+      analyzeData(processedItems);
     } catch (error) {
       toast.error("Error processing file", {
         description: "Please check the file format and try again.",
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const analyzeData = async (data: PriceItem[]) => {
+    if (data.length === 0) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const result = await generateAIAnalysis(data);
+      setAnalysis(result);
+      
+      toast.success("AI analysis complete", {
+        description: "Insights and recommendations are ready.",
+      });
+    } catch (error) {
+      toast.error("Error generating AI analysis", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -69,7 +97,14 @@ const Index = () => {
 
       {items.length > 0 && (
         <>
-          <AnalysisSummary {...summary} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+              <AnalysisSummary {...summary} />
+            </div>
+            <div className="md:col-span-1">
+              <AIAnalysis analysis={analysis} isLoading={isAnalyzing} />
+            </div>
+          </div>
           <PriceTable items={items} />
         </>
       )}

@@ -8,3 +8,10 @@ export interface PriceItem {
   difference: number;
   potentialImpact?: number;
 }
+
+export interface PriceAnalysis {
+  summary: string;
+  recommendations: string[];
+  riskAssessment: string;
+  opportunityInsights: string;
+}

@@ -1,6 +1,5 @@
-
 import * as XLSX from 'xlsx';
-import type { PriceItem } from '@/types/price';
+import type { PriceItem, AnomalyStats } from '@/types/price';
 
 export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
   return new Promise((resolve, reject) => {
@@ -13,9 +12,7 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        // Process the data and calculate differences
         const items: PriceItem[] = jsonData.map((row: any) => {
-          // Extract values with fallbacks for different column naming conventions
           const sku = row.SKU || row.Item_Code || row.ProductCode || '';
           const oldName = row.OldName || row.Current_Name || row.Name || row.Product_Name || '';
           const newName = row.NewName || row.Updated_Name || row.Name || row.Product_Name || '';
@@ -33,19 +30,16 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
 
           const difference = newPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
           
-          // Calculate margins if retail price is available
           const oldMargin = retailPrice > 0 ? ((retailPrice - oldPrice) / retailPrice) * 100 : undefined;
           const newMargin = retailPrice > 0 ? ((retailPrice - newPrice) / retailPrice) * 100 : undefined;
           const marginChange = oldMargin && newMargin ? newMargin - oldMargin : undefined;
 
-          // Determine status
           let status: PriceItem['status'] = 'unchanged';
           if (newPrice === 0 && oldPrice > 0) status = 'discontinued';
           else if (oldPrice === 0 && newPrice > 0) status = 'new';
           else if (newPrice > oldPrice) status = 'increased';
           else if (newPrice < oldPrice) status = 'decreased';
           
-          // Check for anomalies
           const anomalyType: string[] = [];
           if (oldName !== newName && oldName && newName) {
             anomalyType.push('name_change');
@@ -60,12 +54,10 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
             anomalyType.push('pack_size_change');
           }
           
-          // If there are anomalies and it's not a new product, mark as anomaly
           if (anomalyType.length > 0 && status !== 'new') {
             status = 'anomaly';
           }
 
-          // If this is an update, the SKU should match something
           const isMatched = sku.trim() !== '';
 
           return {

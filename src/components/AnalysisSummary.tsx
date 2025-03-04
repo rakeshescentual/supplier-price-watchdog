@@ -1,11 +1,13 @@
 
 import { Card } from "./ui/card";
-import { TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, FileSearch, PlusCircle } from "lucide-react";
 
 export const AnalysisSummary = ({
   increasedItems = 0,
   decreasedItems = 0,
   discontinuedItems = 0,
+  newItems = 0,
+  anomalyItems = 0,
   potentialSavings = 0,
   potentialLoss = 0,
 }) => {
@@ -18,7 +20,7 @@ export const AnalysisSummary = ({
         </div>
         <p className="text-2xl font-bold">{increasedItems}</p>
         <p className="text-sm text-muted-foreground">
-          Potential savings: ${potentialSavings.toLocaleString()}
+          Potential impact: ${potentialSavings.toLocaleString()}
         </p>
       </Card>
       
@@ -38,6 +40,25 @@ export const AnalysisSummary = ({
         <p className="text-2xl font-bold">{discontinuedItems}</p>
         <p className="text-sm text-muted-foreground">
           Potential revenue loss: ${potentialLoss.toLocaleString()}
+        </p>
+      </Card>
+
+      <Card className="p-6 space-y-2">
+        <div className="flex items-center gap-2">
+          <PlusCircle className="w-5 h-5 text-blue-500" />
+          <h3 className="font-medium">New Items</h3>
+        </div>
+        <p className="text-2xl font-bold">{newItems}</p>
+      </Card>
+      
+      <Card className="p-6 space-y-2">
+        <div className="flex items-center gap-2">
+          <FileSearch className="w-5 h-5 text-purple-500" />
+          <h3 className="font-medium">Data Anomalies</h3>
+        </div>
+        <p className="text-2xl font-bold">{anomalyItems}</p>
+        <p className="text-sm text-muted-foreground">
+          Require manual review
         </p>
       </Card>
     </div>

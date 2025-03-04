@@ -15,28 +15,86 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
 
         // Process the data and calculate differences
         const items: PriceItem[] = jsonData.map((row: any) => {
+          // Extract values with fallbacks for different column naming conventions
+          const sku = row.SKU || row.Item_Code || row.ProductCode || '';
+          const oldName = row.OldName || row.Current_Name || row.Name || row.Product_Name || '';
+          const newName = row.NewName || row.Updated_Name || row.Name || row.Product_Name || '';
           const oldPrice = parseFloat(row.OldPrice || row.Current_Price || 0);
           const newPrice = parseFloat(row.NewPrice || row.Updated_Price || 0);
-          const difference = ((newPrice - oldPrice) / oldPrice) * 100;
+          const oldSupplierCode = row.OldSupplierCode || row.Current_SupplierCode || row.SupplierCode || '';
+          const newSupplierCode = row.NewSupplierCode || row.Updated_SupplierCode || row.SupplierCode || '';
+          const oldBarcode = row.OldBarcode || row.Current_Barcode || row.Barcode || '';
+          const newBarcode = row.NewBarcode || row.Updated_Barcode || row.Barcode || '';
+          const oldPackSize = row.OldPackSize || row.Current_PackSize || row.PackSize || '';
+          const newPackSize = row.NewPackSize || row.Updated_PackSize || row.PackSize || '';
+          const oldCost = parseFloat(row.OldCost || row.Current_Cost || row.Cost || 0);
+          const newCost = parseFloat(row.NewCost || row.Updated_Cost || row.Cost || 0);
+          const retailPrice = parseFloat(row.RetailPrice || row.Retail_Price || 0);
 
+          const difference = newPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
+          
+          // Calculate margins if retail price is available
+          const oldMargin = retailPrice > 0 ? ((retailPrice - oldPrice) / retailPrice) * 100 : undefined;
+          const newMargin = retailPrice > 0 ? ((retailPrice - newPrice) / retailPrice) * 100 : undefined;
+          const marginChange = oldMargin && newMargin ? newMargin - oldMargin : undefined;
+
+          // Determine status
           let status: PriceItem['status'] = 'unchanged';
-          if (newPrice === 0) status = 'discontinued';
+          if (newPrice === 0 && oldPrice > 0) status = 'discontinued';
+          else if (oldPrice === 0 && newPrice > 0) status = 'new';
           else if (newPrice > oldPrice) status = 'increased';
           else if (newPrice < oldPrice) status = 'decreased';
+          
+          // Check for anomalies
+          const anomalyType: string[] = [];
+          if (oldName !== newName && oldName && newName) {
+            anomalyType.push('name_change');
+          }
+          if (oldSupplierCode !== newSupplierCode && oldSupplierCode && newSupplierCode) {
+            anomalyType.push('supplier_code_change');
+          }
+          if (oldBarcode !== newBarcode && oldBarcode && newBarcode) {
+            anomalyType.push('barcode_change');
+          }
+          if (oldPackSize !== newPackSize && oldPackSize && newPackSize) {
+            anomalyType.push('pack_size_change');
+          }
+          
+          // If there are anomalies and it's not a new product, mark as anomaly
+          if (anomalyType.length > 0 && status !== 'new') {
+            status = 'anomaly';
+          }
+
+          // If this is an update, the SKU should match something
+          const isMatched = sku.trim() !== '';
 
           return {
-            sku: row.SKU || row.Item_Code || '',
-            name: row.Name || row.Product_Name || '',
+            sku,
+            name: newName || oldName,
             oldPrice,
             newPrice,
             status,
             difference,
             potentialImpact: status === 'discontinued' ? -(oldPrice * 12) : (oldPrice - newPrice) * 12,
+            oldSupplierCode,
+            newSupplierCode,
+            oldBarcode,
+            newBarcode,
+            oldPackSize,
+            newPackSize,
+            oldTitle: oldName,
+            newTitle: newName,
+            oldMargin,
+            newMargin,
+            marginChange,
+            anomalyType: anomalyType.length > 0 ? anomalyType : undefined,
+            isMatched
           };
         });
 
         resolve(items);
       } catch (error) {
+        console.error("Error processing Excel file:", error);
         reject(error);
       }
     };
@@ -47,4 +105,17 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
 
     reader.readAsArrayBuffer(file);
   });
+};
+
+export const getAnomalyStats = (items: PriceItem[]): AnomalyStats => {
+  const anomalies = items.filter(item => item.status === 'anomaly');
+  
+  return {
+    totalAnomalies: anomalies.length,
+    nameChanges: anomalies.filter(item => item.anomalyType?.includes('name_change')).length,
+    supplierCodeChanges: anomalies.filter(item => item.anomalyType?.includes('supplier_code_change')).length,
+    barcodeChanges: anomalies.filter(item => item.anomalyType?.includes('barcode_change')).length,
+    packSizeChanges: anomalies.filter(item => item.anomalyType?.includes('pack_size_change')).length,
+    unmatched: items.filter(item => !item.isMatched).length
+  };
 };

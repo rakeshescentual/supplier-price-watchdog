@@ -4,7 +4,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
 import { AIAnalysis } from "@/components/AIAnalysis";
-import { processExcelFile } from "@/lib/excel";
+import { processExcelFile, getAnomalyStats } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis } from "@/types/price";
@@ -64,11 +64,15 @@ const Index = () => {
     const increased = items.filter(item => item.status === 'increased');
     const decreased = items.filter(item => item.status === 'decreased');
     const discontinued = items.filter(item => item.status === 'discontinued');
+    const newItems = items.filter(item => item.status === 'new');
+    const anomalies = items.filter(item => item.status === 'anomaly');
 
     return {
       increasedItems: increased.length,
       decreasedItems: decreased.length,
       discontinuedItems: discontinued.length,
+      newItems: newItems.length,
+      anomalyItems: anomalies.length,
       potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
       potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
     };

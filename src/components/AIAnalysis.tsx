@@ -1,7 +1,7 @@
 
 import { Card } from "./ui/card";
 import { PriceAnalysis } from "@/types/price";
-import { BadgeCheck, Brain, TrendingUp, ShieldAlert } from "lucide-react";
+import { BadgeCheck, Brain, TrendingUp, ShieldAlert, AlertCircle, Percent } from "lucide-react";
 
 interface AIAnalysisProps {
   analysis: PriceAnalysis | null;
@@ -73,6 +73,31 @@ export const AIAnalysis = ({ analysis, isLoading }: AIAnalysisProps) => {
             <h4 className="font-medium">Opportunity Insights</h4>
           </div>
           <p className="text-sm text-muted-foreground">{analysis.opportunityInsights}</p>
+        </div>
+
+        {analysis.anomalies.count > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-purple-500" />
+              <h4 className="font-medium">Data Anomalies</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">{analysis.anomalies.description}</p>
+            {analysis.anomalies.types.length > 0 && (
+              <ul className="list-disc list-inside text-xs text-muted-foreground mt-1 pl-1">
+                {analysis.anomalies.types.map((type, i) => (
+                  <li key={i}>{type}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Percent className="w-4 h-4 text-orange-500" />
+            <h4 className="font-medium">Margin Impact</h4>
+          </div>
+          <p className="text-sm text-muted-foreground">{analysis.marginImpact}</p>
         </div>
       </div>
     </Card>

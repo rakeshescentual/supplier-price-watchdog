@@ -1,4 +1,3 @@
-
 import type { PriceItem, ShopifyContext } from '@/types/price';
 import { shopifyCache } from './api-cache';
 
@@ -169,7 +168,39 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
   }
 };
 
-// Enrich data with market information using search
+/**
+ * Enterprise-specific features for Shopify Plus via Gadget
+ */
+export const getShopifyPlusFeatures = async (context: ShopifyContext): Promise<any> => {
+  try {
+    const client = initGadgetClient();
+    if (!client) {
+      throw new Error("Gadget client not initialized");
+    }
+
+    console.log("Fetching Shopify Plus features via Gadget...");
+    
+    // In a real implementation, this would query Gadget for Shopify Plus specific features
+    // Such as multi-location inventory, B2B functionality, etc.
+    
+    // For now, return mock data
+    return {
+      multiLocationInventory: true,
+      b2bFunctionality: true,
+      automatedDiscounts: true,
+      scriptsEnabled: true,
+      flowsEnabled: true,
+      enterpriseAppsConnected: ['ERP System', 'Warehouse Management', 'Advanced Analytics']
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify Plus features:", error);
+    throw error;
+  }
+};
+
+/**
+ * Enrich data with market information using search
+ */
 export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
   try {
     const client = initGadgetClient();
@@ -250,8 +281,22 @@ export const getMarketTrends = async (category: string): Promise<any> => {
 export const performBatchOperations = async <T, R>(
   items: T[],
   processFn: (item: T) => Promise<R>,
-  batchSize = 50
+  options: {
+    batchSize?: number;
+    concurrency?: number;
+    retryCount?: number;
+    retryDelay?: number;
+    onProgress?: (processed: number, total: number) => void;
+  } = {}
 ): Promise<R[]> => {
+  const {
+    batchSize = 50,
+    concurrency = 1,
+    retryCount = 3,
+    retryDelay = 1000,
+    onProgress
+  } = options;
+  
   const results: R[] = [];
   const batches = [];
   
@@ -260,10 +305,56 @@ export const performBatchOperations = async <T, R>(
     batches.push(items.slice(i, i + batchSize));
   }
   
-  // Process batches sequentially to avoid rate limiting
-  for (const batch of batches) {
-    const batchResults = await Promise.all(batch.map(processFn));
-    results.push(...batchResults);
+  // Process batches with configurable concurrency
+  let processedCount = 0;
+  const totalItems = items.length;
+  
+  // For serial processing (concurrency = 1)
+  if (concurrency === 1) {
+    for (const batch of batches) {
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          let attempts = 0;
+          let lastError;
+          
+          // Implement retry logic
+          while (attempts < retryCount) {
+            try {
+              const result = await processFn(item);
+              processedCount++;
+              if (onProgress) onProgress(processedCount, totalItems);
+              return result;
+            } catch (error) {
+              lastError = error;
+              attempts++;
+              if (attempts < retryCount) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+              }
+            }
+          }
+          
+          throw lastError; // All attempts failed
+        })
+      ).catch(error => {
+        console.error("Batch processing error:", error);
+        throw error;
+      });
+      
+      results.push(...batchResults);
+    }
+  } else {
+    // Parallel processing with controlled concurrency
+    // Implementation would use a library like p-limit for production
+    // This is just a simplified example
+    console.log(`Processing with concurrency of ${concurrency} not implemented in this preview`);
+    
+    // For non-concurrent processing as fallback
+    for (const batch of batches) {
+      const batchResults = await Promise.all(batch.map(processFn));
+      processedCount += batch.length;
+      if (onProgress) onProgress(processedCount, totalItems);
+      results.push(...batchResults);
+    }
   }
   
   return results;

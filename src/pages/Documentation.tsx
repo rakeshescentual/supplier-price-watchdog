@@ -1,14 +1,28 @@
 
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import gadgetIntegrationGuide from '../assets/docs/Gadget_Integration_Guide.md?raw';
 import technicalDocumentation from '../assets/docs/TechnicalDocumentation.md?raw';
 
 const Documentation = () => {
   const [activeTab, setActiveTab] = useState<string>("technical");
+
+  const handleDownload = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -37,6 +51,17 @@ const Documentation = () => {
                 </div>
               </ScrollArea>
             </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => handleDownload(technicalDocumentation, 'TechnicalDocumentation.md')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Documentation
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         
@@ -57,6 +82,17 @@ const Documentation = () => {
                 </div>
               </ScrollArea>
             </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => handleDownload(gadgetIntegrationGuide, 'GadgetIntegrationGuide.md')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Guide
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

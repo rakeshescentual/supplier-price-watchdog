@@ -37,10 +37,12 @@ export const MarketInsights = () => {
   // Get most common categories from items for suggestions
   const getCategories = () => {
     const categories = items
-      .map(item => item.category)
+      .map(item => item.category || "")
       .filter(Boolean)
       .reduce((acc: Record<string, number>, cat: string) => {
-        acc[cat] = (acc[cat] || 0) + 1;
+        if (cat) {
+          acc[cat] = (acc[cat] || 0) + 1;
+        }
         return acc;
       }, {});
     

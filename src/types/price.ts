@@ -1,4 +1,3 @@
-
 export interface PriceItem {
   sku: string;
   name: string;
@@ -32,6 +31,15 @@ export interface PriceItem {
   historicalSales?: number;
   lastOrderDate?: string;
   vendor?: string;
+  // Market data fields
+  marketData?: {
+    pricePosition: 'low' | 'average' | 'high';
+    competitorPrices?: number[];
+    averagePrice?: number;
+    minPrice?: number;
+    maxPrice?: number;
+  };
+  category?: string;
 }
 
 export interface PriceAnalysis {

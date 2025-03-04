@@ -69,24 +69,31 @@ export const syncWithShopify = async (shopifyContext: ShopifyContext, items: Pri
     }
     
     // In a real implementation, this would update prices in Shopify via the Admin API
+    // For Shopify Plus features, we would use bulk operations and GraphQL
+    
     // Example:
-    // for (const item of items) {
-    //   if (item.variantId) {
-    //     const response = await fetch(`https://${shopifyContext.shop}/admin/api/2022-04/variants/${item.variantId}.json`, {
-    //       method: 'PUT',
-    //       headers: {
-    //         'Content-Type': 'application/json',
-    //         'X-Shopify-Access-Token': shopifyContext.accessToken
-    //       },
-    //       body: JSON.stringify({
-    //         variant: {
-    //           id: item.variantId,
-    //           price: item.newPrice.toString()
-    //         }
-    //       })
-    //     });
+    // const bulkOperationMutation = `
+    //   mutation {
+    //     bulkOperationRunMutation(
+    //       mutation: "mutation productVariantUpdate($input: ProductVariantInput!) { productVariantUpdate(input: $input) { productVariant { id price } userErrors { field message } } }",
+    //       stagedUploadPath: "${stagedUploadPath}"
+    //     ) {
+    //       bulkOperation {
+    //         id
+    //         status
+    //       }
+    //       userErrors {
+    //         field
+    //         message
+    //       }
+    //     }
     //   }
-    // }
+    // `;
+    
+    // Save uploaded file data to Shopify
+    // In a real implementation, this would save the uploaded file to Shopify's file storage
+    // Using Shopify's file API endpoints
+    console.log("Saving uploaded file to Shopify storage...");
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -95,5 +102,45 @@ export const syncWithShopify = async (shopifyContext: ShopifyContext, items: Pri
   } catch (error) {
     console.error("Error syncing with Shopify:", error);
     return false;
+  }
+};
+
+// Save file to Shopify
+export const saveFileToShopify = async (shopifyContext: ShopifyContext, file: File): Promise<string | null> => {
+  try {
+    console.log(`Saving file ${file.name} to Shopify store: ${shopifyContext.shop}`);
+    
+    // In a real implementation, this would use the Shopify Files API to upload the file
+    // Example:
+    // 1. Create a staged upload
+    // 2. Upload the file to the provided URL
+    // 3. Complete the upload by associating it with a resource
+    
+    // For a simplified demo:
+    // const formData = new FormData();
+    // formData.append('file', file);
+    // 
+    // const response = await fetch(`https://${shopifyContext.shop}/admin/api/2022-04/files.json`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'X-Shopify-Access-Token': shopifyContext.accessToken,
+    //   },
+    //   body: formData
+    // });
+    // 
+    // const data = await response.json();
+    // return data.file.url;
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Return a mock file URL
+    return `https://${shopifyContext.shop}/cdn/files/uploads/${file.name}`;
+  } catch (error) {
+    console.error("Error saving file to Shopify:", error);
+    toast.error("File upload failed", {
+      description: "Could not save the file to Shopify. Please try again.",
+    });
+    return null;
   }
 };

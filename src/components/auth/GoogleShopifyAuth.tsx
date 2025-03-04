@@ -1,40 +1,59 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useShopify } from "@/contexts/ShopifyContext";
 import { AlertCircle, LogIn, ShoppingBag, LogOut } from "lucide-react";
+import { initGoogleWorkspace, isGoogleSignedIn, signInToGoogle, signOutFromGoogle } from "@/lib/googleWorkspaceApi";
 
 export const GoogleShopifyAuth = () => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const { isShopifyConnected } = useShopify();
+  const { isShopifyConnected, shopifyContext } = useShopify();
+  
+  useEffect(() => {
+    // Initialize Google Workspace API
+    initGoogleWorkspace();
+    
+    // Check if already signed in
+    const googleSignedIn = isGoogleSignedIn();
+    setIsSignedIn(googleSignedIn);
+    
+    if (googleSignedIn) {
+      // In a real implementation, this would get the user's email
+      // For now, use a mock email
+      setUserEmail("user@gmail.com");
+    }
+    
+    // If connected to Shopify, set the store email
+    if (isShopifyConnected && shopifyContext) {
+      // In a real implementation, this would get the store email from Shopify
+      // For now, use the shop domain
+      if (!userEmail) {
+        const email = `store@${shopifyContext.shop.replace('.myshopify.com', '')}`;
+        setUserEmail(email);
+      }
+    }
+  }, [isShopifyConnected, shopifyContext, userEmail]);
   
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
     
     try {
-      // In a real implementation, this would:
-      // 1. Initialize Google OAuth
-      // 2. Redirect to Google sign-in page
-      // 3. Handle the OAuth callback
-      // 4. Store the authentication token
+      const success = await signInToGoogle();
       
-      // For this demo, we'll simulate the API call
-      console.log("Initiating Google sign-in...");
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate successful sign-in
-      setIsSignedIn(true);
-      setUserEmail("user@gmail.com");
-      
-      toast.success("Signed in with Google", {
-        description: "You are now signed in with your Google account.",
-      });
+      if (success) {
+        setIsSignedIn(true);
+        setUserEmail("user@gmail.com");
+        
+        toast.success("Signed in with Google", {
+          description: "You are now signed in with your Google account.",
+        });
+      } else {
+        throw new Error("Google sign-in failed");
+      }
     } catch (error) {
       console.error("Error signing in with Google:", error);
       toast.error("Sign-in failed", {
@@ -49,12 +68,11 @@ export const GoogleShopifyAuth = () => {
     setIsSigningIn(true);
     
     try {
-      // In a real implementation, this would:
-      // 1. Redirect to Shopify OAuth flow
-      // 2. Handle the OAuth callback
-      // 3. Store the authentication token
+      if (!isShopifyConnected || !shopifyContext) {
+        throw new Error("Shopify not connected");
+      }
       
-      // For this demo, we'll simulate the API call
+      // In a real implementation, this would authenticate with Shopify OAuth
       console.log("Initiating Shopify sign-in...");
       
       // Simulate API call delay
@@ -62,7 +80,8 @@ export const GoogleShopifyAuth = () => {
       
       // Simulate successful sign-in
       setIsSignedIn(true);
-      setUserEmail("store@myshopify.com");
+      const email = `store@${shopifyContext.shop.replace('.myshopify.com', '')}`;
+      setUserEmail(email);
       
       toast.success("Signed in with Shopify", {
         description: "You are now signed in with your Shopify account.",
@@ -77,15 +96,22 @@ export const GoogleShopifyAuth = () => {
     }
   };
   
-  const handleSignOut = () => {
-    // In a real implementation, this would clear the auth tokens
-    
-    setIsSignedIn(false);
-    setUserEmail(null);
-    
-    toast.success("Signed out", {
-      description: "You have been signed out successfully.",
-    });
+  const handleSignOut = async () => {
+    try {
+      await signOutFromGoogle();
+      
+      setIsSignedIn(false);
+      setUserEmail(null);
+      
+      toast.success("Signed out", {
+        description: "You have been signed out successfully.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Sign-out failed", {
+        description: "There was an error signing out. Please try again.",
+      });
+    }
   };
   
   return (

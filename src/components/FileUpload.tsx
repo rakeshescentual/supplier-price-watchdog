@@ -1,11 +1,13 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileUp, FileText, Share, Check } from "lucide-react";
 import { Card } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { useShopify } from "@/contexts/ShopifyContext";
+import { saveFileToShopify } from "@/lib/shopifyApi";
 
 export const FileUpload = ({ 
   onFileAccepted,
@@ -23,8 +25,10 @@ export const FileUpload = ({
   const [fileType, setFileType] = useState<"excel" | "pdf" | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [shopifyFileUrl, setShopifyFileUrl] = useState<string | null>(null);
+  const { shopifyContext, isShopifyConnected } = useShopify();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       setUploadProgress(0);
@@ -38,20 +42,68 @@ export const FileUpload = ({
         setFileType("excel");
       }
       
-      // Simulate upload progress
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setUploadComplete(true);
-            onFileAccepted(file);
-            return 100;
+      // Upload to Shopify if connected
+      if (isShopifyConnected && shopifyContext) {
+        try {
+          // Start upload progress simulation
+          const progressInterval = setInterval(() => {
+            setUploadProgress((prev) => {
+              if (prev >= 80) {
+                clearInterval(progressInterval);
+                return 80;
+              }
+              return prev + 5;
+            });
+          }, 100);
+          
+          // Save file to Shopify
+          const fileUrl = await saveFileToShopify(shopifyContext, file);
+          
+          // Update progress to complete
+          clearInterval(progressInterval);
+          setUploadProgress(100);
+          setUploadComplete(true);
+          
+          if (fileUrl) {
+            setShopifyFileUrl(fileUrl);
+            toast.success("File uploaded to Shopify", {
+              description: "The file was successfully saved to your Shopify store.",
+            });
           }
-          return prev + 10;
-        });
-      }, 100);
+          
+          // Continue with analysis
+          onFileAccepted(file);
+        } catch (error) {
+          console.error("Error uploading file to Shopify:", error);
+          toast.error("Error uploading to Shopify", {
+            description: "The file will be processed locally only.",
+          });
+          
+          // Simulate upload progress for local processing
+          simulateLocalProgress();
+          onFileAccepted(file);
+        }
+      } else {
+        // Not connected to Shopify, process locally only
+        simulateLocalProgress();
+        onFileAccepted(file);
+      }
     }
-  }, [onFileAccepted]);
+  }, [onFileAccepted, isShopifyConnected, shopifyContext]);
+
+  const simulateLocalProgress = () => {
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setUploadComplete(true);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 100);
+  };
 
   const { getRootProps, getInputProps, open } = useDropzone({
     onDrop,
@@ -119,6 +171,9 @@ export const FileUpload = ({
             <>
               <h3 className="text-lg font-semibold">Upload complete</h3>
               <p className="text-sm text-muted-foreground">{fileName}</p>
+              {shopifyFileUrl && (
+                <p className="text-xs text-green-600 mt-1">Saved to Shopify</p>
+              )}
               <p className="text-xs text-muted-foreground mt-2">Click or drag to upload another file</p>
             </>
           ) : (
@@ -127,6 +182,9 @@ export const FileUpload = ({
               <p className="text-sm text-muted-foreground">
                 or click to select file (.xlsx, .xls, .pdf)
               </p>
+              {isShopifyConnected && (
+                <p className="text-xs text-green-600 mt-1">Files will be saved to your Shopify store</p>
+              )}
             </>
           )}
         </div>
@@ -135,6 +193,7 @@ export const FileUpload = ({
             <Progress value={uploadProgress} className="h-2" />
             <p className="text-xs text-center text-muted-foreground mt-1">
               Uploading{fileName ? ` ${fileName}` : ''}...
+              {isShopifyConnected && uploadProgress < 90 && " to Shopify"}
             </p>
           </div>
         )}

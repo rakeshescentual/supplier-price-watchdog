@@ -8,9 +8,7 @@ import {
   TrendingUp, 
   Globe, 
   Search, 
-  ShoppingBag,
   AlertCircle, 
-  ArrowUpDown, 
   BarChart4, 
   RefreshCw 
 } from "lucide-react";
@@ -20,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const MarketInsights = () => {
   const { 
@@ -32,17 +31,18 @@ export const MarketInsights = () => {
   } = useFileAnalysis();
   
   const [category, setCategory] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
   const hasMarketData = items.some(item => item.marketData !== undefined);
 
   // Get most common categories from items for suggestions
   const getCategories = () => {
+    if (items.length === 0) return [];
+    
     const categories = items
       .map(item => item.category || "")
       .filter(Boolean)
       .reduce((acc: Record<string, number>, cat: string) => {
-        if (cat) {
-          acc[cat] = (acc[cat] || 0) + 1;
-        }
+        acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       }, {});
     
@@ -54,9 +54,25 @@ export const MarketInsights = () => {
 
   const popularCategories = getCategories();
   
-  const handleFetchTrends = () => {
-    if (category) {
-      fetchCategoryTrends(category);
+  const handleFetchTrends = async () => {
+    if (!category) return;
+    
+    setError(null);
+    try {
+      await fetchCategoryTrends(category);
+    } catch (err) {
+      setError("Failed to fetch trends. Please try again.");
+      console.error("Error fetching trends:", err);
+    }
+  };
+
+  const handleEnrichData = async () => {
+    setError(null);
+    try {
+      await enrichDataWithMarketInfo();
+    } catch (err) {
+      setError("Failed to enrich data. Please try again.");
+      console.error("Error enriching data:", err);
     }
   };
 
@@ -66,6 +82,13 @@ export const MarketInsights = () => {
         <Globe className="w-5 h-5 text-primary" />
         <h3 className="font-medium">Market Insights</h3>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex items-center">
+          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+          <p>{error}</p>
+        </div>
+      )}
 
       {/* Web enrichment section */}
       <div className="mb-6">
@@ -79,7 +102,7 @@ export const MarketInsights = () => {
         </p>
         
         <Button 
-          onClick={enrichDataWithMarketInfo} 
+          onClick={handleEnrichData} 
           disabled={isEnrichingData || items.length === 0}
           variant="outline"
           size="sm"
@@ -181,7 +204,15 @@ export const MarketInsights = () => {
           </div>
         )}
         
-        {marketTrends && (
+        {isFetchingTrends && (
+          <div className="space-y-2 mt-4">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        )}
+        
+        {marketTrends && !isFetchingTrends && (
           <div className="p-3 rounded-md bg-muted/40 mt-2">
             <div className="flex items-center gap-2 text-sm font-medium mb-2">
               <BarChart4 className="w-4 h-4" /> 

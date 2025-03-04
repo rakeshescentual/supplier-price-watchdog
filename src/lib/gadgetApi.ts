@@ -1,3 +1,4 @@
+
 import type { ShopifyContext, PriceItem } from '@/types/price';
 
 // Gadget.dev API integration for Shopify app
@@ -6,6 +7,29 @@ export interface GadgetConfig {
   appId: string;
   environment: 'development' | 'production';
 }
+
+// Simple memory cache for API requests
+const apiCache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Helper to retrieve from cache
+const getFromCache = (key: string) => {
+  const cached = apiCache.get(key);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (now - cached.timestamp > CACHE_TTL) {
+    apiCache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+};
+
+// Helper to store in cache
+const storeInCache = (key: string, data: any) => {
+  apiCache.set(key, { data, timestamp: Date.now() });
+};
 
 /**
  * Initialize Gadget client with proper configuration
@@ -38,18 +62,25 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
   try {
     console.log('Authenticating with Shopify via Gadget.dev for shop:', shop);
     
-    // In a real implementation, this would use Gadget's connection APIs
-    // Following Gadget.dev tutorial approach:
-    // const shopifyConnection = await gadgetClient.shopifyConnection.get();
-    // const { accessToken, shop } = shopifyConnection;
-    // return { shop, token: accessToken, isOnline: true };
+    // Check cache first
+    const cacheKey = `shopify_auth_${shop}`;
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      console.log('Using cached authentication for shop:', shop);
+      return cached;
+    }
     
     // Mock implementation for development
-    return {
+    const authData = {
       shop,
       token: 'gadget-managed-token',
       isOnline: true
     };
+    
+    // Cache the result
+    storeInCache(cacheKey, authData);
+    
+    return authData;
   } catch (error) {
     console.error('Error authenticating with Shopify via Gadget:', error);
     return null;
@@ -61,47 +92,31 @@ export const authenticateWithShopify = async (shop: string): Promise<ShopifyCont
  * Uses Gadget's data APIs with cursor-based pagination
  */
 export const fetchShopifyProducts = async (context: ShopifyContext) => {
+  const cacheKey = `shopify_products_${context.shop}`;
+  
   try {
     console.log('Fetching Shopify products via Gadget.dev for shop:', context.shop);
     
+    // Check cache first
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      console.log('Using cached products for shop:', context.shop);
+      return cached;
+    }
+    
     // In a real implementation, this would use Gadget's data APIs with proper pagination
-    // Following Gadget.dev's recommended patterns:
-    // const products = [];
-    // let hasNextPage = true;
-    // let cursor = null;
-    // 
-    // while (hasNextPage) {
-    //   const result = await gadgetClient.product.findMany({
-    //     first: 100,
-    //     after: cursor,
-    //     sort: { createdAt: "DESC" },
-    //     select: {
-    //       id: true,
-    //       title: true,
-    //       variants: {
-    //         edges: {
-    //           node: {
-    //             id: true,
-    //             price: true,
-    //             inventory: {
-    //               available: true
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   });
-    //   
-    //   products.push(...result.nodes);
-    //   hasNextPage = result.pageInfo.hasNextPage;
-    //   cursor = result.pageInfo.endCursor;
-    // }
+    // Following Gadget.dev's recommended patterns with cursor-based pagination
     
     // Mock implementation for development
-    return [];
+    const products: any[] = [];
+    
+    // Cache the result
+    storeInCache(cacheKey, products);
+    
+    return products;
   } catch (error) {
     console.error('Error fetching products via Gadget:', error);
-    throw error;
+    throw new Error(`Failed to fetch products: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -114,21 +129,12 @@ export const syncShopifyData = async (context: ShopifyContext) => {
     console.log('Syncing data between Shopify and our app via Gadget.dev');
     
     // In a real implementation, this would use Gadget's action API
-    // Following Gadget.dev's recommended approach:
-    // const syncAction = await gadgetClient.mutate({
-    //   syncShopifyProducts: {
-    //     __args: {
-    //       shopId: context.shop
-    //     },
-    //     success: true,
-    //     jobId: true
-    //   }
-    // });
+    // Following Gadget.dev's recommended approach for background jobs
     
     return { success: true, message: 'Data sync initiated' };
   } catch (error) {
     console.error('Error syncing data via Gadget:', error);
-    throw error;
+    throw new Error(`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -140,47 +146,26 @@ export const processPdfWithGadget = async (file: File): Promise<any> => {
   console.log('Processing PDF file with Gadget.dev');
   
   // In a real implementation, this would use Gadget's file storage and processing
-  // As recommended in the Gadget.dev docs:
-  // const formData = new FormData();
-  // formData.append('file', file);
-  // 
-  // // First, upload the file to Gadget storage
-  // const uploadResult = await fetch(`https://${appId}.gadget.app/api/files`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${apiKey}`
-  //   },
-  //   body: formData
-  // });
-  // 
-  // const { fileId } = await uploadResult.json();
-  // 
-  // // Then, start processing with the file ID
-  // const processingResult = await gadgetClient.mutate({
-  //   processPriceListFile: {
-  //     __args: {
-  //       fileId
-  //     },
-  //     success: true,
-  //     items: {
-  //       id: true,
-  //       name: true,
-  //       sku: true,
-  //       originalPrice: true,
-  //       newPrice: true
-  //     }
-  //   }
-  // });
+  // with proper progress tracking and error handling
   
   // Mock implementation for development
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // Simulate API processing time with some random variation
+    const processingTime = 1000 + Math.random() * 1000;
+    
     setTimeout(() => {
+      // Randomly simulate errors for testing (10% chance)
+      if (Math.random() < 0.1) {
+        reject(new Error('PDF processing failed - simulated error'));
+        return;
+      }
+      
       resolve({ 
         success: true, 
         message: 'PDF processed successfully',
         items: [] // This would contain extracted data in a real implementation
       });
-    }, 2000);
+    }, processingTime);
   });
 };
 
@@ -191,51 +176,21 @@ export const processPdfWithGadget = async (file: File): Promise<any> => {
 export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
   console.log('Enriching price data with web search results via Gadget.dev');
   
-  // In a real implementation, this would:
-  // 1. Use Gadget's Actions to orchestrate web searches
-  // 2. Leverage external API connections configured in Gadget
-  // 3. Process and merge results with original data
-  //
-  // Following Gadget.dev's recommended approach:
-  // const enrichedItems = [];
-  // 
-  // for (const batchItems of chunk(items, 10)) { // Process in batches
-  //   const result = await gadgetClient.mutate({
-  //     enrichPriceItems: {
-  //       __args: {
-  //         items: batchItems.map(item => ({
-  //           id: item.id,
-  //           name: item.name,
-  //           sku: item.sku
-  //         }))
-  //       },
-  //       items: {
-  //         id: true,
-  //         marketData: {
-  //           averagePrice: true,
-  //           priceRange: true,
-  //           competitorPrices: true,
-  //           trendData: true
-  //         }
-  //       }
-  //     }
-  //   });
-  //   
-  //   // Merge enriched data with original items
-  //   const mergedItems = batchItems.map(item => {
-  //     const enrichedItem = result.enrichPriceItems.items.find(i => i.id === item.id);
-  //     return {
-  //       ...item,
-  //       marketData: enrichedItem?.marketData
-  //     };
-  //   });
-  //   
-  //   enrichedItems.push(...mergedItems);
-  // }
+  // In a real implementation, this would use Gadget's Actions with proper
+  // batching, retries, and error handling
   
   // Mock implementation for development
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // Simulate processing delay with some randomness
+    const processingTime = 1000 + (items.length * 50) + (Math.random() * 1000);
+    
     setTimeout(() => {
+      // Simulate occasional errors (5% chance)
+      if (Math.random() < 0.05) {
+        reject(new Error('Market data enrichment failed - simulated error'));
+        return;
+      }
+      
       // Simulate enriched data by adding market information to items
       const enrichedItems = items.map(item => ({
         ...item,
@@ -250,8 +205,9 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
         },
         category: item.category || ['Electronics', 'Clothing', 'Food', 'Home', 'Beauty'][Math.floor(Math.random() * 5)]
       }));
+      
       resolve(enrichedItems);
-    }, 2000);
+    }, processingTime);
   });
 };
 
@@ -260,37 +216,36 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
  * Leverages Gadget's Actions API for external data processing
  */
 export const getMarketTrends = async (category: string): Promise<any> => {
+  if (!category || category.trim() === '') {
+    throw new Error('Category is required');
+  }
+  
+  const cacheKey = `market_trends_${category.toLowerCase()}`;
+  
+  // Check cache first
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    console.log(`Using cached market trends for category: ${category}`);
+    return cached;
+  }
+  
   console.log(`Getting market trends for category "${category}" via Gadget.dev`);
   
-  // In a real implementation, this would:
-  // 1. Use Gadget's Actions to perform structured web searches
-  // 2. Aggregate results from multiple sources
-  // 3. Extract and normalize trend data
-  //
-  // Following Gadget.dev's recommended approach:
-  // const result = await gadgetClient.mutate({
-  //   getMarketTrends: {
-  //     __args: {
-  //       category
-  //     },
-  //     trends: {
-  //       direction: true,
-  //       percentageChange: true,
-  //       timeframe: true,
-  //       sources: true
-  //     },
-  //     relatedProducts: {
-  //       name: true,
-  //       trending: true,
-  //       growth: true
-  //     }
-  //   }
-  // });
+  // In a real implementation, this would make API calls with proper retries and error handling
   
   // Mock implementation for development
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // Simulate API call delay with some randomness
+    const processingTime = 800 + Math.random() * 700;
+    
     setTimeout(() => {
-      resolve({
+      // Simulate occasional errors (5% chance)
+      if (Math.random() < 0.05) {
+        reject(new Error('Market trends fetch failed - simulated error'));
+        return;
+      }
+      
+      const trends = {
         trends: {
           direction: Math.random() > 0.5 ? 'up' : 'down',
           percentageChange: (Math.random() * 15).toFixed(2),
@@ -309,7 +264,12 @@ export const getMarketTrends = async (category: string): Promise<any> => {
             growth: (Math.random() * 20 - 10).toFixed(2)
           }
         ]
-      });
-    }, 1500);
+      };
+      
+      // Store in cache
+      storeInCache(cacheKey, trends);
+      
+      resolve(trends);
+    }, processingTime);
   });
 };

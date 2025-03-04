@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+
+import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
-import { enrichDataWithSearch, getMarketTrends } from "@/lib/gadgetApi";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis } from "@/types/price";
 import { useShopify } from "./ShopifyContext";
+import { useMarketData } from "@/hooks/useMarketData";
 
 interface FileAnalysisProviderProps {
   children: ReactNode;
@@ -56,11 +57,17 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isEnrichingData, setIsEnrichingData] = useState(false);
-  const [marketTrends, setMarketTrends] = useState<any | null>(null);
-  const [isFetchingTrends, setIsFetchingTrends] = useState(false);
   
   const { isShopifyConnected, loadShopifyData } = useShopify();
+
+  // Use our new market data hook
+  const { 
+    isEnrichingData, 
+    isFetchingTrends, 
+    marketTrends,
+    enrichDataWithMarketInfo,
+    fetchCategoryTrends
+  } = useMarketData(items, setItems, analyzeData);
 
   const handleFileAccepted = async (acceptedFile: File) => {
     setFile(acceptedFile);
@@ -83,6 +90,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
           
           analyzeData(mergedItems);
         } catch (shopifyError) {
+          console.error("Shopify data loading error:", shopifyError);
           toast.error("Error loading Shopify data", {
             description: "Using uploaded data only for analysis.",
           });
@@ -100,6 +108,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
         analyzeData(processedItems);
       }
     } catch (error) {
+      console.error("File processing error:", error);
       toast.error("Error processing file", {
         description: "Please check the file format and try again.",
       });
@@ -108,7 +117,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     }
   };
 
-  const analyzeData = async (data: PriceItem[]) => {
+  const analyzeData = useCallback(async (data: PriceItem[]) => {
     if (data.length === 0) return;
     
     setIsAnalyzing(true);
@@ -119,17 +128,26 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       toast.success("AI analysis complete", {
         description: "Insights and recommendations are ready.",
       });
+      
+      return result;
     } catch (error) {
+      console.error("AI analysis error:", error);
       toast.error("Error generating AI analysis", {
         description: "Please try again later.",
       });
+      throw error;
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, []);
 
-  const exportForShopify = () => {
-    if (items.length === 0) return;
+  const exportForShopify = useCallback(() => {
+    if (items.length === 0) {
+      toast.error("No data to export", {
+        description: "Please upload and process a price list first.",
+      });
+      return;
+    }
     
     try {
       const shopifyData = exportToShopifyFormat(items);
@@ -141,61 +159,20 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up
       
       toast.success("Export complete", {
         description: "Shopify-compatible price list has been downloaded.",
       });
     } catch (error) {
+      console.error("Export error:", error);
       toast.error("Error exporting data", {
         description: "Please try again later.",
       });
     }
-  };
+  }, [items]);
 
-  const enrichDataWithMarketInfo = async () => {
-    if (items.length === 0) return;
-    
-    setIsEnrichingData(true);
-    try {
-      const enrichedItems = await enrichDataWithSearch(items);
-      setItems(enrichedItems);
-      
-      toast.success("Market data enrichment complete", {
-        description: "Items have been enriched with market insights.",
-      });
-      
-      // Update analysis with new data
-      if (enrichedItems.length > 0) {
-        analyzeData(enrichedItems);
-      }
-    } catch (error) {
-      toast.error("Error enriching data", {
-        description: "Could not fetch market data. Please try again later.",
-      });
-    } finally {
-      setIsEnrichingData(false);
-    }
-  };
-
-  const fetchCategoryTrends = async (category: string) => {
-    setIsFetchingTrends(true);
-    try {
-      const trends = await getMarketTrends(category);
-      setMarketTrends(trends);
-      
-      toast.success("Market trends fetched", {
-        description: `Market trends for ${category} are now available.`,
-      });
-    } catch (error) {
-      toast.error("Error fetching market trends", {
-        description: "Could not fetch market trends. Please try again later.",
-      });
-    } finally {
-      setIsFetchingTrends(false);
-    }
-  };
-
-  const getAnalysisSummary = () => {
+  const getAnalysisSummary = useCallback(() => {
     if (items.length === 0) return defaultSummary;
     
     const increased = items.filter(item => item.status === 'increased');
@@ -214,7 +191,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
       potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
     };
-  };
+  }, [items]);
 
   const summary = getAnalysisSummary();
 

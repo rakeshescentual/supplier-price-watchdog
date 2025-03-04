@@ -4,13 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import gadgetIntegrationGuide from '../assets/docs/Gadget_Integration_Guide.md?raw';
 import technicalDocumentation from '../assets/docs/TechnicalDocumentation.md?raw';
 
 const Documentation = () => {
   const [activeTab, setActiveTab] = useState<string>("technical");
+  const [bookmarks, setBookmarks] = useState<{[key: string]: string[]}>({
+    technical: [],
+    gadget: []
+  });
 
   const handleDownload = (content: string, filename: string) => {
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -23,6 +27,33 @@ const Documentation = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  const toggleBookmark = (section: string) => {
+    // In a real implementation, this would save the current scroll position
+    // and add it to the bookmarks list
+    const newBookmark = `Section ${bookmarks[activeTab].length + 1}`;
+    setBookmarks({
+      ...bookmarks,
+      [activeTab]: [...bookmarks[activeTab], newBookmark]
+    });
+  };
+
+  const renderDocNavigationControls = () => (
+    <div className="flex justify-between items-center mb-4">
+      <Button variant="outline" size="sm">
+        <ChevronLeft className="h-4 w-4 mr-2" />
+        Previous Section
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => toggleBookmark(activeTab)}>
+        <Bookmark className="h-4 w-4 mr-2" />
+        Bookmark
+      </Button>
+      <Button variant="outline" size="sm">
+        Next Section
+        <ChevronRight className="h-4 w-4 ml-2" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -43,19 +74,106 @@ const Documentation = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {renderDocNavigationControls()}
+              
               <ScrollArea className="h-[70vh] w-full pr-4">
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>
                     {technicalDocumentation}
                   </ReactMarkdown>
+                  
+                  {/* Additional Usage Examples Section */}
+                  <h2 id="usage-examples">Usage Examples</h2>
+                  
+                  <h3>Example 1: Analyzing a Price List</h3>
+                  <p>Follow these steps to analyze a supplier price list:</p>
+                  <ol>
+                    <li>Navigate to the File Upload page</li>
+                    <li>Click "Upload File" and select your price list (Excel or PDF)</li>
+                    <li>The system will automatically process and display price changes</li>
+                    <li>Use the filters to focus on specific changes (e.g., price increases only)</li>
+                    <li>Review AI insights for recommended actions</li>
+                  </ol>
+                  <p>Expected outcome: A detailed breakdown of price changes with actionable insights.</p>
+                  
+                  <h3>Example 2: Sending Price Increase Notifications</h3>
+                  <p>To notify customers about price increases:</p>
+                  <ol>
+                    <li>Navigate to the Google Workspace Integration page</li>
+                    <li>Authenticate with your Google account if not already connected</li>
+                    <li>Select "Create Price Increase Notification"</li>
+                    <li>Choose which products to include in the notification</li>
+                    <li>Customize the email template as needed</li>
+                    <li>Click "Send Notification" to distribute to your customer list</li>
+                  </ol>
+                  
+                  <h3>Example 3: Syncing with Shopify</h3>
+                  <p>To update your Shopify store with new prices:</p>
+                  <ol>
+                    <li>Ensure your Shopify store is connected (via Settings page)</li>
+                    <li>From the Price Analysis view, select the items to update</li>
+                    <li>Click "Sync to Shopify" button</li>
+                    <li>Review the changes before confirming</li>
+                    <li>Confirm to push changes to your Shopify store</li>
+                  </ol>
+                  <p>Note: Changes will be reflected in your Shopify admin immediately but may take a few minutes to appear on your storefront.</p>
+                  
+                  <h2 id="testing">Testing and Quality Assurance</h2>
+                  <p>The application includes a comprehensive test suite to ensure reliability:</p>
+                  <ul>
+                    <li><strong>Unit Tests:</strong> Run with <code>npm test</code> to verify individual components</li>
+                    <li><strong>Integration Tests:</strong> Run with <code>npm run test:integration</code> to test API integrations</li>
+                    <li><strong>End-to-End Tests:</strong> Run with <code>npm run test:e2e</code> to simulate user workflows</li>
+                  </ul>
+                  <p>When reviewing test results, focus on:</p>
+                  <ul>
+                    <li>Failed assertions that may indicate regression issues</li>
+                    <li>Performance metrics for data processing operations</li>
+                    <li>API response validation for external integrations</li>
+                  </ul>
+                  
+                  <h2 id="deployment">Deployment Guide</h2>
+                  <h3>Environment Configuration</h3>
+                  <p>Before deployment, ensure these environment variables are configured:</p>
+                  <pre><code>
+VITE_SHOPIFY_API_KEY=your_shopify_api_key
+VITE_GADGET_APP_ID=your_gadget_app_id
+VITE_GADGET_API_KEY=your_gadget_api_key
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+                  </code></pre>
+                  
+                  <h3>Deployment Process</h3>
+                  <ol>
+                    <li>Build the production bundle: <code>npm run build</code></li>
+                    <li>Test the production build locally: <code>npm run preview</code></li>
+                    <li>Deploy using your preferred hosting service:
+                      <ul>
+                        <li>Netlify: Connect GitHub repository and configure build command</li>
+                        <li>Vercel: Import from Git and set environment variables</li>
+                        <li>AWS S3/CloudFront: Upload dist folder and configure CloudFront distribution</li>
+                      </ul>
+                    </li>
+                    <li>Verify the deployment by testing all major features</li>
+                  </ol>
                 </div>
               </ScrollArea>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-between">
+              <div>
+                {bookmarks.technical.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">Bookmarks:</span>
+                    {bookmarks.technical.map((bookmark, index) => (
+                      <Button key={index} variant="ghost" size="sm">
+                        {bookmark}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="ml-auto"
+                size="sm"
                 onClick={() => handleDownload(technicalDocumentation, 'TechnicalDocumentation.md')}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -74,15 +192,117 @@ const Documentation = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {renderDocNavigationControls()}
+              
               <ScrollArea className="h-[70vh] w-full pr-4">
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>
                     {gadgetIntegrationGuide}
                   </ReactMarkdown>
+                  
+                  {/* Additional Gadget.dev Specific Usage Examples */}
+                  <h2 id="gadget-examples">Gadget.dev Implementation Examples</h2>
+                  
+                  <h3>Example 1: Setting Up Gadget.dev for PDF Processing</h3>
+                  <p>Follow these steps to configure PDF processing with Gadget.dev:</p>
+                  <ol>
+                    <li>Create a new Gadget.dev application in your dashboard</li>
+                    <li>Add the Document Processing capability to your app</li>
+                    <li>Create a new model for "PriceListDocument" with these fields:
+                      <ul>
+                        <li>file (File field)</li>
+                        <li>processedData (JSON field)</li>
+                        <li>status (Enum: pending, processing, completed, failed)</li>
+                      </ul>
+                    </li>
+                    <li>Create a custom action "processPdf" that:
+                      <ul>
+                        <li>Takes a PDF file as input</li>
+                        <li>Uses Gadget's document processing to extract table data</li>
+                        <li>Transforms the data into the application's PriceItem format</li>
+                        <li>Returns the structured data</li>
+                      </ul>
+                    </li>
+                    <li>Connect your Gadget app to the Supplier Price Watch using the configuration form</li>
+                  </ol>
+                  
+                  <h3>Example 2: Creating Batch Operations for Shopify Plus</h3>
+                  <p>For efficient Shopify Plus integration via Gadget.dev:</p>
+                  <ol>
+                    <li>In your Gadget app, configure the Shopify connection</li>
+                    <li>Create a "BatchOperation" model with:
+                      <ul>
+                        <li>items (JSON array field)</li>
+                        <li>operationType (Enum: priceUpdate, inventoryUpdate, etc.)</li>
+                        <li>status (Enum: pending, in-progress, completed, failed)</li>
+                        <li>results (JSON field for operation results)</li>
+                      </ul>
+                    </li>
+                    <li>Implement a "processBatch" action that:
+                      <ul>
+                        <li>Takes a batch of items and operation type</li>
+                        <li>Processes in chunks to respect Shopify API limits</li>
+                        <li>Handles errors with proper retries</li>
+                        <li>Returns success/failure status with details</li>
+                      </ul>
+                    </li>
+                  </ol>
+                  
+                  <h3>Example 3: Integrating Gadget with Google Workspace</h3>
+                  <p>To set up Gadget as a bridge for Google Workspace:</p>
+                  <ol>
+                    <li>Add OAuth capability to your Gadget app for Google</li>
+                    <li>Configure the Google Cloud Console:
+                      <ul>
+                        <li>Create OAuth credentials with appropriate redirect URIs</li>
+                        <li>Enable Gmail and Calendar APIs</li>
+                      </ul>
+                    </li>
+                    <li>In Gadget, create actions for:
+                      <ul>
+                        <li>"sendPriceNotification" - bridges to Gmail API</li>
+                        <li>"scheduleEffectiveDate" - creates Calendar events</li>
+                      </ul>
+                    </li>
+                    <li>Implement secure token storage and refresh mechanisms</li>
+                  </ol>
+                  
+                  <h2 id="troubleshooting">Troubleshooting Gadget.dev Integration</h2>
+                  <p>Common issues and their solutions:</p>
+                  
+                  <h3>Authentication Failures</h3>
+                  <ul>
+                    <li><strong>Problem:</strong> "Invalid API key" errors</li>
+                    <li><strong>Solution:</strong> Verify API key in Settings page and ensure it has correct permissions</li>
+                  </ul>
+                  
+                  <h3>PDF Processing Issues</h3>
+                  <ul>
+                    <li><strong>Problem:</strong> PDF processing returns incorrect or incomplete data</li>
+                    <li><strong>Solution:</strong> Check PDF format and structure. Complex tables may require custom extraction logic in your Gadget action.</li>
+                  </ul>
+                  
+                  <h3>Batch Operation Timeouts</h3>
+                  <ul>
+                    <li><strong>Problem:</strong> Large batch operations time out</li>
+                    <li><strong>Solution:</strong> Reduce batch size in application settings or implement progressive chunking with status feedback</li>
+                  </ul>
                 </div>
               </ScrollArea>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-between">
+              <div>
+                {bookmarks.gadget.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">Bookmarks:</span>
+                    {bookmarks.gadget.map((bookmark, index) => (
+                      <Button key={index} variant="ghost" size="sm">
+                        {bookmark}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 

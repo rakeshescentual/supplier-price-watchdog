@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import type { PriceItem, AnomalyStats } from '@/types/price';
 import { processPdfWithGadget } from './gadgetApi';
@@ -10,26 +11,61 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        // Validate workbook has at least one sheet
+        if (workbook.SheetNames.length === 0) {
+          reject(new Error('The Excel file does not contain any sheets'));
+          return;
+        }
+        
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Check if we have valid data
+        if (!Array.isArray(jsonData) || jsonData.length === 0) {
+          reject(new Error('No valid data found in the Excel file'));
+          return;
+        }
 
+        // Detect column headers to determine format
+        const firstRow = jsonData[0] as Record<string, any>;
+        const hasOldNewFormat = 'OldPrice' in firstRow || 'NewPrice' in firstRow;
+        const hasCurrentUpdatedFormat = 'Current_Price' in firstRow || 'Updated_Price' in firstRow;
+        
+        // Process data based on detected format
         const items: PriceItem[] = jsonData.map((row: any) => {
-          const sku = row.SKU || row.Item_Code || row.ProductCode || '';
-          const oldName = row.OldName || row.Current_Name || row.Name || row.Product_Name || '';
-          const newName = row.NewName || row.Updated_Name || row.Name || row.Product_Name || '';
-          const oldPrice = parseFloat(row.OldPrice || row.Current_Price || 0);
-          const newPrice = parseFloat(row.NewPrice || row.Updated_Price || 0);
-          const oldSupplierCode = row.OldSupplierCode || row.Current_SupplierCode || row.SupplierCode || '';
-          const newSupplierCode = row.NewSupplierCode || row.Updated_SupplierCode || row.SupplierCode || '';
-          const oldBarcode = row.OldBarcode || row.Current_Barcode || row.Barcode || '';
-          const newBarcode = row.NewBarcode || row.Updated_Barcode || row.Barcode || '';
+          // Try to find relevant columns with flexible mapping
+          const sku = row.SKU || row.Item_Code || row.ProductCode || row.sku || row.product_id || '';
+          const oldName = row.OldName || row.Current_Name || row.Name || row.Product_Name || row.title || '';
+          const newName = row.NewName || row.Updated_Name || row.Name || row.Product_Name || row.title || '';
+          
+          // Price handling with different formats
+          let oldPrice = 0;
+          let newPrice = 0;
+          
+          if (hasOldNewFormat) {
+            oldPrice = parseFloat(row.OldPrice || 0);
+            newPrice = parseFloat(row.NewPrice || 0);
+          } else if (hasCurrentUpdatedFormat) {
+            oldPrice = parseFloat(row.Current_Price || 0);
+            newPrice = parseFloat(row.Updated_Price || 0);
+          } else {
+            // Default case - single price column
+            oldPrice = parseFloat(row.Price || row.price || 0);
+            newPrice = parseFloat(row.Price || row.price || 0);
+          }
+          
+          const oldSupplierCode = row.OldSupplierCode || row.Current_SupplierCode || row.SupplierCode || row.vendor || '';
+          const newSupplierCode = row.NewSupplierCode || row.Updated_SupplierCode || row.SupplierCode || row.vendor || '';
+          const oldBarcode = row.OldBarcode || row.Current_Barcode || row.Barcode || row.barcode || '';
+          const newBarcode = row.NewBarcode || row.Updated_Barcode || row.Barcode || row.barcode || '';
           const oldPackSize = row.OldPackSize || row.Current_PackSize || row.PackSize || '';
           const newPackSize = row.NewPackSize || row.Updated_PackSize || row.PackSize || '';
-          const oldCost = parseFloat(row.OldCost || row.Current_Cost || row.Cost || 0);
-          const newCost = parseFloat(row.NewCost || row.Updated_Cost || row.Cost || 0);
-          const retailPrice = parseFloat(row.RetailPrice || row.Retail_Price || 0);
+          const oldCost = parseFloat(row.OldCost || row.Current_Cost || row.Cost || row.cost_price || 0);
+          const newCost = parseFloat(row.NewCost || row.Updated_Cost || row.Cost || row.cost_price || 0);
+          const retailPrice = parseFloat(row.RetailPrice || row.Retail_Price || row.compare_at_price || 0);
 
-          const difference = newPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
+          const difference = newPrice > 0 && oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
           
           const oldMargin = retailPrice > 0 ? ((retailPrice - oldPrice) / retailPrice) * 100 : undefined;
           const newMargin = retailPrice > 0 ? ((retailPrice - newPrice) / retailPrice) * 100 : undefined;
@@ -68,7 +104,7 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
             newPrice,
             status,
             difference,
-            potentialImpact: status === 'discontinued' ? -(oldPrice * 12) : (oldPrice - newPrice) * 12,
+            potentialImpact: status === 'discontinued' ? -(oldPrice * 12) : (newPrice - oldPrice) * -12,
             oldSupplierCode,
             newSupplierCode,
             oldBarcode,
@@ -102,8 +138,14 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
 
 export const processPdfFile = async (file: File): Promise<PriceItem[]> => {
   try {
+    console.log("Processing PDF file with Gadget...");
     const result = await processPdfWithGadget(file);
     
+    if (!result || !result.items) {
+      throw new Error("PDF processing did not return valid data");
+    }
+    
+    console.log(`PDF processing complete. ${result.items.length} items extracted.`);
     return result.items || [];
   } catch (error) {
     console.error("Error processing PDF file:", error);
@@ -112,6 +154,8 @@ export const processPdfFile = async (file: File): Promise<PriceItem[]> => {
 };
 
 export const processFile = async (file: File): Promise<PriceItem[]> => {
+  console.log(`Processing file: ${file.name}, type: ${file.type}`);
+  
   if (file.type === 'application/pdf') {
     return processPdfFile(file);
   } else {

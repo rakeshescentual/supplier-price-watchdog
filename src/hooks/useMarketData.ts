@@ -4,17 +4,11 @@ import { toast } from 'sonner';
 import { PriceItem, PriceAnalysis } from '@/types/price';
 import { enrichDataWithSearch, getMarketTrends, performBatchOperations } from '@/lib/gadgetApi';
 
-interface UseMarketDataProps {
-  items: PriceItem[];
-  updateItems: (items: PriceItem[]) => void;
-  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>;
-}
-
-export const useMarketData = ({
-  items,
-  updateItems,
-  onAnalysisNeeded
-}: UseMarketDataProps) => {
+export const useMarketData = (
+  items: PriceItem[],
+  updateItems: (items: PriceItem[]) => void,
+  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>
+) => {
   const [isEnrichingData, setIsEnrichingData] = useState(false);
   const [isFetchingTrends, setIsFetchingTrends] = useState(false);
   const [marketTrends, setMarketTrends] = useState<any | null>(null);

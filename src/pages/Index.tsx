@@ -1,234 +1,50 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
 import { AIAnalysis } from "@/components/AIAnalysis";
 import { ShareDialog } from "@/components/ShareDialog";
-import { SupplierCorrespondence } from "@/components/SupplierCorrespondence";
-import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
-import { generateAIAnalysis } from "@/lib/aiAnalysis";
-import { initializeShopifyApp, getShopifyProducts, syncWithShopify } from "@/lib/shopifyApi";
-import { initializeGadget, authenticateWithShopify } from "@/lib/gadgetApi";
+import { SupplierCorrespondence } from "@/components/supplier/SupplierCorrespondence";
+import { exportToShopifyFormat } from "@/lib/excel";
+import { ShopifyProvider, useShopify } from "@/contexts/ShopifyContext";
+import { FileAnalysisProvider, useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { toast } from "sonner";
-import type { PriceItem, PriceAnalysis, ShopifyContext } from "@/types/price";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail } from "lucide-react";
 
-const Index = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [items, setItems] = useState<PriceItem[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [shopifyContext, setShopifyContext] = useState<ShopifyContext | null>(null);
-  const [isShopifyConnected, setIsShopifyConnected] = useState(false);
-  const [isLoadingShopifyData, setIsLoadingShopifyData] = useState(false);
-  const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+const IndexContent = () => {
+  const { 
+    shopifyContext, 
+    isShopifyConnected, 
+    isGadgetInitialized,
+    isSyncing,
+    syncToShopify
+  } = useShopify();
 
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        initializeShopifyApp();
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const shop = urlParams.get('shop');
-        
-        if (shop) {
-          const gadgetConfig = {
-            apiKey: 'demo-gadget-key',
-            appId: 'supplier-price-watch',
-            environment: 'development' as const
-          };
-          
-          const gadgetClient = initializeGadget(gadgetConfig);
-          setIsGadgetInitialized(gadgetClient.isConnected);
-          
-          const context = await authenticateWithShopify(shop);
-          if (context) {
-            setShopifyContext(context);
-            setIsShopifyConnected(true);
-            toast.success("Connected to Shopify via Gadget.dev", {
-              description: `Shop: ${shop}`,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error initializing app:", error);
-      }
-    };
-    
-    initApp();
-  }, []);
+  const {
+    file,
+    items,
+    isProcessing,
+    analysis,
+    isAnalyzing,
+    summary,
+    handleFileAccepted,
+    exportForShopify
+  } = useFileAnalysis();
 
-  const loadShopifyData = async () => {
-    if (!shopifyContext) return;
-    
-    setIsLoadingShopifyData(true);
-    try {
-      const shopifyProducts = await getShopifyProducts(shopifyContext);
-      toast.success("Shopify data loaded", {
-        description: `${shopifyProducts.length} products loaded`,
-      });
-      
-      if (items.length > 0) {
-        const mergedItems = mergeWithShopifyData(items, shopifyProducts);
-        setItems(mergedItems);
-        
-        analyzeData(mergedItems);
-      }
-    } catch (error) {
-      toast.error("Error loading Shopify data", {
-        description: "Please check your connection and try again.",
-      });
-    } finally {
-      setIsLoadingShopifyData(false);
-    }
-  };
-
-  const handleFileAccepted = async (acceptedFile: File) => {
-    setFile(acceptedFile);
-    setIsProcessing(true);
-    setAnalysis(null);
-    
-    try {
-      const processedItems = await processFile(acceptedFile);
-      
-      if (isShopifyConnected && shopifyContext) {
-        setIsLoadingShopifyData(true);
-        try {
-          const shopifyProducts = await getShopifyProducts(shopifyContext);
-          const mergedItems = mergeWithShopifyData(processedItems, shopifyProducts);
-          setItems(mergedItems);
-          
-          const fileType = acceptedFile.type === 'application/pdf' ? 'PDF' : 'Excel';
-          toast.success(`${fileType} analysis complete`, {
-            description: "Price changes have been processed and merged with Shopify data.",
-          });
-          
-          analyzeData(mergedItems);
-        } catch (shopifyError) {
-          toast.error("Error loading Shopify data", {
-            description: "Using uploaded data only for analysis.",
-          });
-          setItems(processedItems);
-          analyzeData(processedItems);
-        } finally {
-          setIsLoadingShopifyData(false);
-        }
-      } else {
-        setItems(processedItems);
-        
-        const fileType = acceptedFile.type === 'application/pdf' ? 'PDF' : 'Excel';
-        toast.success(`${fileType} analysis complete`, {
-          description: "Price changes have been processed successfully.",
-        });
-        
-        analyzeData(processedItems);
-      }
-    } catch (error) {
-      toast.error("Error processing file", {
-        description: "Please check the file format and try again.",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const analyzeData = async (data: PriceItem[]) => {
-    if (data.length === 0) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const result = await generateAIAnalysis(data);
-      setAnalysis(result);
-      
-      toast.success("AI analysis complete", {
-        description: "Insights and recommendations are ready.",
-      });
-    } catch (error) {
-      toast.error("Error generating AI analysis", {
-        description: "Please try again later.",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const syncToShopify = async () => {
-    if (!shopifyContext || items.length === 0) return;
-    
-    setIsSyncing(true);
-    try {
-      const result = await syncWithShopify(shopifyContext, items);
-      
-      if (result) {
-        toast.success("Sync complete", {
-          description: "Price changes have been synchronized to Shopify.",
-        });
-      } else {
-        toast.error("Sync incomplete", {
-          description: "Some items could not be synchronized.",
-        });
-      }
-    } catch (error) {
-      toast.error("Error syncing with Shopify", {
-        description: "Please try again later.",
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const exportForShopify = () => {
-    if (items.length === 0) return;
-    
-    try {
-      const shopifyData = exportToShopifyFormat(items);
-      const blob = new Blob([shopifyData], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'shopify_price_update.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success("Export complete", {
-        description: "Shopify-compatible price list has been downloaded.",
-      });
-    } catch (error) {
-      toast.error("Error exporting data", {
-        description: "Please try again later.",
-      });
-    }
-  };
-
-  const getAnalysisSummary = () => {
-    const increased = items.filter(item => item.status === 'increased');
-    const decreased = items.filter(item => item.status === 'decreased');
-    const discontinued = items.filter(item => item.status === 'discontinued');
-    const newItems = items.filter(item => item.status === 'new');
-    const anomalies = items.filter(item => item.status === 'anomaly');
-
-    return {
-      increasedItems: increased.length,
-      decreasedItems: decreased.length,
-      discontinuedItems: discontinued.length,
-      newItems: newItems.length,
-      anomalyItems: anomalies.length,
-      potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
-      potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
-    };
-  };
-
-  const summary = getAnalysisSummary();
   const fileStats = items.length > 0 ? {
     totalItems: items.length,
     increasedItems: summary.increasedItems,
     decreasedItems: summary.decreasedItems
   } : undefined;
+
+  const handleSync = async () => {
+    if (items.length > 0) {
+      await syncToShopify(items);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -264,7 +80,7 @@ const Index = () => {
         <FileUpload onFileAccepted={handleFileAccepted} />
       </div>
 
-      {(isProcessing || isLoadingShopifyData) && (
+      {(isProcessing) && (
         <div className="text-center text-muted-foreground">
           {isProcessing ? "Processing file..." : "Loading Shopify data..."}
         </div>
@@ -287,7 +103,7 @@ const Index = () => {
             <div className="flex gap-2">
               {isShopifyConnected && (
                 <Button 
-                  onClick={syncToShopify}
+                  onClick={handleSync}
                   disabled={isSyncing}
                   className="bg-[#5E8E3E] hover:bg-[#4a7331]"
                   size="sm"
@@ -380,6 +196,16 @@ const Index = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const Index = () => {
+  return (
+    <ShopifyProvider>
+      <FileAnalysisProvider>
+        <IndexContent />
+      </FileAnalysisProvider>
+    </ShopifyProvider>
   );
 };
 

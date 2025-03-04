@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
+import Documentation from "./pages/Documentation";
 import { ShopifyProvider } from "./contexts/ShopifyContext";
 import { FileAnalysisProvider } from "./contexts/FileAnalysisContext";
 import { GadgetConfigForm } from "./components/GadgetConfigForm";
@@ -33,6 +34,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/documentation" element={<Documentation />} />
               <Route path="/gadget-settings" element={<div className="container mx-auto py-8 px-4"><div className="max-w-lg mx-auto"><GadgetConfigForm /></div></div>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

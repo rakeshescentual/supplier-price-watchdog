@@ -1,4 +1,3 @@
-
 import type { ShopifyContext, PriceItem } from '@/types/price';
 
 // Gadget.dev API integration for Shopify app
@@ -241,14 +240,15 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
       const enrichedItems = items.map(item => ({
         ...item,
         marketData: {
-          averagePrice: item.newPrice ? (item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2) : null,
-          priceRange: {
-            min: item.newPrice ? (item.newPrice * 0.85).toFixed(2) : null,
-            max: item.newPrice ? (item.newPrice * 1.15).toFixed(2) : null
-          },
-          competitorCount: Math.floor(Math.random() * 5) + 1,
-          pricePosition: ['low', 'average', 'high'][Math.floor(Math.random() * 3)]
-        }
+          pricePosition: (['low', 'average', 'high'] as const)[Math.floor(Math.random() * 3)],
+          competitorPrices: Array(Math.floor(Math.random() * 5) + 1).fill(0).map(() => 
+            item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0
+          ),
+          averagePrice: item.newPrice ? Number((item.newPrice * (0.9 + Math.random() * 0.2)).toFixed(2)) : 0,
+          minPrice: item.newPrice ? Number((item.newPrice * 0.85).toFixed(2)) : 0,
+          maxPrice: item.newPrice ? Number((item.newPrice * 1.15).toFixed(2)) : 0
+        },
+        category: item.category || ['Electronics', 'Clothing', 'Food', 'Home', 'Beauty'][Math.floor(Math.random() * 5)]
       }));
       resolve(enrichedItems);
     }, 2000);
@@ -313,4 +313,3 @@ export const getMarketTrends = async (category: string): Promise<any> => {
     }, 1500);
   });
 };
-

@@ -32,7 +32,7 @@ export const MarketInsights = () => {
   } = useFileAnalysis();
   
   const [category, setCategory] = useState<string>("");
-  const hasMarketData = items.some(item => item.marketData);
+  const hasMarketData = items.some(item => item.marketData !== undefined);
 
   // Get most common categories from items for suggestions
   const getCategories = () => {
@@ -107,7 +107,7 @@ export const MarketInsights = () => {
           <div className="mt-4 space-y-3">
             <h5 className="text-sm font-medium">Price positioning:</h5>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              {['low', 'average', 'high'].map(position => {
+              {(['low', 'average', 'high'] as const).map(position => {
                 const count = items.filter(
                   item => item.marketData?.pricePosition === position
                 ).length;

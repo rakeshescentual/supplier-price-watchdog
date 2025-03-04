@@ -33,7 +33,8 @@ import {
   Copy,
   CheckCircle2,
   FileText,
-  Users
+  Users,
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -130,9 +131,9 @@ export function SupplierCorrespondence() {
   const handleSaveQuery = () => {
     if (!selectedCorrespondence) return;
     
-    const updatedQueryItems = [...(selectedQueryItems || []), newQuery];
+    const updatedQueryItems: QueryItem[] = [...(selectedQueryItems || []), newQuery];
     
-    const updatedCorrespondence = correspondence.map(item => 
+    const updatedCorrespondence: Correspondence[] = correspondence.map(item => 
       item.id === selectedCorrespondence.id
         ? { ...item, queryItems: updatedQueryItems }
         : item
@@ -159,11 +160,11 @@ export function SupplierCorrespondence() {
   const handleResolveQuery = (queryId: number) => {
     if (!selectedCorrespondence) return;
     
-    const updatedQueryItems = selectedQueryItems.map(query => 
+    const updatedQueryItems: QueryItem[] = selectedQueryItems.map(query => 
       query.id === queryId ? { ...query, status: 'resolved' } : query
     );
     
-    const updatedCorrespondence = correspondence.map(item => 
+    const updatedCorrespondence: Correspondence[] = correspondence.map(item => 
       item.id === selectedCorrespondence.id
         ? { ...item, queryItems: updatedQueryItems }
         : item

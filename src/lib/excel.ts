@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { PriceItem, AnomalyStats } from '@/types/price';
+import { processPdfWithGadget } from './gadgetApi';
 
 export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
   return new Promise((resolve, reject) => {
@@ -97,6 +98,25 @@ export const processExcelFile = async (file: File): Promise<PriceItem[]> => {
 
     reader.readAsArrayBuffer(file);
   });
+};
+
+export const processPdfFile = async (file: File): Promise<PriceItem[]> => {
+  try {
+    const result = await processPdfWithGadget(file);
+    
+    return result.items || [];
+  } catch (error) {
+    console.error("Error processing PDF file:", error);
+    throw error;
+  }
+};
+
+export const processFile = async (file: File): Promise<PriceItem[]> => {
+  if (file.type === 'application/pdf') {
+    return processPdfFile(file);
+  } else {
+    return processExcelFile(file);
+  }
 };
 
 export const getAnomalyStats = (items: PriceItem[]): AnomalyStats => {

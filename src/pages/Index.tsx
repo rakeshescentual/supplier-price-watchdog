@@ -4,13 +4,14 @@ import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
 import { AIAnalysis } from "@/components/AIAnalysis";
-import { processExcelFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
+import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
-import { initializeShopifyApp, getShopifyProducts } from "@/lib/shopifyApi";
+import { initializeShopifyApp, getShopifyProducts, syncWithShopify } from "@/lib/shopifyApi";
+import { initializeGadget, authenticateWithShopify } from "@/lib/gadgetApi";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis, ShopifyContext } from "@/types/price";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -21,12 +22,14 @@ const Index = () => {
   const [shopifyContext, setShopifyContext] = useState<ShopifyContext | null>(null);
   const [isShopifyConnected, setIsShopifyConnected] = useState(false);
   const [isLoadingShopifyData, setIsLoadingShopifyData] = useState(false);
+  const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Initialize Shopify App if in Shopify Admin
+  // Initialize Shopify App and Gadget if in Shopify Admin
   useEffect(() => {
     const initApp = async () => {
       try {
-        // This would initialize the Shopify App Bridge in a real implementation
+        // Initialize Shopify App Bridge
         initializeShopifyApp();
         
         // For demo purposes - in real implementation, this would come from App Bridge
@@ -34,18 +37,28 @@ const Index = () => {
         const shop = urlParams.get('shop');
         
         if (shop) {
-          setShopifyContext({
-            shop,
-            token: 'demo-token',
-            isOnline: true
-          });
-          setIsShopifyConnected(true);
-          toast.success("Connected to Shopify", {
-            description: `Shop: ${shop}`,
-          });
+          // Initialize Gadget
+          const gadgetConfig = {
+            apiKey: 'demo-gadget-key',
+            appId: 'supplier-price-watch',
+            environment: 'development' as const
+          };
+          
+          const gadgetClient = initializeGadget(gadgetConfig);
+          setIsGadgetInitialized(gadgetClient.isConnected);
+          
+          // Authenticate with Shopify via Gadget
+          const context = await authenticateWithShopify(shop);
+          if (context) {
+            setShopifyContext(context);
+            setIsShopifyConnected(true);
+            toast.success("Connected to Shopify via Gadget.dev", {
+              description: `Shop: ${shop}`,
+            });
+          }
         }
       } catch (error) {
-        console.error("Error initializing Shopify app:", error);
+        console.error("Error initializing app:", error);
       }
     };
     
@@ -62,7 +75,7 @@ const Index = () => {
         description: `${shopifyProducts.length} products loaded`,
       });
       
-      // If we already have items from Excel, merge them with Shopify data
+      // If we already have items from the uploaded file, merge them with Shopify data
       if (items.length > 0) {
         const mergedItems = mergeWithShopifyData(items, shopifyProducts);
         setItems(mergedItems);
@@ -85,7 +98,7 @@ const Index = () => {
     setAnalysis(null);
     
     try {
-      const processedItems = await processExcelFile(acceptedFile);
+      const processedItems = await processFile(acceptedFile);
       
       // If we're connected to Shopify, merge with Shopify data
       if (isShopifyConnected && shopifyContext) {
@@ -95,7 +108,8 @@ const Index = () => {
           const mergedItems = mergeWithShopifyData(processedItems, shopifyProducts);
           setItems(mergedItems);
           
-          toast.success("Analysis complete", {
+          const fileType = acceptedFile.type === 'application/pdf' ? 'PDF' : 'Excel';
+          toast.success(`${fileType} analysis complete`, {
             description: "Price changes have been processed and merged with Shopify data.",
           });
           
@@ -103,7 +117,7 @@ const Index = () => {
           analyzeData(mergedItems);
         } catch (shopifyError) {
           toast.error("Error loading Shopify data", {
-            description: "Using Excel data only for analysis.",
+            description: "Using uploaded data only for analysis.",
           });
           setItems(processedItems);
           analyzeData(processedItems);
@@ -113,7 +127,8 @@ const Index = () => {
       } else {
         setItems(processedItems);
         
-        toast.success("Analysis complete", {
+        const fileType = acceptedFile.type === 'application/pdf' ? 'PDF' : 'Excel';
+        toast.success(`${fileType} analysis complete`, {
           description: "Price changes have been processed successfully.",
         });
         
@@ -146,6 +161,31 @@ const Index = () => {
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const syncToShopify = async () => {
+    if (!shopifyContext || items.length === 0) return;
+    
+    setIsSyncing(true);
+    try {
+      const result = await syncWithShopify(shopifyContext, items);
+      
+      if (result) {
+        toast.success("Sync complete", {
+          description: "Price changes have been synchronized to Shopify.",
+        });
+      } else {
+        toast.error("Sync incomplete", {
+          description: "Some items could not be synchronized.",
+        });
+      }
+    } catch (error) {
+      toast.error("Error syncing with Shopify", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -200,12 +240,20 @@ const Index = () => {
         <p className="text-lg text-muted-foreground">
           Upload your supplier price list to analyze changes and potential impacts
         </p>
-        {isShopifyConnected && (
-          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
-            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-            Connected to Shopify
-          </div>
-        )}
+        <div className="flex justify-center gap-2">
+          {isShopifyConnected && (
+            <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
+              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+              Connected to Shopify
+            </div>
+          )}
+          {isGadgetInitialized && (
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+              <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+              Gadget.dev Enabled
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto">
@@ -220,7 +268,17 @@ const Index = () => {
 
       {items.length > 0 && (
         <>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {isShopifyConnected && (
+              <Button 
+                onClick={syncToShopify}
+                disabled={isSyncing}
+                className="bg-[#5E8E3E] hover:bg-[#4a7331]"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? "Syncing..." : "Sync to Shopify"}
+              </Button>
+            )}
             <Button 
               onClick={exportForShopify}
               className="bg-[#5E8E3E] hover:bg-[#4a7331]"

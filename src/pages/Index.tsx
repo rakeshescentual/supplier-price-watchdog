@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
 import { PriceTable } from "@/components/PriceTable";
@@ -15,6 +16,55 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell } from "lucide-react";
+
+// Add a new hook for analysis history persistence
+const useAnalysisHistory = () => {
+  const [savedAnalyses, setSavedAnalyses] = useState<{
+    id: string;
+    date: string;
+    fileName: string;
+    itemCount: number;
+    summary: { increasedItems: number; decreasedItems: number }
+  }[]>([]);
+
+  // Load saved analyses from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem('analysisHistory');
+      if (savedData) {
+        setSavedAnalyses(JSON.parse(savedData));
+      }
+    } catch (error) {
+      console.error('Error loading analysis history:', error);
+    }
+  }, []);
+
+  const saveAnalysis = (analysis: {
+    fileName: string;
+    itemCount: number;
+    summary: { increasedItems: number; decreasedItems: number }
+  }) => {
+    const newAnalysis = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      ...analysis
+    };
+    
+    const updatedAnalyses = [newAnalysis, ...savedAnalyses].slice(0, 10); // Keep last 10 analyses
+    setSavedAnalyses(updatedAnalyses);
+    
+    try {
+      localStorage.setItem('analysisHistory', JSON.stringify(updatedAnalyses));
+      toast.success('Analysis saved to history', {
+        description: 'You can access previous analyses in your browser storage.'
+      });
+    } catch (error) {
+      console.error('Error saving analysis history:', error);
+    }
+  };
+
+  return { savedAnalyses, saveAnalysis };
+};
 
 const IndexContent = () => {
   const { 
@@ -36,6 +86,9 @@ const IndexContent = () => {
     exportForShopify
   } = useFileAnalysis();
 
+  const { savedAnalyses, saveAnalysis } = useAnalysisHistory();
+  const [currentTab, setCurrentTab] = useState("analysis");
+
   const fileStats = items.length > 0 ? {
     totalItems: items.length,
     increasedItems: summary.increasedItems,
@@ -48,6 +101,20 @@ const IndexContent = () => {
     }
   };
 
+  // Save analysis when a new file is processed
+  useEffect(() => {
+    if (file && items.length > 0 && summary) {
+      saveAnalysis({
+        fileName: file.name,
+        itemCount: items.length,
+        summary: {
+          increasedItems: summary.increasedItems,
+          decreasedItems: summary.decreasedItems
+        }
+      });
+    }
+  }, [file, items.length > 0, summary]);
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 animate-fade-up">
@@ -59,7 +126,7 @@ const IndexContent = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 md:mt-0">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
             {isShopifyConnected && (
               <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
                 <span className="h-2 w-2 rounded-full bg-green-500"></span>
@@ -90,7 +157,7 @@ const IndexContent = () => {
 
       {file && items.length > 0 && (
         <>
-          <div className="flex items-center gap-2 bg-muted p-3 rounded-md">
+          <div className="flex flex-col sm:flex-row items-center gap-2 bg-muted p-3 rounded-md">
             <div className="p-2 rounded-full bg-primary/10">
               {file.type === 'application/pdf' ? (
                 <FileText className="w-5 h-5 text-primary" />
@@ -102,7 +169,7 @@ const IndexContent = () => {
               <p className="font-medium">{file.name}</p>
               <p className="text-sm text-muted-foreground">{items.length} items analyzed</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 justify-center sm:justify-end w-full sm:w-auto">
               {isShopifyConnected && (
                 <Button 
                   onClick={handleSync}
@@ -125,8 +192,8 @@ const IndexContent = () => {
             </div>
           </div>
           
-          <Tabs defaultValue="analysis" className="mt-8">
-            <TabsList className="w-full max-w-md mx-auto mb-4">
+          <Tabs defaultValue="analysis" className="mt-8" onValueChange={setCurrentTab} value={currentTab}>
+            <TabsList className="w-full max-w-2xl mx-auto mb-4 flex flex-wrap sm:flex-nowrap">
               <TabsTrigger value="analysis" className="flex-1">
                 <FileBarChart2 className="w-4 h-4 mr-2" />
                 Analysis
@@ -198,7 +265,7 @@ const IndexContent = () => {
               </div>
               
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground bg-amber-50 p-3 rounded-md">
-                <Info className="h-4 w-4 text-amber-500" />
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <p>
                   Notify customers about upcoming price increases to create urgency and give them a chance to buy at the current price.
                   Export HTML snippets to display notices on your Escentual.com product pages.
@@ -223,7 +290,7 @@ const IndexContent = () => {
             Supplier Price Watch will analyze price changes, identify anomalies, and calculate the potential impact on your business.
             {isShopifyConnected && " It also integrates with your Shopify store to provide tailored insights."}
           </p>
-          <div className="flex gap-4 justify-center mt-6">
+          <div className="flex flex-wrap gap-4 justify-center mt-6">
             <div className="text-center">
               <div className="bg-primary/10 rounded-full p-3 mx-auto mb-2 w-12 h-12 flex items-center justify-center">
                 <FileUp className="h-6 w-6 text-primary" />
@@ -243,6 +310,36 @@ const IndexContent = () => {
               <p className="text-sm font-medium">Sync to Shopify</p>
             </div>
           </div>
+          
+          {savedAnalyses.length > 0 && (
+            <div className="mt-8 border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">Recent Analyses</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full max-w-lg mx-auto text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left px-4 py-2">Date</th>
+                      <th className="text-left px-4 py-2">File</th>
+                      <th className="text-right px-4 py-2">Items</th>
+                      <th className="text-right px-4 py-2">↑ Increases</th>
+                      <th className="text-right px-4 py-2">↓ Decreases</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {savedAnalyses.map(analysis => (
+                      <tr key={analysis.id} className="border-t hover:bg-muted/50">
+                        <td className="px-4 py-2">{new Date(analysis.date).toLocaleDateString()}</td>
+                        <td className="px-4 py-2 font-medium">{analysis.fileName}</td>
+                        <td className="px-4 py-2 text-right">{analysis.itemCount}</td>
+                        <td className="px-4 py-2 text-right text-red-600">{analysis.summary.increasedItems}</td>
+                        <td className="px-4 py-2 text-right text-green-600">{analysis.summary.decreasedItems}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

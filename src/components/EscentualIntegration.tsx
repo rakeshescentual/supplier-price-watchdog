@@ -41,7 +41,7 @@ export const EscentualIntegration = () => {
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Code className="h-5 w-5" />
@@ -69,14 +69,14 @@ export const EscentualIntegration = () => {
           </div>
           
           {increasedItems.length > 0 ? (
-            <p className="text-sm">
+            <div className="bg-green-50 text-green-700 p-3 rounded-md text-sm">
               Ready to export <strong>{increasedItems.length}</strong> product notices with 
               effective date <strong>{priceIncreaseEffectiveDate.toLocaleDateString()}</strong>.
-            </p>
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <div className="bg-amber-50 text-amber-700 p-3 rounded-md text-sm">
               No products with price increases to export.
-            </p>
+            </div>
           )}
         </div>
       </CardContent>
@@ -85,7 +85,7 @@ export const EscentualIntegration = () => {
         <Button
           onClick={handleExportSnippets}
           disabled={increasedItems.length === 0 || isExporting}
-          className="ml-auto"
+          className="ml-auto w-full sm:w-auto"
         >
           <Download className="mr-2 h-4 w-4" />
           {isExporting ? "Exporting..." : "Export HTML Snippets"}

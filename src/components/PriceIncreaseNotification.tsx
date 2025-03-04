@@ -12,17 +12,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 
 export const PriceIncreaseNotification = () => {
-  const { items, summary } = useFileAnalysis();
+  const { items, summary, priceIncreaseEffectiveDate } = useFileAnalysis();
   const { 
     isSendingNotifications, 
     lastNotificationResult,
     sendPriceIncreaseNotifications
   } = useCustomerNotifications();
   
-  const [effectiveDate, setEffectiveDate] = useState<Date>(
-    // Default to 30 days from now
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  );
+  const [effectiveDate, setEffectiveDate] = useState<Date>(priceIncreaseEffectiveDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const [customMessage, setCustomMessage] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
   
@@ -34,12 +31,11 @@ export const PriceIncreaseNotification = () => {
   
   const getAffectedCustomersEstimate = () => {
     // In a real implementation, this would query Shopify for an estimate
-    // For now, we'll return a placeholder value
-    return increasedItems.length * 12; // Arbitrary multiplier for demo purposes
+    return Math.max(5, increasedItems.length * 4); // More realistic number
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5" />
@@ -53,8 +49,8 @@ export const PriceIncreaseNotification = () => {
       <CardContent className="space-y-4">
         {increasedItems.length > 0 ? (
           <>
-            <div className="flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
+            <div className="flex items-start gap-2 text-sm bg-amber-50 p-3 rounded-md">
+              <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
               <span>
                 <strong>{increasedItems.length}</strong> items with price increases,
                 potentially affecting approximately <strong>{getAffectedCustomersEstimate()}</strong> customers
@@ -75,7 +71,7 @@ export const PriceIncreaseNotification = () => {
                     {format(effectiveDate, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={effectiveDate}
@@ -99,7 +95,7 @@ export const PriceIncreaseNotification = () => {
               <Textarea
                 id="customMessage"
                 placeholder="Add a personal message to the notification email..."
-                className="min-h-[100px]"
+                className="min-h-[100px] resize-y"
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
               />
@@ -125,7 +121,7 @@ export const PriceIncreaseNotification = () => {
         )}
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
         {lastNotificationResult && (
           <div className="flex items-center gap-2 mr-auto">
             <Badge variant={lastNotificationResult.failed > 0 ? "destructive" : "outline"}>
@@ -138,7 +134,7 @@ export const PriceIncreaseNotification = () => {
         <Button
           onClick={handleSendNotifications}
           disabled={increasedItems.length === 0 || isSendingNotifications}
-          className="ml-auto"
+          className="ml-auto w-full sm:w-auto"
         >
           {isSendingNotifications ? "Sending..." : "Send Notifications"}
         </Button>

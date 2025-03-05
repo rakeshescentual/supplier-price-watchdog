@@ -22,6 +22,7 @@ import { GoogleCalendarIntegration } from "@/components/calendar/GoogleCalendarI
 import { GoogleShopifyAuth } from "@/components/auth/GoogleShopifyAuth";
 import { PriceChangeTimeline } from "@/components/PriceChangeTimeline";
 import { PriceSuggestions } from "@/components/PriceSuggestions";
+import { CrossComparisonInsights } from "@/components/CrossComparisonInsights";
 
 const useAnalysisHistory = () => {
   const [savedAnalyses, setSavedAnalyses] = useState<{
@@ -227,6 +228,10 @@ const IndexContent = () => {
                 <div className="md:col-span-1">
                   <AIAnalysis analysis={analysis} isLoading={isAnalyzing} />
                 </div>
+              </div>
+              
+              <div className="mt-6">
+                <CrossComparisonInsights />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">

@@ -19,7 +19,7 @@ const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> =>
       minPrice: item.newPrice * 0.9,
       maxPrice: item.newPrice * 1.2
     },
-    category: ['Fragrance', 'Skincare', 'Makeup', 'Haircare'][Math.floor(Math.random() * 4)]
+    category: item.category || ['Fragrance', 'Skincare', 'Makeup', 'Haircare'][Math.floor(Math.random() * 4)]
   }));
 };
 
@@ -42,6 +42,27 @@ const getMarketTrends = async (category: string): Promise<any> => {
         yourPosition: 95,
         recommendation: 102
       }
+    },
+    competitorAnalysis: {
+      priceRanges: {
+        low: [10, 15],
+        medium: [15, 25],
+        high: [25, 50]
+      },
+      leaders: ['Brand A', 'Brand B'],
+      growingCompetitors: ['Brand C'],
+      pricingStrategies: {
+        premium: ['Brand A', 'Brand D'],
+        value: ['Brand B', 'Brand E'],
+        discount: ['Brand F']
+      }
+    },
+    categoryTrends: {
+      growing: category === 'Makeup' || category === 'Skincare',
+      shrinking: category === 'Haircare',
+      stable: category === 'Fragrance',
+      innovations: ['Sustainable packaging', 'Natural ingredients'],
+      seasonalFactors: ['Holiday promotions', 'Summer sales']
     }
   };
 };
@@ -82,6 +103,61 @@ export const useMarketData = (
   const itemsFingerprint = useMemo(() => {
     return items.length > 0 ? 
       items.reduce((acc, item) => acc + item.sku + (item.newPrice || 0), '') : '';
+  }, [items]);
+  
+  // Calculate cross-supplier price trends
+  const calculateCrossSupplierTrends = useCallback(() => {
+    if (items.length === 0) return null;
+    
+    const suppliers = new Set<string>();
+    const categories = new Set<string>();
+    const brands = new Set<string>();
+    
+    items.forEach(item => {
+      if (item.newSupplierCode) suppliers.add(item.newSupplierCode);
+      else if (item.vendor) suppliers.add(item.vendor);
+      if (item.category) categories.add(item.category);
+      const brand = item.name?.split(' ')[0] || item.vendor;
+      if (brand) brands.add(brand);
+    });
+    
+    // Compare price changes across suppliers for the same categories
+    const categoryComparisons = Array.from(categories).map(category => {
+      const categoryItems = items.filter(item => item.category === category);
+      const supplierData: Record<string, { items: number, increases: number, avgIncrease: number }> = {};
+      
+      categoryItems.forEach(item => {
+        const supplier = item.newSupplierCode || item.vendor || 'Unknown';
+        if (!supplierData[supplier]) {
+          supplierData[supplier] = { items: 0, increases: 0, avgIncrease: 0 };
+        }
+        
+        supplierData[supplier].items++;
+        if (item.status === 'increased') {
+          supplierData[supplier].increases++;
+          supplierData[supplier].avgIncrease += item.difference;
+        }
+      });
+      
+      // Calculate averages
+      Object.keys(supplierData).forEach(supplier => {
+        if (supplierData[supplier].increases > 0) {
+          supplierData[supplier].avgIncrease /= supplierData[supplier].increases;
+        }
+      });
+      
+      return {
+        category,
+        suppliers: supplierData
+      };
+    });
+    
+    return {
+      categories: Array.from(categories),
+      suppliers: Array.from(suppliers),
+      brands: Array.from(brands),
+      categoryComparisons
+    };
   }, [items]);
   
   // Enrich data with market info
@@ -181,6 +257,7 @@ export const useMarketData = (
     isFetchingTrends,
     marketTrends,
     lastError,
+    crossSupplierTrends: calculateCrossSupplierTrends(),
     enrichDataWithMarketInfo,
     fetchCategoryTrends,
     batchProcessItems,

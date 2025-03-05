@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,6 @@ export const GadgetConfigForm = () => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
 
   useEffect(() => {
-    // Check if Gadget config exists in localStorage
     const storedConfig = localStorage.getItem('gadgetConfig');
     if (storedConfig) {
       try {
@@ -73,12 +71,7 @@ export const GadgetConfigForm = () => {
     setConnectionStatus('none');
 
     try {
-      // Simulate testing the connection
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // In a real implementation, this would verify connectivity to Gadget.dev
-      // const client = createClient({ apiKey: config.apiKey });
-      // await client.verify();
       
       setConnectionStatus('success');
       toast.success("Connection successful", {
@@ -95,7 +88,6 @@ export const GadgetConfigForm = () => {
   };
 
   const handleSave = () => {
-    // Validate config
     if (!config.apiKey.trim()) {
       toast.error("API Key Required", {
         description: "Please enter your Gadget API key."
@@ -113,7 +105,6 @@ export const GadgetConfigForm = () => {
     setIsSaving(true);
 
     try {
-      // Save to localStorage
       localStorage.setItem('gadgetConfig', JSON.stringify(config));
       
       setIsConfigured(true);
@@ -122,7 +113,6 @@ export const GadgetConfigForm = () => {
         description: "Your Gadget configuration has been saved. Please reload the page to apply changes."
       });
       
-      // Reload page to apply new configuration
       setTimeout(() => {
         window.location.reload();
       }, 2000);
@@ -155,7 +145,6 @@ export const GadgetConfigForm = () => {
       description: "Gadget configuration has been removed. Please reload the page to apply changes."
     });
     
-    // Reload page to apply changes
     setTimeout(() => {
       window.location.reload();
     }, 2000);
@@ -362,22 +351,22 @@ export const GadgetConfigForm = () => {
                   </Alert>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Scripts</Badge>
+                    <Badge variant="default">Scripts</Badge>
                     <p className="text-sm">Manage custom pricing rules via Gadget</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Flows</Badge>
+                    <Badge variant="default">Flows</Badge>
                     <p className="text-sm">Automate price change workflows</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Multi-location</Badge>
+                    <Badge variant="default">Multi-location</Badge>
                     <p className="text-sm">Sync inventory across locations</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">B2B</Badge>
+                    <Badge variant="default">B2B</Badge>
                     <p className="text-sm">Manage wholesale price lists</p>
                   </div>
                 </AccordionContent>
@@ -393,17 +382,17 @@ export const GadgetConfigForm = () => {
                   </Alert>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Segments</Badge>
+                    <Badge variant="default">Segments</Badge>
                     <p className="text-sm">Advanced customer segmentation for price changes</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Flows</Badge>
+                    <Badge variant="default">Flows</Badge>
                     <p className="text-sm">Automated email sequences for price updates</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Events</Badge>
+                    <Badge variant="default">Events</Badge>
                     <p className="text-sm">Track customer interactions with price notifications</p>
                   </div>
                 </AccordionContent>

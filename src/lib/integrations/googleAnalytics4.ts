@@ -15,7 +15,8 @@ export enum GA4EventType {
   PRODUCT_DISCONTINUED = 'product_discontinued',
   BULK_PRICE_UPDATE = 'bulk_price_update',
   KLAVIYO_SEGMENT = 'klaviyo_segment_created',
-  CUSTOMER_NOTIFICATION = 'customer_notification_sent'
+  CUSTOMER_NOTIFICATION = 'customer_notification_sent',
+  TEST_EVENT = 'test_event'
 }
 
 /**

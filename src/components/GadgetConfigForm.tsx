@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -344,7 +345,7 @@ export const GadgetConfigForm = () => {
               <AccordionItem value="shopify-plus">
                 <AccordionTrigger>Shopify Plus Features</AccordionTrigger>
                 <AccordionContent className="space-y-3 px-2">
-                  <Alert variant="outline" className="mb-2">
+                  <Alert variant="default" className="mb-2">
                     <AlertDescription className="text-xs">
                       These features require Shopify Plus subscription and appropriate Gadget app permissions
                     </AlertDescription>
@@ -375,7 +376,7 @@ export const GadgetConfigForm = () => {
               <AccordionItem value="klaviyo">
                 <AccordionTrigger>Klaviyo Integration</AccordionTrigger>
                 <AccordionContent className="space-y-3 px-2">
-                  <Alert variant="outline" className="mb-2">
+                  <Alert variant="default" className="mb-2">
                     <AlertDescription className="text-xs">
                       Gadget.dev enhances Klaviyo integration for better marketing automation
                     </AlertDescription>

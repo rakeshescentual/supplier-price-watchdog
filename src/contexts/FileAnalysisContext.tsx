@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
@@ -61,14 +60,12 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // Add new state for price increase effective date - default to 30 days from now
   const [priceIncreaseEffectiveDate, setPriceIncreaseEffectiveDate] = useState<Date>(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   );
   
   const { isShopifyConnected, loadShopifyData } = useShopify();
 
-  // First, define the analyzeData function since it's used by useMarketData hook
   const analyzeData = useCallback(async (data: PriceItem[]): Promise<PriceAnalysis | void> => {
     if (data.length === 0) return;
     
@@ -93,7 +90,6 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     }
   }, []);
 
-  // Now we can use analyzeData inside useMarketData hook
   const { 
     isEnrichingData, 
     isFetchingTrends, 
@@ -199,8 +195,8 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       newItems: newItems.length,
       anomalyItems: anomalies.length,
       unchangedItems: unchanged.length,
-      potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
-      potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
+      potentialSavings: Math.abs(decreased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0)),
+      potentialLoss: Math.abs(increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0)),
     };
   }, [items]);
 

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { initGA4 } from "@/lib/integrations/googleAnalytics4";
+import { initGA4, trackPriceChange, GA4EventType } from "@/lib/integrations/googleAnalytics4";
 
 export default function Integrations() {
   const [activeTab, setActiveTab] = useState("marketing");
@@ -32,7 +32,12 @@ export default function Integrations() {
     if (ga4Result) {
       console.log("Google Analytics 4 initialized successfully");
     }
-  }, []);
+    
+    // Track current price data if available
+    if (hasItems) {
+      trackPriceChange(items, GA4EventType.BULK_PRICE_UPDATE);
+    }
+  }, [hasItems, items]);
   
   return (
     <div className="container mx-auto py-8 px-4">
@@ -55,6 +60,11 @@ export default function Integrations() {
             toast.success("Test event sent", {
               description: "A test event was sent to connected marketing platforms"
             });
+            
+            // Track test event in GA4
+            if (hasItems) {
+              trackPriceChange(items, GA4EventType.BULK_PRICE_UPDATE);
+            }
           }}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Test Connections

@@ -26,6 +26,7 @@ export interface PriceItem {
   variantId?: string;
   inventoryItemId?: string;
   inventoryLevel?: number;
+  inventory?: number; // Add inventory field for compatibility with existing code
   compareAtPrice?: number;
   metafields?: Record<string, any>;
   tags?: string[];
@@ -94,4 +95,20 @@ export interface ShopifyContextType {
   disconnectShopify: () => void;
   syncToShopify: (items: PriceItem[]) => Promise<boolean>;
   loadShopifyData?: () => Promise<PriceItem[]>;
+}
+
+// Additional interfaces for Klaviyo integration
+export interface KlaviyoEmailTemplate {
+  subject: string;
+  preheader: string;
+  templateStyle: string;
+  urgencyLevel?: string;
+}
+
+export interface KlaviyoSegmentSettings {
+  name: string;
+  enabled: boolean;
+  minInventoryThreshold: number;
+  urgencyLevel: string;
+  includeInventoryLevels?: boolean;
 }

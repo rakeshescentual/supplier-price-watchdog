@@ -15,7 +15,7 @@ import {
 import { Database, CloudUpload, CloudDownload, RefreshCw, Trash2, AlertCircle, Calendar } from "lucide-react";
 
 export const BackupManager = () => {
-  const { items, updateItems } = useFileAnalysis();
+  const { items, setItems } = useFileAnalysis();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -121,7 +121,7 @@ export const BackupManager = () => {
       const result = await loadBackupFromDrive(fileId);
       
       if (result.success && result.items) {
-        updateItems(result.items);
+        setItems(result.items);
         
         clearInterval(interval);
         setProgress(100);

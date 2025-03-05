@@ -1,568 +1,445 @@
-
-import { PriceItem, ShopifyContext } from '@/types/price';
 import { toast } from 'sonner';
-import { authenticateShopify } from '@/lib/gadgetApi';
+import type { PriceItem, ShopifyPlusFeatures, ShopifyFlowConfig, ShopifyScriptConfig } from '@/types/price';
 
-/**
- * Shopify Plus integration with advanced features
- * This module provides Shopify Plus specific functionality like:
- * - Bulk operations
- * - Scripts
- * - Flow automations
- * - B2B support
- * - Multi-location inventory
- */
+// Shopify Plus API endpoints
+const SHOPIFY_PLUS_API_BASE = 'https://api.shopify.com/plus/v1';
 
-// Check if the connected store is a Shopify Plus store
-export const isShopifyPlusStore = async (shopifyContext: ShopifyContext): Promise<boolean> => {
+// Check if store has Shopify Plus features
+export const checkShopifyPlusFeatures = async (
+  shop: string,
+  accessToken: string
+): Promise<ShopifyPlusFeatures> => {
   try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
+    console.log('Checking Shopify Plus features...');
     
-    // In a real implementation, this would query the Shopify API to check the shop's plan
-    console.log(`Checking if ${shopifyContext.shop} is a Shopify Plus store`);
+    // In a real implementation, this would make API calls to Shopify
+    // to determine which Plus features are available
     
-    // Simulate API call
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Return mock data
+    return {
+      multiLocationInventory: true,
+      b2bFunctionality: true,
+      automatedDiscounts: true,
+      scriptsEnabled: true,
+      flowsEnabled: true,
+      enterpriseAppsConnected: ['Klaviyo', 'Yotpo', 'Gorgias']
+    };
+  } catch (error) {
+    console.error('Error checking Shopify Plus features:', error);
+    return {
+      multiLocationInventory: false,
+      b2bFunctionality: false,
+      automatedDiscounts: false,
+      scriptsEnabled: false,
+      flowsEnabled: false,
+      enterpriseAppsConnected: []
+    };
+  }
+};
+
+// Get all locations for a Shopify Plus store
+export const getShopifyLocations = async (
+  shop: string,
+  accessToken: string
+): Promise<{ id: string; name: string; active: boolean }[]> => {
+  try {
+    console.log('Getting Shopify locations...');
+    
+    // In a real implementation, this would call the Shopify Admin API
+    // Example: GET /admin/api/2023-01/locations.json
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // Return mock data
+    return [
+      { id: 'loc_1', name: 'Main Warehouse', active: true },
+      { id: 'loc_2', name: 'Downtown Store', active: true },
+      { id: 'loc_3', name: 'West End Store', active: true },
+      { id: 'loc_4', name: 'Distribution Center', active: true },
+      { id: 'loc_5', name: 'Pop-up Shop', active: false }
+    ];
+  } catch (error) {
+    console.error('Error getting Shopify locations:', error);
+    return [];
+  }
+};
+
+// Get inventory levels for a product across all locations
+export const getInventoryLevels = async (
+  shop: string,
+  accessToken: string,
+  inventoryItemId: string
+): Promise<{ locationId: string; locationName: string; available: number }[]> => {
+  try {
+    console.log(`Getting inventory levels for item ${inventoryItemId}...`);
+    
+    // In a real implementation, this would call the Shopify Admin API
+    // Example: GET /admin/api/2023-01/inventory_levels.json?inventory_item_ids=inventoryItemId
+    
+    // For development/demo purposes, we'll simulate the API response
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // For demo purposes, return true
+    // Return mock data
+    return [
+      { locationId: 'loc_1', locationName: 'Main Warehouse', available: 45 },
+      { locationId: 'loc_2', locationName: 'Downtown Store', available: 12 },
+      { locationId: 'loc_3', locationName: 'West End Store', available: 8 },
+      { locationId: 'loc_4', locationName: 'Distribution Center', available: 120 }
+    ];
+  } catch (error) {
+    console.error(`Error getting inventory levels for item ${inventoryItemId}:`, error);
+    return [];
+  }
+};
+
+// Update inventory levels across multiple locations
+export const updateInventoryLevels = async (
+  shop: string,
+  accessToken: string,
+  updates: { inventoryItemId: string; locationId: string; available: number }[]
+): Promise<boolean> => {
+  try {
+    console.log(`Updating inventory levels for ${updates.length} items...`);
+    
+    // In a real implementation, this would call the Shopify Admin API
+    // Example: POST /admin/api/2023-01/inventory_levels/set.json
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    toast.success('Inventory updated', {
+      description: `Successfully updated inventory levels for ${updates.length} items.`
+    });
+    
     return true;
   } catch (error) {
-    console.error("Error checking Shopify Plus status:", error);
+    console.error('Error updating inventory levels:', error);
+    
+    toast.error('Inventory update failed', {
+      description: 'Could not update inventory levels. Please try again.'
+    });
+    
     return false;
   }
 };
 
-// Execute a Shopify GraphQL bulk operation
-export const executeBulkOperation = async (
-  shopifyContext: ShopifyContext,
-  mutation: string,
-  stagedUploadPath?: string
-): Promise<{
-  bulkOperationId?: string;
-  success: boolean;
-}> => {
+// Get B2B customer groups
+export const getB2BCustomerGroups = async (
+  shop: string,
+  accessToken: string
+): Promise<{ id: string; name: string; customerCount: number }[]> => {
   try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
+    console.log('Getting B2B customer groups...');
     
-    console.log(`Executing Shopify bulk operation for ${shopifyContext.shop}`);
+    // In a real implementation, this would call the Shopify B2B API
     
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 700));
     
-    // In a real implementation, this would use the Shopify GraphQL Admin API
-    // to create a bulk operation
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate a random bulk operation ID
-    const bulkOperationId = `gid://shopify/BulkOperation/${Date.now()}`;
-    
-    return {
-      bulkOperationId,
-      success: true
-    };
+    // Return mock data
+    return [
+      { id: 'group_1', name: 'Wholesale', customerCount: 45 },
+      { id: 'group_2', name: 'Distributors', customerCount: 12 },
+      { id: 'group_3', name: 'VIP Retailers', customerCount: 8 },
+      { id: 'group_4', name: 'Partners', customerCount: 5 }
+    ];
   } catch (error) {
-    console.error("Error executing bulk operation:", error);
-    return {
-      success: false
-    };
+    console.error('Error getting B2B customer groups:', error);
+    return [];
   }
 };
 
-// Create or update a Shopify Plus Script
-export const manageShopifyScript = async (
-  shopifyContext: ShopifyContext,
-  scriptConfig: {
-    id?: string;
-    title: string;
-    scriptCustomerScope: 'all' | 'specific_tags' | 'specific_customers';
-    source: string;
-  }
-): Promise<{
-  scriptId?: string;
-  success: boolean;
-}> => {
+// Set B2B pricing for products
+export const setB2BPricing = async (
+  shop: string,
+  accessToken: string,
+  prices: { productId: string; variantId: string; customerGroupId: string; price: number }[]
+): Promise<boolean> => {
   try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
+    console.log(`Setting B2B pricing for ${prices.length} products...`);
     
+    // In a real implementation, this would call the Shopify B2B API
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 900));
+    
+    toast.success('B2B pricing updated', {
+      description: `Successfully updated B2B pricing for ${prices.length} products.`
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error setting B2B pricing:', error);
+    
+    toast.error('B2B pricing update failed', {
+      description: 'Could not update B2B pricing. Please try again.'
+    });
+    
+    return false;
+  }
+};
+
+// Get Shopify Flow workflows
+export const getShopifyFlows = async (
+  shop: string,
+  accessToken: string
+): Promise<ShopifyFlowConfig[]> => {
+  try {
+    console.log('Getting Shopify Flow workflows...');
+    
+    // In a real implementation, this would call the Shopify Flow API
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // Return mock data
+    return [
+      {
+        title: 'Price Change Notification',
+        triggerType: 'product_update',
+        conditions: [
+          { field: 'price', operator: 'greater_than', value: 10 }
+        ],
+        actions: [
+          { type: 'email', recipient: 'manager@example.com', template: 'price_change_alert' }
+        ]
+      },
+      {
+        title: 'Low Inventory Alert',
+        triggerType: 'inventory_update',
+        conditions: [
+          { field: 'available', operator: 'less_than', value: 5 }
+        ],
+        actions: [
+          { type: 'email', recipient: 'inventory@example.com', template: 'low_stock_alert' }
+        ]
+      }
+    ];
+  } catch (error) {
+    console.error('Error getting Shopify Flow workflows:', error);
+    return [];
+  }
+};
+
+// Create a new Shopify Flow workflow
+export const createShopifyFlow = async (
+  shop: string,
+  accessToken: string,
+  flowConfig: ShopifyFlowConfig
+): Promise<{ success: boolean; flowId?: string }> => {
+  try {
+    console.log(`Creating Shopify Flow workflow: ${flowConfig.title}...`);
+    
+    // In a real implementation, this would call the Shopify Flow API
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    toast.success('Flow created', {
+      description: `Successfully created Shopify Flow workflow "${flowConfig.title}".`
+    });
+    
+    return { success: true, flowId: `flow_${Date.now()}` };
+  } catch (error) {
+    console.error('Error creating Shopify Flow workflow:', error);
+    
+    toast.error('Flow creation failed', {
+      description: 'Could not create Shopify Flow workflow. Please try again.'
+    });
+    
+    return { success: false };
+  }
+};
+
+// Get Shopify Scripts
+export const getShopifyScripts = async (
+  shop: string,
+  accessToken: string
+): Promise<ShopifyScriptConfig[]> => {
+  try {
+    console.log('Getting Shopify Scripts...');
+    
+    // In a real implementation, this would call the Shopify Scripts API
+    
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Return mock data
+    return [
+      {
+        id: 'script_1',
+        title: 'Volume Discount',
+        scriptCustomerScope: 'all',
+        source: 'Input.cart.line_items.each do |line_item|\n  if line_item.quantity > 5\n    line_item.change_line_price(line_item.line_price * 0.9, message: "10% off for buying 5+ items")\n  end\nend\nOutput.cart = Input.cart'
+      },
+      {
+        id: 'script_2',
+        title: 'B2B Customer Discount',
+        scriptCustomerScope: 'specific_tags',
+        source: 'if Input.cart.customer && Input.cart.customer.tags.include?("wholesale")\n  Input.cart.line_items.each do |line_item|\n    line_item.change_line_price(line_item.line_price * 0.8, message: "20% wholesale discount")\n  end\nend\nOutput.cart = Input.cart'
+      }
+    ];
+  } catch (error) {
+    console.error('Error getting Shopify Scripts:', error);
+    return [];
+  }
+};
+
+// Create or update a Shopify Script
+export const saveShopifyScript = async (
+  shop: string,
+  accessToken: string,
+  scriptConfig: ShopifyScriptConfig
+): Promise<{ success: boolean; scriptId?: string }> => {
+  try {
     const isUpdate = !!scriptConfig.id;
-    console.log(`${isUpdate ? 'Updating' : 'Creating'} Shopify Script: ${scriptConfig.title}`);
+    console.log(`${isUpdate ? 'Updating' : 'Creating'} Shopify Script: ${scriptConfig.title}...`);
     
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
+    // In a real implementation, this would call the Shopify Scripts API
     
-    // In a real implementation, this would use the Shopify API
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 700));
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate a script ID if it's a new script
-    const scriptId = scriptConfig.id || `gid://shopify/Script/${Date.now()}`;
-    
-    toast.success(isUpdate ? "Script updated" : "Script created", {
-      description: `Successfully ${isUpdate ? 'updated' : 'created'} the Shopify Script "${scriptConfig.title}".`
+    toast.success(isUpdate ? 'Script updated' : 'Script created', {
+      description: `Successfully ${isUpdate ? 'updated' : 'created'} Shopify Script "${scriptConfig.title}".`
     });
     
-    return {
-      scriptId,
-      success: true
-    };
+    return { success: true, scriptId: scriptConfig.id || `script_${Date.now()}` };
   } catch (error) {
-    console.error("Error managing Shopify Script:", error);
-    toast.error("Script operation failed", {
-      description: "There was an error processing the Shopify Script operation."
+    console.error(`Error ${scriptConfig.id ? 'updating' : 'creating'} Shopify Script:`, error);
+    
+    toast.error(scriptConfig.id ? 'Script update failed' : 'Script creation failed', {
+      description: `Could not ${scriptConfig.id ? 'update' : 'create'} Shopify Script. Please try again.`
     });
-    return {
-      success: false
-    };
+    
+    return { success: false };
   }
 };
 
-// Create a Shopify Flow automation for price change notifications
-export const createPriceChangeFlow = async (
-  shopifyContext: ShopifyContext,
-  config: {
-    title: string;
-    triggerType: 'product_update' | 'inventory_update' | 'order_create';
-    conditions: any[];
-    actions: any[];
-  }
-): Promise<{
-  flowId?: string;
-  success: boolean;
-}> => {
-  try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
-    
-    console.log(`Creating Shopify Flow: ${config.title}`);
-    
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
-    
-    // In a real implementation, this would use the Shopify API
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Generate a flow ID
-    const flowId = `gid://shopify/Flow/${Date.now()}`;
-    
-    toast.success("Flow created", {
-      description: `Successfully created the Shopify Flow "${config.title}".`
-    });
-    
-    return {
-      flowId,
-      success: true
-    };
-  } catch (error) {
-    console.error("Error creating Shopify Flow:", error);
-    toast.error("Flow creation failed", {
-      description: "There was an error creating the Shopify Flow."
-    });
-    return {
-      success: false
-    };
-  }
-};
-
-// Update multi-location inventory for products
-export const updateMultiLocationInventory = async (
-  shopifyContext: ShopifyContext,
-  inventoryUpdates: {
-    inventoryItemId: string;
-    locationId: string;
-    available: number;
-  }[]
-): Promise<{
-  success: boolean;
-  failedUpdates?: {
-    inventoryItemId: string;
-    locationId: string;
-    error: string;
-  }[];
-}> => {
-  try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
-    
-    if (inventoryUpdates.length === 0) {
-      return { success: true };
-    }
-    
-    console.log(`Updating inventory for ${inventoryUpdates.length} items in ${shopifyContext.shop}`);
-    
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
-    
-    // In a real implementation, this would use the Shopify Admin API
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // For demo purposes, assume all updates are successful
-    toast.success("Inventory updated", {
-      description: `Successfully updated inventory for ${inventoryUpdates.length} items across multiple locations.`
-    });
-    
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error("Error updating multi-location inventory:", error);
-    toast.error("Inventory update failed", {
-      description: "There was an error updating inventory across locations."
-    });
-    return {
-      success: false
-    };
-  }
-};
-
-// Configure B2B pricing for customer-specific prices
-export const configureB2BPricing = async (
-  shopifyContext: ShopifyContext,
-  b2bPriceRules: {
-    productId: string;
-    customerGroupId: string;
-    priceAdjustment: {
-      type: 'percentage' | 'fixed';
-      value: number;
-    };
-  }[]
-): Promise<{
-  success: boolean;
-}> => {
-  try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
-    
-    if (b2bPriceRules.length === 0) {
-      return { success: true };
-    }
-    
-    console.log(`Configuring B2B pricing for ${b2bPriceRules.length} products in ${shopifyContext.shop}`);
-    
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
-    
-    // In a real implementation, this would use the Shopify Admin API
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // For demo purposes, assume all configurations are successful
-    toast.success("B2B pricing configured", {
-      description: `Successfully configured B2B pricing for ${b2bPriceRules.length} products.`
-    });
-    
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error("Error configuring B2B pricing:", error);
-    toast.error("B2B pricing configuration failed", {
-      description: "There was an error configuring B2B pricing rules."
-    });
-    return {
-      success: false
-    };
-  }
-};
-
-// Create a price increase automation that schedules future price changes
+// Schedule price changes for future dates
 export const schedulePriceChanges = async (
-  shopifyContext: ShopifyContext,
-  priceChanges: {
-    productId: string;
-    variantId: string;
-    newPrice: number;
-    effectiveDate: string; // ISO date string
-  }[]
-): Promise<{
-  success: boolean;
-  scheduledChanges?: {
-    productId: string;
-    variantId: string;
-    scheduledFor: string;
-  }[];
-}> => {
+  shop: string,
+  accessToken: string,
+  schedules: { productId: string; variantId: string; price: number; effectiveDate: string }[]
+): Promise<boolean> => {
   try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
+    console.log(`Scheduling price changes for ${schedules.length} products...`);
     
-    if (priceChanges.length === 0) {
-      return { success: true };
-    }
+    // In a real implementation, this would call the Shopify API
     
-    console.log(`Scheduling price changes for ${priceChanges.length} products in ${shopifyContext.shop}`);
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Authenticate with Shopify
-    await authenticateShopify(shopifyContext);
-    
-    // In a real implementation, this would use the Shopify API
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1800));
-    
-    // For demo purposes, assume all schedules are successful
-    const scheduledChanges = priceChanges.map(change => ({
-      productId: change.productId,
-      variantId: change.variantId,
-      scheduledFor: change.effectiveDate
-    }));
-    
-    toast.success("Price changes scheduled", {
-      description: `Successfully scheduled price changes for ${priceChanges.length} products.`
+    toast.success('Price changes scheduled', {
+      description: `Successfully scheduled price changes for ${schedules.length} products.`
     });
     
-    return {
-      success: true,
-      scheduledChanges
-    };
+    return true;
   } catch (error) {
-    console.error("Error scheduling price changes:", error);
-    toast.error("Scheduling failed", {
-      description: "There was an error scheduling future price changes."
+    console.error('Error scheduling price changes:', error);
+    
+    toast.error('Scheduling failed', {
+      description: 'Could not schedule price changes. Please try again.'
     });
-    return {
-      success: false
-    };
+    
+    return false;
   }
 };
 
-// Process price changes with Shopify Plus features
-export const processPriceChangesWithPlus = async (
-  shopifyContext: ShopifyContext,
-  items: PriceItem[],
-  options: {
-    useB2B?: boolean;
-    useMultiLocation?: boolean;
-    scheduleChanges?: boolean;
-    effectiveDate?: string;
-  } = {}
-): Promise<{
-  success: boolean;
-  processedItems: number;
-}> => {
+// Apply custom pricing rules for specific customer groups
+export const applyCustomPricing = async (
+  customPrices: { productId: string; customerGroupId: string; priceAdjustment: { type: "fixed" | "percentage"; value: number; } }[]
+): Promise<boolean> => {
   try {
-    if (!shopifyContext) {
-      throw new Error("Shopify context is required");
-    }
+    console.log(`Applying custom pricing for ${customPrices.length} products...`);
     
-    if (items.length === 0) {
-      return { success: true, processedItems: 0 };
-    }
+    // In a real implementation, this would call the Shopify API
     
-    // Check if this is a Shopify Plus store
-    const isPlusStore = await isShopifyPlusStore(shopifyContext);
+    // For development/demo purposes, we'll simulate the API response
+    await new Promise(resolve => setTimeout(resolve, 700));
     
-    if (!isPlusStore) {
-      console.warn("This is not a Shopify Plus store. Using standard API instead.");
-      
-      // In a real implementation, this would fall back to the standard API
-      // For demo purposes, continue as if it's a Plus store
-    }
+    toast.success('Custom pricing applied', {
+      description: `Successfully applied custom pricing rules for ${customPrices.length} products.`
+    });
     
-    console.log(`Processing ${items.length} price changes with Shopify Plus features`);
+    return true;
+  } catch (error) {
+    console.error('Error applying custom pricing:', error);
     
-    // Initialize counters
-    let processedItems = 0;
+    toast.error('Custom pricing failed', {
+      description: 'Could not apply custom pricing rules. Please try again.'
+    });
     
-    // Use bulk operations for efficient updates
-    if (items.length > 10) {
-      const changedItems = items.filter(item => 
-        item.status === 'increased' || 
-        item.status === 'decreased' ||
-        item.status === 'new'
-      );
-      
-      if (changedItems.length > 0) {
-        // Format for bulk operation
-        const bulkOperationData = changedItems.map(item => ({
-          id: item.variantId,
-          price: item.newPrice.toString(),
-          compareAtPrice: item.compareAtPrice?.toString(),
-          inventoryItemId: item.inventoryItemId,
-          sku: item.sku
-        }));
-        
-        // In a real implementation, stage upload the data
-        const stagedUploadPath = `/tmp/price-update-${Date.now()}.jsonl`;
-        
-        // Execute bulk operation
-        const bulkResult = await executeBulkOperation(
-          shopifyContext,
-          `mutation productVariantBulkUpdate($input: ProductVariantsBulkUpdateInput!) {
-            productVariantsBulkUpdate(input: $input) {
-              userErrors { field, message }
-            }
-          }`,
-          stagedUploadPath
-        );
-        
-        if (bulkResult.success) {
-          processedItems += changedItems.length;
-          
-          toast.success("Bulk update initiated", {
-            description: `Started bulk update of ${changedItems.length} products in Shopify.`
-          });
-        }
-      }
-    }
+    return false;
+  }
+};
+
+// Create a price change automation flow
+export const createPriceChangeFlow = async (
+  shop: string,
+  accessToken: string,
+  items: PriceItem[],
+  effectiveDate: string
+): Promise<boolean> => {
+  try {
+    console.log(`Creating price change flow for ${items.length} products with effective date ${effectiveDate}...`);
     
-    // Process B2B pricing if enabled
-    if (options.useB2B) {
-      const b2bItems = items.filter(item => 
-        item.status === 'increased' || 
-        item.status === 'decreased'
-      );
-      
-      if (b2bItems.length > 0) {
-        // Format for B2B pricing
-        const b2bPriceRules = b2bItems.map(item => ({
-          productId: item.productId || '',
-          customerGroupId: 'gid://shopify/CustomerSavedSearch/default',
-          priceAdjustment: {
-            type: 'percentage',
-            value: -5 // 5% discount for B2B customers
-          }
-        })).filter(rule => rule.productId);
-        
-        if (b2bPriceRules.length > 0) {
-          const b2bResult = await configureB2BPricing(shopifyContext, b2bPriceRules);
-          
-          if (b2bResult.success) {
-            toast.success("B2B pricing updated", {
-              description: `Updated B2B pricing for ${b2bPriceRules.length} products.`
-            });
-          }
-        }
-      }
-    }
+    // 1. Schedule the price changes
+    const schedules = items.map(item => ({
+      productId: item.productId || '',
+      variantId: item.variantId || '',
+      price: item.newPrice,
+      effectiveDate
+    })).filter(item => item.productId && item.variantId);
     
-    // Update multi-location inventory if enabled
-    if (options.useMultiLocation) {
-      const inventoryItems = items.filter(item => 
-        item.inventoryItemId && item.inventoryLevel !== undefined
-      );
-      
-      if (inventoryItems.length > 0) {
-        // Mock location IDs for demo purposes
-        const locationIds = [
-          'gid://shopify/Location/123456789',
-          'gid://shopify/Location/987654321'
-        ];
-        
-        // Format for multi-location inventory
-        const inventoryUpdates = inventoryItems.flatMap(item => 
-          locationIds.map(locationId => ({
-            inventoryItemId: item.inventoryItemId || '',
-            locationId,
-            available: Math.max(0, Math.floor((item.inventoryLevel || 0) / locationIds.length))
-          }))
-        ).filter(update => update.inventoryItemId);
-        
-        if (inventoryUpdates.length > 0) {
-          const inventoryResult = await updateMultiLocationInventory(
-            shopifyContext,
-            inventoryUpdates
-          );
-          
-          if (inventoryResult.success) {
-            toast.success("Multi-location inventory updated", {
-              description: `Updated inventory across ${locationIds.length} locations.`
-            });
-          }
-        }
-      }
-    }
+    await schedulePriceChanges(shop, accessToken, schedules);
     
-    // Schedule future price changes if enabled
-    if (options.scheduleChanges && options.effectiveDate) {
-      const futureItems = items.filter(item => 
-        item.status === 'increased' && 
-        item.variantId && 
-        item.productId
-      );
-      
-      if (futureItems.length > 0) {
-        // Format for scheduled price changes
-        const priceChanges = futureItems.map(item => ({
-          productId: item.productId || '',
-          variantId: item.variantId || '',
-          newPrice: item.newPrice,
-          effectiveDate: options.effectiveDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        })).filter(change => change.productId && change.variantId);
-        
-        if (priceChanges.length > 0) {
-          const scheduleResult = await schedulePriceChanges(
-            shopifyContext,
-            priceChanges
-          );
-          
-          if (scheduleResult.success) {
-            toast.success("Future price changes scheduled", {
-              description: `Scheduled price changes for ${priceChanges.length} products.`
-            });
-          }
-        }
-      }
-    }
-    
-    // Create a Shopify Flow automation for price change notifications
-    const flowConfig = {
-      title: "Price Change Notification",
-      triggerType: "product_update" as const,
+    // 2. Create a Flow to notify staff when prices change
+    const flowConfig: ShopifyFlowConfig = {
+      title: `Price Change Notification - ${new Date().toISOString().split('T')[0]}`,
+      triggerType: 'product_update',
       conditions: [
-        {
-          subject: "product",
-          property: "price",
-          operator: "changed"
-        }
+        { field: 'price', operator: 'changed', value: null }
       ],
       actions: [
-        {
-          type: "email",
-          recipient: "{{shop.email}}",
-          subject: "Product Price Changed",
-          body: "The price of {{product.title}} has changed from {{product.price_was}} to {{product.price}}."
-        }
+        { type: 'email', recipient: 'management@example.com', template: 'price_change_notification' }
       ]
     };
     
-    const flowResult = await createPriceChangeFlow(shopifyContext, flowConfig);
+    await createShopifyFlow(shop, accessToken, flowConfig);
     
-    if (flowResult.success) {
-      toast.success("Price change notification flow created", {
-        description: "Created a Shopify Flow to notify about future price changes."
-      });
+    // 3. Apply custom pricing for B2B customers if needed
+    const customPrices = items
+      .filter(item => item.status === 'increased' && item.productId && item.variantId)
+      .map(item => ({
+        productId: item.productId || '',
+        customerGroupId: 'group_1', // Wholesale group
+        priceAdjustment: {
+          type: "percentage" as "fixed" | "percentage",
+          value: 10 // 10% discount for wholesale customers
+        }
+      }));
+    
+    if (customPrices.length > 0) {
+      await applyCustomPricing(customPrices);
     }
     
-    return {
-      success: true,
-      processedItems: processedItems || items.length
-    };
-  } catch (error) {
-    console.error("Error processing price changes with Shopify Plus:", error);
-    toast.error("Processing failed", {
-      description: "There was an error processing price changes with Shopify Plus."
+    toast.success('Price change automation created', {
+      description: `Successfully created price change automation for ${items.length} products.`
     });
-    return {
-      success: false,
-      processedItems: 0
-    };
+    
+    return true;
+  } catch (error) {
+    console.error('Error creating price change automation:', error);
+    
+    toast.error('Automation creation failed', {
+      description: 'Could not create price change automation. Please try again.'
+    });
+    
+    return false;
   }
 };

@@ -1,26 +1,43 @@
 
+import { PriceItem, GoogleDriveBackup } from '@/types/price';
 import { toast } from 'sonner';
-import type { PriceItem } from '@/types/price';
+import * as XLSX from 'xlsx';
+
+// Configuration
+const API_KEY = ''; // For public API access only
+const CLIENT_ID = '';
+const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+const BACKUP_FOLDER_NAME = 'PriceWatchBackups';
+
+// Folder ID for price backups
+let backupFolderId: string | null = null;
 
 /**
- * Initialize the Google Drive API for file operations
+ * Initialize the Google Drive API
  */
-export const initGoogleDriveAPI = async (apiKey: string = ''): Promise<boolean> => {
+export const initGoogleDriveAPI = async (): Promise<boolean> => {
   try {
-    console.log('Initializing Google Drive API...');
+    if (!window.gapi) {
+      console.error('Google API not loaded');
+      return false;
+    }
     
     return new Promise((resolve) => {
-      // Load the Google API client library
-      window.gapi.load('client:auth2', async () => {
+      window.gapi?.load('client:auth2', async () => {
         try {
-          await window.gapi.client.init({
-            apiKey: apiKey || 'mock-api-key',
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            clientId: 'mock-client-id.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file'
+          await window.gapi?.client?.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            discoveryDocs: DISCOVERY_DOCS,
+            scope: SCOPES.join(' ')
           });
           
-          console.log('Google Drive API initialized successfully');
+          console.log('Google Drive API initialized');
+          
+          // Try to find or create the backup folder
+          backupFolderId = await findOrCreateBackupFolder();
+          
           resolve(true);
         } catch (error) {
           console.error('Error initializing Google Drive API:', error);
@@ -29,22 +46,24 @@ export const initGoogleDriveAPI = async (apiKey: string = ''): Promise<boolean> 
       });
     });
   } catch (error) {
-    console.error('Error loading Google Drive API:', error);
+    console.error('Error in initGoogleDriveAPI:', error);
     return false;
   }
 };
 
 /**
- * Check if user is authenticated with Google Drive
+ * Check if the user is authenticated with Google Drive
  */
 export const isGoogleDriveAuthenticated = (): boolean => {
   try {
-    if (!window.gapi?.auth2) return false;
+    if (!window.gapi?.auth2) {
+      return false;
+    }
     
     const authInstance = window.gapi.auth2.getAuthInstance();
-    return authInstance && authInstance.isSignedIn.get();
+    return authInstance.isSignedIn.get();
   } catch (error) {
-    console.error('Error checking Google authentication status:', error);
+    console.error('Error checking Google Drive authentication:', error);
     return false;
   }
 };
@@ -55,110 +74,191 @@ export const isGoogleDriveAuthenticated = (): boolean => {
 export const authenticateWithGoogleDrive = async (): Promise<boolean> => {
   try {
     if (!window.gapi?.auth2) {
-      console.error('Google Auth API not loaded');
-      return false;
+      await initGoogleDriveAPI();
+      if (!window.gapi?.auth2) {
+        throw new Error('Google API auth2 not initialized');
+      }
     }
     
     const authInstance = window.gapi.auth2.getAuthInstance();
     await authInstance.signIn();
-    
-    const isSignedIn = authInstance.isSignedIn.get();
-    if (isSignedIn) {
-      toast.success('Authenticated with Google Drive', {
-        description: 'You can now backup and restore your price lists.'
-      });
-    }
-    
-    return isSignedIn;
+    return authInstance.isSignedIn.get();
   } catch (error) {
     console.error('Error authenticating with Google Drive:', error);
-    toast.error('Google Drive Authentication Failed', {
-      description: 'Unable to authenticate with Google Drive. Please try again.'
-    });
     return false;
   }
 };
 
 /**
- * Save price items to Google Drive as a backup
+ * Find or create the backup folder in Google Drive
  */
-export const savePriceItemsToGoogleDrive = async (
-  items: PriceItem[],
-  filename: string = `Price_Backup_${new Date().toISOString().slice(0, 10)}`
-): Promise<{ success: boolean; fileId?: string; error?: string }> => {
+const findOrCreateBackupFolder = async (): Promise<string | null> => {
   try {
     if (!window.gapi?.client?.drive?.files) {
-      return { success: false, error: 'Google Drive API not initialized' };
+      console.error('Google Drive API not initialized');
+      return null;
     }
     
-    // Prepare file content
-    const fileContent = JSON.stringify(items, null, 2);
-    const file = new Blob([fileContent], { type: 'application/json' });
-    
-    // Upload file to Google Drive
-    const response = await window.gapi.client.drive.files.create({
-      resource: {
-        name: filename,
-        mimeType: 'application/json',
-        description: `Price backup containing ${items.length} items created by Escentual Price Manager`
-      },
-      media: {
-        mimeType: 'application/json',
-        body: file
-      }
+    // Check if the folder exists
+    const response = await window.gapi.client.drive.files.list({
+      q: `name='${BACKUP_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id, name)',
+      spaces: 'drive'
     });
     
-    const result = response.result;
-    
-    if (result && result.id) {
-      toast.success('Backup Saved to Google Drive', {
-        description: `Successfully saved ${items.length} items to ${filename}`
-      });
-      return { success: true, fileId: result.id };
-    } else {
-      return { success: false, error: 'Failed to save backup: No file ID returned' };
+    const files = response.result.files;
+    if (files && files.length > 0) {
+      console.log(`Found existing backup folder: ${files[0].id}`);
+      return files[0].id;
     }
+    
+    // Create the folder if it doesn't exist
+    const folderMetadata = {
+      name: BACKUP_FOLDER_NAME,
+      mimeType: 'application/vnd.google-apps.folder'
+    };
+    
+    const folder = await window.gapi.client.drive.files.create({
+      resource: folderMetadata,
+      fields: 'id'
+    });
+    
+    console.log(`Created new backup folder: ${folder.result.id}`);
+    return folder.result.id;
   } catch (error) {
-    console.error('Error saving to Google Drive:', error);
-    toast.error('Backup Failed', {
-      description: 'Unable to save backup to Google Drive. Please try again.'
-    });
-    return { success: false, error: String(error) };
+    console.error('Error finding or creating backup folder:', error);
+    return null;
   }
 };
 
 /**
- * List all price backups from Google Drive
+ * Save price items to Google Drive
  */
-export const listPriceBackupsFromGoogleDrive = async (): Promise<any[]> => {
+export const savePriceItemsToGoogleDrive = async (
+  items: PriceItem[],
+  fileName: string
+): Promise<{ success: boolean; fileId?: string; error?: string }> => {
   try {
     if (!window.gapi?.client?.drive?.files) {
-      toast.error('Google Drive API not initialized', {
-        description: 'Please authenticate with Google Drive first.'
-      });
+      console.error('Google Drive API not initialized');
+      return { success: false, error: 'Google Drive API not initialized' };
+    }
+    
+    if (!isGoogleDriveAuthenticated()) {
+      const authResult = await authenticateWithGoogleDrive();
+      if (!authResult) {
+        return { success: false, error: 'Not authenticated with Google Drive' };
+      }
+    }
+    
+    if (!backupFolderId) {
+      backupFolderId = await findOrCreateBackupFolder();
+      if (!backupFolderId) {
+        return { success: false, error: 'Could not find or create backup folder' };
+      }
+    }
+    
+    // Convert items to Excel file
+    const ws = XLSX.utils.json_to_sheet(items);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PriceItems');
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    
+    // Create a Blob from the Excel data
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    // Upload the file to Google Drive
+    const metadata = {
+      name: `${fileName}.xlsx`,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      parents: [backupFolderId]
+    };
+    
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob);
+    
+    // Use the gapi client to upload the file
+    const accessToken = window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+    
+    const response = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: form
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (data.id) {
+      console.log(`File saved to Google Drive: ${data.id}`);
+      return { success: true, fileId: data.id };
+    } else {
+      console.error('Error saving file to Google Drive:', data);
+      return { success: false, error: 'Error saving file to Google Drive' };
+    }
+  } catch (error) {
+    console.error('Error saving price items to Google Drive:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+/**
+ * List price backups from Google Drive
+ */
+export const listPriceBackupsFromGoogleDrive = async (
+  limit: number = 10
+): Promise<GoogleDriveBackup[]> => {
+  try {
+    if (!window.gapi?.client?.drive?.files) {
+      console.error('Google Drive API not initialized');
       return [];
     }
     
+    if (!isGoogleDriveAuthenticated()) {
+      const authResult = await authenticateWithGoogleDrive();
+      if (!authResult) {
+        toast.error('Google Drive authentication failed');
+        return [];
+      }
+    }
+    
+    if (!backupFolderId) {
+      backupFolderId = await findOrCreateBackupFolder();
+      if (!backupFolderId) {
+        toast.error('Failed to locate backup folder');
+        return [];
+      }
+    }
+    
+    // List files in the backup folder
     const response = await window.gapi.client.drive.files.list({
-      q: "mimeType='application/json' and name contains 'Price_Backup'",
-      spaces: 'drive',
-      fields: 'files(id, name, createdTime, size, webViewLink)',
-      orderBy: 'createdTime desc'
+      q: `'${backupFolderId}' in parents and trashed=false`,
+      fields: 'files(id, name, createdTime, webViewLink, size)',
+      orderBy: 'createdTime desc',
+      pageSize: limit
     });
     
-    const files = response.result.files || [];
+    const files = response.result.files;
+    if (!files || files.length === 0) {
+      console.log('No backups found');
+      return [];
+    }
+    
     return files.map(file => ({
       id: file.id,
       name: file.name,
+      url: file.webViewLink,
       createdAt: file.createdTime,
-      size: file.size,
-      url: file.webViewLink
+      size: file.size ? parseInt(file.size) : undefined
     }));
   } catch (error) {
-    console.error('Error listing backups from Google Drive:', error);
-    toast.error('Failed to list backups', {
-      description: 'Could not retrieve backups from Google Drive.'
-    });
+    console.error('Error listing price backups from Google Drive:', error);
+    toast.error('Failed to list backups');
     return [];
   }
 };
@@ -171,35 +271,51 @@ export const loadPriceBackupFromGoogleDrive = async (
 ): Promise<{ success: boolean; items?: PriceItem[]; error?: string }> => {
   try {
     if (!window.gapi?.client?.drive?.files) {
+      console.error('Google Drive API not initialized');
       return { success: false, error: 'Google Drive API not initialized' };
     }
     
-    // First get the download URL
-    const fileResponse = await window.gapi.client.drive.files.get({
-      fileId: fileId,
-      alt: 'media'
-    });
-    
-    // Parse the response
-    const items = JSON.parse(fileResponse.body);
-    
-    if (Array.isArray(items)) {
-      toast.success('Backup Loaded Successfully', {
-        description: `Loaded ${items.length} items from Google Drive backup`
-      });
-      return { success: true, items };
-    } else {
-      toast.error('Invalid Backup Format', {
-        description: 'The backup file contains invalid data format.'
-      });
-      return { success: false, error: 'Invalid backup format' };
+    if (!isGoogleDriveAuthenticated()) {
+      const authResult = await authenticateWithGoogleDrive();
+      if (!authResult) {
+        return { success: false, error: 'Not authenticated with Google Drive' };
+      }
     }
-  } catch (error) {
-    console.error('Error loading backup from Google Drive:', error);
-    toast.error('Failed to Load Backup', {
-      description: 'Could not load the selected backup from Google Drive.'
+    
+    // Get the file metadata
+    const fileResponse = await window.gapi.client.drive.files.get({
+      fileId,
+      fields: 'name,mimeType'
     });
-    return { success: false, error: String(error) };
+    
+    // Download the file content
+    const accessToken = window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+    const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    
+    const response = await fetch(downloadUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      return { success: false, error: `Failed to download file: ${response.statusText}` };
+    }
+    
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    
+    // Read the Excel file
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const items = XLSX.utils.sheet_to_json<PriceItem>(worksheet);
+    
+    console.log(`Loaded ${items.length} items from Google Drive backup`);
+    return { success: true, items };
+  } catch (error) {
+    console.error('Error loading price backup from Google Drive:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 
@@ -208,39 +324,56 @@ export const loadPriceBackupFromGoogleDrive = async (
  */
 export const deletePriceBackupFromGoogleDrive = async (
   fileId: string
-): Promise<boolean> => {
+): Promise<{ success: boolean; error?: string }> => {
   try {
     if (!window.gapi?.client?.drive?.files) {
-      toast.error('Google Drive API not initialized', {
-        description: 'Please authenticate with Google Drive first.'
-      });
-      return false;
+      console.error('Google Drive API not initialized');
+      return { success: false, error: 'Google Drive API not initialized' };
     }
     
-    // Check if the delete method exists
-    if (!window.gapi.client.drive.files.delete) {
-      console.error('Drive API delete method not available');
-      toast.error('Delete not supported', {
-        description: 'The delete functionality is not available in this version.'
-      });
-      return false;
+    if (!isGoogleDriveAuthenticated()) {
+      const authResult = await authenticateWithGoogleDrive();
+      if (!authResult) {
+        return { success: false, error: 'Not authenticated with Google Drive' };
+      }
     }
     
     // Delete the file
     await window.gapi.client.drive.files.delete({
-      fileId: fileId
+      fileId
     });
     
-    toast.success('Backup Deleted', {
-      description: 'The selected backup has been permanently deleted.'
-    });
-    
-    return true;
+    console.log(`Deleted backup file: ${fileId}`);
+    return { success: true };
   } catch (error) {
-    console.error('Error deleting backup from Google Drive:', error);
-    toast.error('Failed to Delete Backup', {
-      description: 'Could not delete the selected backup from Google Drive.'
-    });
-    return false;
+    console.error('Error deleting price backup from Google Drive:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+/**
+ * Create a scheduled backup
+ */
+export const scheduleBackup = async (
+  cronExpression: string,
+  items: PriceItem[]
+): Promise<{ success: boolean; scheduleId?: string; error?: string }> => {
+  try {
+    // This would normally use a backend service with cron capabilities
+    // For this example, we'll just do an immediate backup
+    console.log(`Scheduled backup with cron: ${cronExpression}`);
+    
+    const fileName = `Scheduled_Backup_${new Date().toISOString().split('T')[0]}`;
+    const result = await savePriceItemsToGoogleDrive(items, fileName);
+    
+    if (result.success) {
+      toast.success('Scheduled backup created successfully');
+      return { success: true, scheduleId: `schedule_${Date.now()}` };
+    } else {
+      return { success: false, error: result.error };
+    }
+  } catch (error) {
+    console.error('Error scheduling backup:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };

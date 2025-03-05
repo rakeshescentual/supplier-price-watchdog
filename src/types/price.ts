@@ -1,4 +1,5 @@
 
+// Core Price Item Interface
 export interface PriceItem {
   sku: string;
   name: string;
@@ -25,6 +26,7 @@ export interface PriceItem {
   productId?: string;
   variantId?: string;
   inventoryItemId?: string;
+  inventoryItemIds?: string[]; // For multi-location inventory
   inventoryLevel?: number;
   inventory?: number; // Add inventory field for compatibility with existing code
   compareAtPrice?: number;
@@ -61,6 +63,7 @@ export interface PriceItem {
   }[];
 }
 
+// Analysis interfaces
 export interface PriceAnalysis {
   summary: string;
   recommendations: string[];
@@ -76,6 +79,13 @@ export interface PriceAnalysis {
   inventoryImpact?: string;
   salesTrendImpact?: string;
   vendorAnalysis?: string;
+  // AI-powered insights
+  aiInsights?: string[];
+  marketCompetitivePosition?: string;
+  pricingSuggestions?: {
+    categorySpecific?: Record<string, any>[];
+    generalStrategy?: string;
+  };
 }
 
 export interface AnomalyStats {
@@ -87,7 +97,7 @@ export interface AnomalyStats {
   unmatched: number;
 }
 
-// Shopify-specific interfaces
+// Shopify interfaces
 export interface ShopifyAuthConfig {
   apiKey: string;
   scopes: string[];
@@ -111,12 +121,14 @@ export interface ShopifyContextType {
   loadShopifyData?: () => Promise<PriceItem[]>;
 }
 
-// Updated Klaviyo integration interfaces with all required fields
+// Klaviyo integration interfaces
 export interface KlaviyoEmailTemplate {
   subject: string;
   preheader: string;
   templateStyle: string;
-  urgencyLevel?: string;
+  urgencyLevel?: 'low' | 'medium' | 'high';
+  bannerColor?: string;
+  logoUrl?: string;
 }
 
 export interface KlaviyoSegmentSettings {
@@ -126,6 +138,8 @@ export interface KlaviyoSegmentSettings {
   minDaysBefore?: number;
   urgencyLevel: string;
   includeInventoryLevels?: boolean;
+  customAttributes?: Record<string, any>;
+  campaignParameters?: Record<string, any>;
 }
 
 // Google Workspace integration interfaces
@@ -133,6 +147,13 @@ export interface GoogleWorkspaceConfig {
   apiKey?: string;
   clientId?: string;
   scopes: string[];
+  redirectUri?: string;
+  includeGmail?: boolean;
+  includeDrive?: boolean;
+  includeCalendar?: boolean;
+  includeAnalytics?: boolean;
+  includeMerchant?: boolean;
+  includeSearchConsole?: boolean;
 }
 
 export interface GoogleDriveBackup {
@@ -141,6 +162,9 @@ export interface GoogleDriveBackup {
   url: string;
   createdAt: string;
   size?: number;
+  fileType?: string;
+  lastModified?: string;
+  thumbnailUrl?: string;
 }
 
 // Gadget.dev integration interfaces
@@ -148,6 +172,12 @@ export interface GadgetConfig {
   apiKey: string;
   appId: string;
   environment: 'development' | 'production';
+  featureFlags?: {
+    enableAdvancedAnalytics?: boolean;
+    enablePdfProcessing?: boolean;
+    enableBackgroundJobs?: boolean;
+    enableShopifySync?: boolean;
+  };
 }
 
 // Enhanced interfaces for Shopify Plus features
@@ -158,6 +188,8 @@ export interface ShopifyPlusFeatures {
   scriptsEnabled: boolean;
   flowsEnabled: boolean;
   enterpriseAppsConnected: string[];
+  metafieldNamespaces?: string[];
+  customStorefrontEnabled?: boolean;
 }
 
 export interface ShopifyFlowConfig {
@@ -180,6 +212,8 @@ export interface AIAnalysisRequest {
   previousAnalysis?: PriceAnalysis;
   shopifyData?: any;
   marketData?: any;
+  historicalPriceData?: any[];
+  competitorPricing?: any[];
 }
 
 export interface AIAnalysisResponse {
@@ -194,4 +228,47 @@ export interface AIAnalysisResponse {
     position: 'low' | 'average' | 'high';
     recommendation: string;
   }[];
+  customerImpactAnalysis?: {
+    sentiment: 'positive' | 'neutral' | 'negative';
+    recommendedCommunication?: string;
+    segmentationSuggestions?: any[];
+  };
+}
+
+// Extended Notebook LLM interfaces for price analysis
+export interface NotebookLLMConfig {
+  model: string;
+  temperature?: number;
+  historyEnabled?: boolean;
+  saveAnalysis?: boolean;
+  enhancedVisualization?: boolean;
+  supportedDataFormats?: string[];
+}
+
+export interface NotebookLLMQuery {
+  type: 'price_analysis' | 'market_comparison' | 'trend_prediction' | 'custom';
+  prompt: string;
+  data?: PriceItem[] | any[];
+  parameters?: Record<string, any>;
+  visualizationType?: 'chart' | 'table' | 'heatmap' | 'none';
+}
+
+export interface NotebookLLMResponse {
+  id: string;
+  analysis: string;
+  timestamp: string;
+  visualizationData?: any;
+  suggestedNextQueries?: string[];
+  savePath?: string;
+}
+
+// Google Analytics integration
+export interface GoogleAnalyticsEvent {
+  category: string;
+  action: string;
+  label?: string;
+  value?: number;
+  nonInteraction?: boolean;
+  customDimensions?: Record<string, string>;
+  customMetrics?: Record<string, number>;
 }

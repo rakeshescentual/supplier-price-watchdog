@@ -6,11 +6,13 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { 
-  initGoogleDrive, 
-  backupPriceDataToDrive, 
-  getRecentBackups,
-  loadBackupFromDrive,
-  cleanupOldBackups
+  initGoogleDriveAPI, 
+  savePriceItemsToGoogleDrive, 
+  listPriceBackupsFromGoogleDrive,
+  loadPriceBackupFromGoogleDrive,
+  deletePriceBackupFromGoogleDrive,
+  isGoogleDriveAuthenticated,
+  authenticateWithGoogleDrive
 } from "@/lib/integrations/googleDrive";
 import { Database, CloudUpload, CloudDownload, RefreshCw, Trash2, AlertCircle, Calendar } from "lucide-react";
 
@@ -23,7 +25,7 @@ export const BackupManager = () => {
   
   useEffect(() => {
     const initialize = async () => {
-      const initialized = await initGoogleDrive();
+      const initialized = await initGoogleDriveAPI();
       setIsInitialized(initialized);
       
       if (initialized) {
@@ -36,9 +38,9 @@ export const BackupManager = () => {
   
   const fetchRecentBackups = async () => {
     try {
-      const result = await getRecentBackups(5);
-      if (result.success && result.files) {
-        setRecentBackups(result.files);
+      const backups = await listPriceBackupsFromGoogleDrive();
+      if (backups.length > 0) {
+        setRecentBackups(backups);
       }
     } catch (error) {
       console.error("Error fetching recent backups:", error);
@@ -69,9 +71,9 @@ export const BackupManager = () => {
     
     try {
       const timestamp = new Date().toISOString().split('T')[0];
-      const fileName = `Price Analysis - ${timestamp}.xlsx`;
+      const fileName = `Price_Backup_${timestamp}`;
       
-      const result = await backupPriceDataToDrive(items, fileName);
+      const result = await savePriceItemsToGoogleDrive(items, fileName);
       
       if (result.success) {
         clearInterval(interval);
@@ -80,8 +82,10 @@ export const BackupManager = () => {
         // Refresh the backup list
         await fetchRecentBackups();
         
-        // Clean up old backups
-        await cleanupOldBackups(20);
+        // Clean up old backups (just fetch the latest ones)
+        if (recentBackups.length > 20 && recentBackups[20]?.id) {
+          await deletePriceBackupFromGoogleDrive(recentBackups[20].id);
+        }
       } else {
         throw new Error("Backup failed");
       }
@@ -118,7 +122,7 @@ export const BackupManager = () => {
     }, 300);
     
     try {
-      const result = await loadBackupFromDrive(fileId);
+      const result = await loadPriceBackupFromGoogleDrive(fileId);
       
       if (result.success && result.items) {
         setItems(result.items);

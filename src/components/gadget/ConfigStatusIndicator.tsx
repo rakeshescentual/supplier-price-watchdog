@@ -2,6 +2,7 @@
 import { CheckCircle, Info } from 'lucide-react';
 import { GadgetConfig } from '@/types/price';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ConfigStatusIndicatorProps {
   isConfigured: boolean;
@@ -13,7 +14,7 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
   
   return (
     <div 
-      className="bg-green-50 text-green-700 p-3 rounded-md text-sm flex items-start gap-2"
+      className="bg-green-50 text-green-700 p-3 rounded-md text-sm flex items-start gap-2 shadow-sm border border-green-100"
       role="status"
       aria-live="polite"
     >
@@ -23,7 +24,16 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
         <div className="text-sm space-y-1 mt-1">
           <div className="flex items-center gap-1">
             <span className="font-medium">App ID:</span> 
-            <code className="bg-green-100 px-1.5 py-0.5 rounded text-green-800">{config.appId}</code>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <code className="bg-green-100 px-1.5 py-0.5 rounded text-green-800 cursor-help">{config.appId}</code>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Application identifier for Gadget.dev</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-1">
             <span className="font-medium">Environment:</span>
@@ -35,6 +45,10 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
             )}>
               {config.environment}
             </span>
+          </div>
+          <div className="flex items-center mt-2 text-green-600">
+            <Info className="h-4 w-4 mr-1" />
+            <span className="text-xs">API key is securely stored in your browser</span>
           </div>
         </div>
       </div>

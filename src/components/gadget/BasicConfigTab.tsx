@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertTriangle, ArrowPathIcon } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { GadgetConfig } from '@/types/price';
 import { cn } from '@/lib/utils';
 
@@ -114,7 +114,10 @@ export const BasicConfigTab = ({
               Test Failed - Retry
             </>
           ) : (
-            'Test Connection'
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Test Connection
+            </>
           )}
         </Button>
         

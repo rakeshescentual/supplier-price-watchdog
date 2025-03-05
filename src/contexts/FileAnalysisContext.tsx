@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyFormat } from "@/lib/excel";
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
@@ -84,7 +85,6 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       toast.error("Error generating AI analysis", {
         description: "Please try again later.",
       });
-      throw error;
     } finally {
       setIsAnalyzing(false);
     }

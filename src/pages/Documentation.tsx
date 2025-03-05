@@ -1,11 +1,13 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Download, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, ChevronLeft, ChevronRight, Bookmark, Search, X, Lightbulb } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import { toast } from "sonner";
 import gadgetIntegrationGuide from '../assets/docs/Gadget_Integration_Guide.md?raw';
 import technicalDocumentation from '../assets/docs/TechnicalDocumentation.md?raw';
 
@@ -15,6 +17,42 @@ const Documentation = () => {
     technical: [],
     gadget: []
   });
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showSearch, setShowSearch] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<{
+    technical: number;
+    gadget: number;
+  }>({ technical: 0, gadget: 0 });
+  const [quickRefOpen, setQuickRefOpen] = useState<boolean>(false);
+
+  // Filter docs based on search term
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults({ technical: 0, gadget: 0 });
+      return;
+    }
+    
+    // Count how many matches in each doc
+    const technicalMatches = (technicalDocumentation.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const gadgetMatches = (gadgetIntegrationGuide.match(new RegExp(searchTerm, 'gi')) || []).length;
+    
+    setSearchResults({
+      technical: technicalMatches,
+      gadget: gadgetMatches
+    });
+    
+    // If current tab has no results but other tab does, suggest switching
+    if (searchResults[activeTab as 'technical' | 'gadget'] === 0 && 
+        searchResults[activeTab === 'technical' ? 'gadget' : 'technical'] > 0) {
+      toast.info("No results in current tab", {
+        description: `Try the ${activeTab === 'technical' ? 'Gadget.dev Integration' : 'Technical Documentation'} tab`,
+        action: {
+          label: "Switch",
+          onClick: () => setActiveTab(activeTab === 'technical' ? 'gadget' : 'technical')
+        }
+      });
+    }
+  }, [searchTerm, activeTab]);
 
   const handleDownload = (content: string, filename: string) => {
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -26,6 +64,10 @@ const Documentation = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    
+    toast.success("Documentation downloaded", {
+      description: `${filename} has been downloaded to your device.`
+    });
   };
 
   const toggleBookmark = (section: string) => {
@@ -35,6 +77,10 @@ const Documentation = () => {
     setBookmarks({
       ...bookmarks,
       [activeTab]: [...bookmarks[activeTab], newBookmark]
+    });
+    
+    toast.success("Bookmark added", {
+      description: "You can access this section from the bookmark menu below."
     });
   };
 
@@ -55,14 +101,130 @@ const Documentation = () => {
     </div>
   );
 
+  // Quick reference guide content
+  const quickReferenceContent = () => {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-sm space-y-3 mb-4">
+        <div className="flex justify-between items-center">
+          <h3 className="font-bold text-amber-800 flex items-center">
+            <Lightbulb className="h-4 w-4 mr-2 text-amber-500" />
+            Quick Reference Guide
+          </h3>
+          <Button variant="ghost" size="sm" onClick={() => setQuickRefOpen(false)} className="h-6 w-6 p-0">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {activeTab === "technical" ? (
+          <div className="space-y-2">
+            <p className="font-medium text-amber-800">Common Tasks:</p>
+            <ul className="list-disc list-inside space-y-1 text-amber-700">
+              <li>Upload a price list: Navigate to File Upload page and select your Excel/PDF file</li>
+              <li>Analyze price changes: Use the Price Table component and apply filters</li>
+              <li>Connect to Shopify: Go to Settings page and enter your Shopify credentials</li>
+              <li>Sync prices to Shopify: Select items in Price Table and use "Sync to Shopify" button</li>
+              <li>Set up notifications: Use the Customer Notifications panel from the sidebar</li>
+            </ul>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="font-medium text-amber-800">Gadget.dev Quick Reference:</p>
+            <ul className="list-disc list-inside space-y-1 text-amber-700">
+              <li>Configure Gadget: Go to Settings page and enter your Gadget App ID and API Key</li>
+              <li>Process PDFs: Enable PDF processing in your Gadget app models</li>
+              <li>Batch operations: Use performBatchOperations helper for efficient API usage</li>
+              <li>Custom Gadget actions: Create actions for price analysis and synchronization</li>
+              <li>Error handling: Check logs in Gadget dashboard for troubleshooting</li>
+            </ul>
+          </div>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-2 bg-amber-100 hover:bg-amber-200 text-amber-800"
+          onClick={() => handleDownload(activeTab === "technical" ? technicalDocumentation : gadgetIntegrationGuide, 
+            activeTab === "technical" ? "TechnicalDocumentation.md" : "GadgetIntegrationGuide.md")}
+        >
+          <Download className="h-3 w-3 mr-2" />
+          Download Full Guide
+        </Button>
+      </div>
+    );
+  };
+
+  const renderSearchBar = () => (
+    <div className="relative flex items-center mb-4">
+      <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+      <Input
+        type="search"
+        placeholder="Search documentation..."
+        className="pl-8 pr-10"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      {searchTerm && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="absolute right-1 h-7 w-7 p-0"
+          onClick={() => setSearchTerm("")}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      
+      {searchTerm && (
+        <div className="absolute right-10 text-xs text-muted-foreground">
+          {searchResults[activeTab as 'technical' | 'gadget']} results
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Documentation</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Documentation</h1>
+        <div className="space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowSearch(!showSearch)}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            {showSearch ? "Hide Search" : "Search Docs"}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setQuickRefOpen(!quickRefOpen)}
+          >
+            <Lightbulb className="h-4 w-4 mr-2" />
+            Quick Reference
+          </Button>
+        </div>
+      </div>
       
       <Tabs defaultValue="technical" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="technical">Technical Documentation</TabsTrigger>
-          <TabsTrigger value="gadget">Gadget.dev Integration</TabsTrigger>
+          <TabsTrigger value="technical">
+            Technical Documentation
+            {searchTerm && searchResults.technical > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.technical}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="gadget">
+            Gadget.dev Integration
+            {searchTerm && searchResults.gadget > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.gadget}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="technical" className="mt-6">
@@ -74,6 +236,8 @@ const Documentation = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {showSearch && renderSearchBar()}
+              {quickRefOpen && quickReferenceContent()}
               {renderDocNavigationControls()}
               
               <ScrollArea className="h-[70vh] w-full pr-4">
@@ -192,6 +356,8 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {showSearch && renderSearchBar()}
+              {quickRefOpen && quickReferenceContent()}
               {renderDocNavigationControls()}
               
               <ScrollArea className="h-[70vh] w-full pr-4">

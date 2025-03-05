@@ -14,7 +14,7 @@ import { FileAnalysisProvider, useFileAnalysis } from "@/contexts/FileAnalysisCo
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell, CalendarClock } from "lucide-react";
+import { Download, RefreshCw, FileUp, FileText, Info, FileBarChart2, Brain, Mail, Globe, AlertTriangle, Bell, CalendarClock, Share2, ArrowUpRight } from "lucide-react";
 import { Cog } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GmailIntegration } from "@/components/gmail/GmailIntegration";
@@ -308,6 +308,16 @@ const IndexContent = () => {
                 <p>
                   Use Google Workspace integration to send email notifications about price changes and create calendar reminders for when the new prices take effect.
                 </p>
+              </div>
+              
+              <div className="mt-6 flex justify-center">
+                <Button variant="outline" asChild>
+                  <Link to="/integrations" className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Advanced Marketing Integrations
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
             </TabsContent>
           </Tabs>

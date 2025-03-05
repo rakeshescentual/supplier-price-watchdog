@@ -1,113 +1,169 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { GoogleShopifyAuth } from "@/components/auth/GoogleShopifyAuth";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useShopify } from "@/contexts/ShopifyContext";
+import { cn } from "@/lib/utils";
+import { MenuIcon, HomeIcon, BarChart2, FileText, Settings, ShoppingCart, Cog, Check, FileSpreadsheet, ArrowUpRight, Share2 } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
 
-export function Navigation() {
+export const Navigation = () => {
+  const { isShopifyConnected } = useShopify();
   const location = useLocation();
-  const [open, setOpen] = useState(false);
-
+  const { isMobile } = useMobile();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  // Close sheet when route changes
+  useEffect(() => {
+    setIsSheetOpen(false);
+  }, [location.pathname]);
+  
+  const navigation = [
+    {
+      name: "Home",
+      href: "/",
+      icon: HomeIcon,
+      current: location.pathname === "/"
+    },
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: BarChart2,
+      current: location.pathname === "/dashboard"
+    },
+    {
+      name: "Integrations",
+      href: "/integrations",
+      icon: Share2,
+      current: location.pathname === "/integrations"
+    },
+    {
+      name: "Documentation",
+      href: "/documentation",
+      icon: FileText,
+      current: location.pathname === "/documentation"
+    }
+  ];
+  
+  const NavItems = () => (
+    <div className="flex flex-col gap-2">
+      {navigation.map((item) => (
+        <Link
+          key={item.name}
+          to={item.href}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+            item.current
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted"
+          )}
+        >
+          <item.icon className="h-4 w-4" />
+          {item.name}
+        </Link>
+      ))}
+      
+      <Separator className="my-2" />
+      
+      <Link
+        to={isShopifyConnected ? "/gadget-settings" : "#"}
+        onClick={(e) => {
+          if (!isShopifyConnected) {
+            e.preventDefault();
+            // Show notification about needing to connect Shopify first
+          }
+        }}
+        className={cn(
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+          location.pathname === "/gadget-settings"
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-muted"
+        )}
+      >
+        <Cog className="h-4 w-4" />
+        Gadget Settings
+      </Link>
+    </div>
+  );
+  
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link
-            to="/"
-            className="mr-6 flex items-center space-x-2 font-semibold"
-          >
-            <span className="hidden font-bold sm:inline-block">
-              Supplier Price Watch
-            </span>
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="container flex h-14 max-w-screen-2xl items-center">
+        <div className="flex items-center gap-4 md:gap-8">
+          <Link to="/" className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-primary" />
+            <span className="font-semibold tracking-tight">Price Watch</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link
-              to="/"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                location.pathname === "/" ? "text-foreground" : "text-foreground/60"
-              )}
-            >
-              Home
-            </Link>
-            <Link
-              to="/dashboard"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                location.pathname === "/dashboard"
-                  ? "text-foreground"
-                  : "text-foreground/60"
-              )}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/documentation"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                location.pathname === "/documentation"
-                  ? "text-foreground"
-                  : "text-foreground/60"
-              )}
-            >
-              Documentation
-            </Link>
-            <Link
-              to="/gadget-settings"
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                location.pathname === "/gadget-settings"
-                  ? "text-foreground"
-                  : "text-foreground/60"
-              )}
-            >
-              Gadget Settings
-            </Link>
-          </nav>
+          
+          <div className="hidden md:flex">
+            <nav className="flex items-center gap-1 text-sm">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-3 py-2 font-medium",
+                    item.current
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/60 hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
-        <div className="ml-auto flex items-center space-x-4">
-          <GoogleShopifyAuth />
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="mr-2 flex md:hidden">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-sm">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-                <SheetDescription>
-                  Navigate through the application.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-4 flex flex-col space-y-2">
-                <Link to="/" className="block py-2 hover:underline" onClick={() => setOpen(false)}>
-                  Home
-                </Link>
-                <Link to="/dashboard" className="block py-2 hover:underline" onClick={() => setOpen(false)}>
-                  Dashboard
-                </Link>
-                <Link to="/documentation" className="block py-2 hover:underline" onClick={() => setOpen(false)}>
-                  Documentation
-                </Link>
-                <Link to="/gadget-settings" className="block py-2 hover:underline" onClick={() => setOpen(false)}>
-                  Gadget Settings
-                </Link>
-              </div>
-            </SheetContent>
-          </Sheet>
+        
+        <div className="flex flex-1 items-center justify-end gap-2">
+          {isShopifyConnected && (
+            <div className="hidden md:flex items-center gap-2 text-sm">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              <span className="text-muted-foreground">Shopify Connected</span>
+            </div>
+          )}
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="hidden md:flex"
+            asChild
+          >
+            <a
+              href="https://github.com/rakeshescentual/supplier-price-watchdog" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1"
+            >
+              <span>GitHub</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </Button>
+          
+          {isMobile && (
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MenuIcon className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <div className="px-2 py-6">
+                  <Link to="/" className="flex items-center gap-2 mb-6 px-3">
+                    <FileSpreadsheet className="h-5 w-5 text-primary" />
+                    <span className="font-semibold tracking-tight">Price Watch</span>
+                  </Link>
+                  <NavItems />
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
       </div>
     </header>
   );
-}
+};

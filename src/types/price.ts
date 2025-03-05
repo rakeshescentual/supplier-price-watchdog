@@ -1,4 +1,3 @@
-
 export interface PriceItem {
   sku: string;
   name: string;
@@ -97,7 +96,7 @@ export interface ShopifyContextType {
   loadShopifyData?: () => Promise<PriceItem[]>;
 }
 
-// Additional interfaces for Klaviyo integration
+// Updated Klaviyo integration interfaces with all required fields
 export interface KlaviyoEmailTemplate {
   subject: string;
   preheader: string;
@@ -108,7 +107,8 @@ export interface KlaviyoEmailTemplate {
 export interface KlaviyoSegmentSettings {
   name: string;
   enabled: boolean;
-  minInventoryThreshold: number;
+  minInventoryThreshold?: number;
+  minDaysBefore?: number;
   urgencyLevel: string;
   includeInventoryLevels?: boolean;
 }

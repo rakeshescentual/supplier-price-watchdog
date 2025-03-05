@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import {
   RefreshCw, Info, Calendar, PackageMinus, 
   ArrowUp, FileCode, Copy, ExternalLink
 } from "lucide-react";
+import { KlaviyoEmailTemplate, KlaviyoSegmentSettings } from "@/types/price";
 
 export const KlaviyoIntegration = () => {
   const { items, priceIncreaseEffectiveDate } = useFileAnalysis();
@@ -25,36 +25,46 @@ export const KlaviyoIntegration = () => {
   const [activeTab, setActiveTab] = useState("price-increase");
   
   // Segment settings
-  const [segmentSettings, setSegmentSettings] = useState({
+  const [segmentSettings, setSegmentSettings] = useState<{
+    priceIncrease: KlaviyoSegmentSettings;
+    discontinued: KlaviyoSegmentSettings;
+  }>({
     priceIncrease: {
       name: "Price Increase Notification",
       enabled: true,
       minDaysBefore: 14,
-      includeInventoryLevels: true
+      includeInventoryLevels: true,
+      urgencyLevel: "medium"
     },
     discontinued: {
       name: "Discontinued Product Alert",
       enabled: true,
       minInventoryThreshold: 5,
-      urgencyLevel: "medium"
+      urgencyLevel: "medium",
+      includeInventoryLevels: true
     }
   });
   
   // Template settings
-  const [emailTemplates, setEmailTemplates] = useState({
+  const [emailTemplates, setEmailTemplates] = useState<{
+    priceIncrease: KlaviyoEmailTemplate;
+    discontinued: KlaviyoEmailTemplate;
+  }>({
     priceIncrease: {
       subject: "Price change notice: {{product.title}} price will increase on {{effective_date}}",
       preheader: "Buy now at the current price before it increases",
-      templateStyle: "standard"
+      templateStyle: "standard",
+      urgencyLevel: "medium"
     },
     discontinued: {
       subject: "Last chance: {{product.title}} being discontinued",
       preheader: "Limited stock available, product being discontinued by supplier",
-      templateStyle: "urgent"
+      templateStyle: "urgent",
+      urgencyLevel: "high"
     }
   });
   
-  const handleUpdateSegmentSetting = (segmentType, field, value) => {
+  const handleUpdateSegmentSetting = (segmentType: 'priceIncrease' | 'discontinued', field: string, value: any) => {
     setSegmentSettings({
       ...segmentSettings,
       [segmentType]: {
@@ -64,7 +74,7 @@ export const KlaviyoIntegration = () => {
     });
   };
   
-  const handleUpdateTemplate = (templateType, field, value) => {
+  const handleUpdateTemplate = (templateType: 'priceIncrease' | 'discontinued', field: string, value: any) => {
     setEmailTemplates({
       ...emailTemplates,
       [templateType]: {
@@ -148,7 +158,7 @@ export const KlaviyoIntegration = () => {
   };
   
   // Get email preview content
-  const getEmailPreview = (type) => {
+  const getEmailPreview = (type: 'priceIncrease' | 'discontinued') => {
     if (items.length === 0) return "";
     
     const sampleItem = type === 'priceIncrease' 
@@ -424,7 +434,7 @@ The Escentual Team
               </div>
               
               <RadioGroup 
-                value={emailTemplates.discontinued.urgencyLevel}
+                value={segmentSettings.discontinued.urgencyLevel}
                 onValueChange={(value) => handleUpdateSegmentSetting('discontinued', 'urgencyLevel', value)}
                 className="grid grid-cols-1 sm:grid-cols-3 gap-2"
               >

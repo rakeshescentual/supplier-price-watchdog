@@ -19,7 +19,7 @@ export const useIsMobile = () => {
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
-  return isMobile;
+  return { isMobile };
 };
 
 // Alias for backward compatibility

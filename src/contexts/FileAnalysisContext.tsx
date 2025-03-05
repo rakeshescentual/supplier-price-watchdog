@@ -29,6 +29,7 @@ interface FileAnalysisContextValue {
     discontinuedItems: number;
     newItems: number;
     anomalyItems: number;
+    unchangedItems: number;
     potentialSavings: number;
     potentialLoss: number;
   };
@@ -47,6 +48,7 @@ const defaultSummary = {
   discontinuedItems: 0,
   newItems: 0,
   anomalyItems: 0,
+  unchangedItems: 0,
   potentialSavings: 0,
   potentialLoss: 0
 };
@@ -187,6 +189,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
     const discontinued = items.filter(item => item.status === 'discontinued');
     const newItems = items.filter(item => item.status === 'new');
     const anomalies = items.filter(item => item.status === 'anomaly');
+    const unchanged = items.filter(item => item.status === 'unchanged');
 
     return {
       totalItems: items.length,
@@ -195,6 +198,7 @@ export const FileAnalysisProvider = ({ children }: FileAnalysisProviderProps) =>
       discontinuedItems: discontinued.length,
       newItems: newItems.length,
       anomalyItems: anomalies.length,
+      unchangedItems: unchanged.length,
       potentialSavings: increased.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
       potentialLoss: discontinued.reduce((acc, item) => acc + (item.potentialImpact || 0), 0),
     };

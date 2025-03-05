@@ -13,7 +13,9 @@ export enum GA4EventType {
   PRICE_DECREASE = 'price_decrease',
   PRICE_SYNC = 'price_sync',
   PRODUCT_DISCONTINUED = 'product_discontinued',
-  BULK_PRICE_UPDATE = 'bulk_price_update'
+  BULK_PRICE_UPDATE = 'bulk_price_update',
+  KLAVIYO_SEGMENT = 'klaviyo_segment_created',
+  CUSTOMER_NOTIFICATION = 'customer_notification_sent'
 }
 
 /**
@@ -63,6 +65,7 @@ export const trackPriceChange = (
     const increasedItems = items.filter(item => item.status === 'increased').length;
     const decreasedItems = items.filter(item => item.status === 'decreased').length;
     const unchangedItems = items.filter(item => item.status === 'unchanged').length;
+    const discontinuedItems = items.filter(item => item.status === 'discontinued').length;
     
     // Send event to GA4
     window.gtag('event', eventType, {
@@ -72,6 +75,7 @@ export const trackPriceChange = (
       price_increases: increasedItems,
       price_decreases: decreasedItems,
       unchanged_prices: unchangedItems,
+      discontinued_items: discontinuedItems,
       timestamp: new Date().toISOString()
     });
     
@@ -144,6 +148,113 @@ export const trackPriceSyncConversion = (
     return true;
   } catch (error) {
     console.error('Error tracking price sync conversion in GA4:', error);
+    return false;
+  }
+};
+
+/**
+ * Track Klaviyo segment creation in Google Analytics 4
+ */
+export const trackKlaviyoSegmentCreation = (
+  segmentData: {
+    segmentName: string;
+    segmentType: string;
+    productCount: number;
+    effectiveDate?: Date;
+  }
+): boolean => {
+  try {
+    if (typeof window.gtag !== 'function') {
+      console.warn('Google Analytics 4 not initialized');
+      return false;
+    }
+    
+    // Send Klaviyo segment event to GA4
+    window.gtag('event', GA4EventType.KLAVIYO_SEGMENT, {
+      event_category: 'klaviyo_integration',
+      event_label: segmentData.segmentType,
+      segment_name: segmentData.segmentName,
+      product_count: segmentData.productCount,
+      effective_date: segmentData.effectiveDate?.toISOString() || '',
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`Tracked Klaviyo segment creation in GA4: ${segmentData.segmentName}`);
+    return true;
+  } catch (error) {
+    console.error('Error tracking Klaviyo segment in GA4:', error);
+    return false;
+  }
+};
+
+/**
+ * Track customer notification events in Google Analytics 4
+ */
+export const trackCustomerNotification = (
+  notificationData: {
+    channelType: string;
+    notificationType: string;
+    customerCount: number;
+    productCount: number;
+  }
+): boolean => {
+  try {
+    if (typeof window.gtag !== 'function') {
+      console.warn('Google Analytics 4 not initialized');
+      return false;
+    }
+    
+    // Send customer notification event to GA4
+    window.gtag('event', GA4EventType.CUSTOMER_NOTIFICATION, {
+      event_category: 'customer_communication',
+      event_label: notificationData.notificationType,
+      channel: notificationData.channelType,
+      customer_count: notificationData.customerCount,
+      product_count: notificationData.productCount,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`Tracked customer notification in GA4: ${notificationData.channelType} - ${notificationData.notificationType}`);
+    return true;
+  } catch (error) {
+    console.error('Error tracking customer notification in GA4:', error);
+    return false;
+  }
+};
+
+/**
+ * Track a discontinued product notification in Google Analytics 4
+ */
+export const trackDiscontinuedProductNotification = (
+  items: PriceItem[],
+  channelType: string = 'email'
+): boolean => {
+  try {
+    if (typeof window.gtag !== 'function') {
+      console.warn('Google Analytics 4 not initialized');
+      return false;
+    }
+    
+    const discontinuedItems = items.filter(item => item.status === 'discontinued');
+    
+    if (discontinuedItems.length === 0) {
+      console.warn('No discontinued items to track');
+      return false;
+    }
+    
+    // Send discontinued product notification event to GA4
+    window.gtag('event', GA4EventType.PRODUCT_DISCONTINUED, {
+      event_category: 'customer_communication',
+      event_label: 'discontinued_notification',
+      channel: channelType,
+      product_count: discontinuedItems.length,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`Tracked discontinued product notification in GA4 for ${discontinuedItems.length} items`);
+    return true;
+  } catch (error) {
+    console.error('Error tracking discontinued product notification in GA4:', error);
     return false;
   }
 };

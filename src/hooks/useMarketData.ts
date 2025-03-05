@@ -2,8 +2,22 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { PriceItem, PriceAnalysis } from '@/types/price';
-import { enrichDataWithSearch, getMarketTrends, performBatchOperations } from '@/utils/marketDataUtils';
-import { calculateCrossSupplierTrends } from '@/utils/crossSupplierAnalysis';
+import { 
+  enrichDataWithSearch, 
+  getMarketTrends, 
+  performBatchOperations,
+  analyzePriceVolatility,
+  identifyPricingPatterns,
+  detectSeasonalPatterns
+} from '@/utils/marketDataUtils';
+import { 
+  calculateCrossSupplierTrends, 
+  analyzeCategories, 
+  analyzeSuppliers,
+  identifyCorrelatedSuppliers,
+  identifyCompetitiveCategories,
+  identifyProductSizeStrategies
+} from '@/utils/crossSupplierAnalysis';
 
 export const useMarketData = (
   items: PriceItem[],
@@ -14,6 +28,15 @@ export const useMarketData = (
   const [isFetchingTrends, setIsFetchingTrends] = useState(false);
   const [marketTrends, setMarketTrends] = useState<any | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [isAnalyzingPatterns, setIsAnalyzingPatterns] = useState(false);
+  const [advancedAnalysis, setAdvancedAnalysis] = useState<{
+    priceVolatility?: { categoryVolatility: Record<string, number>, supplierVolatility: Record<string, number> };
+    pricingPatterns?: { roundedPricing: number, psychologicalPricing: number };
+    seasonalPatterns?: { categoriesWithSeasonalPricing: string[], highSeasonCategories: string[], lowSeasonCategories: string[] };
+    correlatedSuppliers?: { pair: string[], correlation: number }[];
+    competitiveCategories?: { category: string; competitionScore: number; supplierCount: number; priceVariance: number }[];
+    productSizeStrategies?: { sizeStrategies: { category: string; trend: 'smaller' | 'larger' | 'stable'; confidence: number }[] };
+  }>({});
   
   // Cache validation - Only perform operations if data has changed
   const itemsFingerprint = useMemo(() => {
@@ -24,6 +47,16 @@ export const useMarketData = (
   // Calculate cross-supplier price trends
   const crossSupplierTrends = useMemo(() => {
     return calculateCrossSupplierTrends(items);
+  }, [items]);
+  
+  // Calculate category analysis
+  const categoryAnalysis = useMemo(() => {
+    return analyzeCategories(items);
+  }, [items]);
+  
+  // Calculate supplier analysis
+  const supplierAnalysis = useMemo(() => {
+    return analyzeSuppliers(items);
   }, [items]);
   
   // Enrich data with market info
@@ -106,6 +139,50 @@ export const useMarketData = (
     }
   }, []);
 
+  // Analyze advanced pricing patterns
+  const analyzeAdvancedPatterns = useCallback(async (): Promise<void> => {
+    if (items.length === 0) {
+      toast.error("No items to analyze", {
+        description: "Please upload a price list first.",
+      });
+      return;
+    }
+    
+    setIsAnalyzingPatterns(true);
+    
+    try {
+      // Perform various advanced analyses
+      const priceVolatility = analyzePriceVolatility(items);
+      const pricingPatterns = identifyPricingPatterns(items);
+      const seasonalPatterns = detectSeasonalPatterns(items);
+      const correlatedSuppliers = identifyCorrelatedSuppliers(items);
+      const competitiveCategories = identifyCompetitiveCategories(items);
+      const productSizeStrategies = identifyProductSizeStrategies(items);
+      
+      setAdvancedAnalysis({
+        priceVolatility,
+        pricingPatterns,
+        seasonalPatterns,
+        correlatedSuppliers,
+        competitiveCategories,
+        productSizeStrategies
+      });
+      
+      toast.success("Advanced analysis complete", {
+        description: "Advanced pricing patterns and market insights are now available.",
+      });
+    } catch (error) {
+      console.error("Error analyzing patterns:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setLastError(errorMessage);
+      toast.error("Error analyzing patterns", {
+        description: "Could not complete advanced analysis. Please try again later.",
+      });
+    } finally {
+      setIsAnalyzingPatterns(false);
+    }
+  }, [items]);
+
   // Batch process items for market analysis
   const batchProcessItems = useCallback(async (processFn: (item: PriceItem) => Promise<any>): Promise<any[]> => {
     if (items.length === 0) return [];
@@ -121,11 +198,16 @@ export const useMarketData = (
   return {
     isEnrichingData,
     isFetchingTrends,
+    isAnalyzingPatterns,
     marketTrends,
     lastError,
     crossSupplierTrends,
+    categoryAnalysis,
+    supplierAnalysis,
+    advancedAnalysis,
     enrichDataWithMarketInfo,
     fetchCategoryTrends,
+    analyzeAdvancedPatterns,
     batchProcessItems,
     clearError
   };

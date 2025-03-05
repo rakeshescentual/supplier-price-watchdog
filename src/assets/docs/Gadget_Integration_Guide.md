@@ -19,6 +19,12 @@ The application uses a configuration component (`GadgetConfigForm.tsx`) to set u
   apiKey: string;      // Gadget.dev API key
   appId: string;       // Your Gadget application ID
   environment: 'development' | 'production';
+  featureFlags?: {     // Optional feature flags
+    enableAdvancedAnalytics?: boolean;
+    enablePdfProcessing?: boolean;
+    enableBackgroundJobs?: boolean;
+    enableShopifySync?: boolean;
+  }
 }
 ```
 
@@ -26,7 +32,7 @@ This configuration is stored in `localStorage` and used by the `initGadgetClient
 
 ### 2. Shopify Authentication Bridge
 
-Gadget.dev serves as an authentication bridge to Shopify:
+Gadget.dev serves as an authentication bridge to Shopify, simplifying the OAuth flow:
 
 ```typescript
 // Authentication flow
@@ -34,32 +40,33 @@ export const authenticateShopify = async (context: ShopifyContext) => {
   const client = initGadgetClient();
   if (!client) return false;
   
-  // In production: use Gadget SDK to authenticate
+  // Gadget handles the OAuth handshake with Shopify
+  // This avoids direct management of Shopify authentication tokens
   return true;
 }
 ```
 
 ### 3. PDF Processing
 
-The application can process PDF price lists using Gadget.dev's document processing capabilities:
+The application processes supplier PDF price lists using Gadget.dev's document processing capabilities:
 
 ```typescript
 export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => {
   // Upload PDF to Gadget
-  // Trigger PDF processing action
-  // Return structured data
+  // Trigger PDF processing action using OCR and structured data extraction
+  // Return normalized structured data ready for price analysis
 }
 ```
 
 ### 4. Data Enrichment with Market Information
 
-Gadget.dev is used to enrich product data with market information:
+Gadget.dev enriches product data with market information through its proxy and data aggregation services:
 
 ```typescript
 export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
-  // Send items to Gadget for web search
-  // Extract competitive pricing information
-  // Return enhanced items with market context
+  // Send items to Gadget for web search and competitor price research
+  // Extract competitive pricing information while respecting rate limits
+  // Return enhanced items with market context and competitive positioning
 }
 ```
 
@@ -72,37 +79,46 @@ export const syncToShopifyViaGadget = async (
   context: ShopifyContext, 
   items: PriceItem[]
 ): Promise<{success: boolean}> => {
-  // Use Gadget to efficiently batch update Shopify products
+  // Use Gadget's transaction and batching capabilities
+  // Optimize Shopify API usage to stay within rate limits
+  // Provide detailed error handling and retries
 }
 ```
 
 ## Integration Architecture
 
 ```
-User Interface
-      │
-      ▼
-Context Providers
-      │
-      ├──────────────►  Shopify API  ◄─────┐
-      │                                    │
-      ▼                                    │
-File Processing                            │
-      │                                    │
-      ▼                                    │
-┌─────────────────┐                        │
-│  Gadget.dev     │                        │
-│  Integration    ├────────────────────────┘
-│                 │
-│  - Auth         │
-│  - PDF          │
-│  - Data         │
-│  - Batching     │
-└────────┬────────┘
-         │
-         ▼
-   AI Analysis &
-   User Actions
+┌───────────────┐     ┌────────────────┐
+│ User Interface│     │  Shopify Store  │
+└───────┬───────┘     └────────┬───────┘
+        │                      │
+┌───────▼───────┐     ┌────────▼───────┐
+│    Context    │     │   Shopify API   │
+│   Providers   ├────►│                 │
+└───────┬───────┘     └────────▲───────┘
+        │                      │
+┌───────▼───────┐              │
+│     File      │              │
+│  Processing   │              │
+└───────┬───────┘              │
+        │                      │
+┌───────▼───────────────────┐  │
+│      Gadget.dev           │  │
+│      Integration          ├──┘
+│                           │
+│  ┌─────┐ ┌─────┐ ┌─────┐  │
+│  │Auth │ │PDF  │ │Data │  │
+│  └─────┘ └─────┘ └─────┘  │
+│                           │
+│  ┌─────────┐ ┌─────────┐  │
+│  │Batching │ │Analytics│  │
+│  └─────────┘ └─────────┘  │
+└───────────┬───────────────┘
+            │
+      ┌─────▼─────┐
+      │    AI     │
+      │  Analysis │
+      └───────────┘
 ```
 
 ## Implementation Details
@@ -116,7 +132,11 @@ export const initGadgetClient = () => {
 
   // In production: use Gadget SDK
   // import { createClient } from '@gadget-client/your-app-id';
-  // return createClient({ apiKey: config.apiKey });
+  // return createClient({ 
+  //   apiKey: config.apiKey,
+  //   environment: config.environment,
+  //   enableNetworkLogs: config.environment === 'development'
+  // });
   
   return { config, ready: true };
 };
@@ -128,13 +148,13 @@ The application is designed to work even without Gadget.dev, with graceful fallb
 
 ```typescript
 const syncToShopify = async (items: PriceItem[]): Promise<boolean> => {
-  // First try via Gadget
+  // First try via Gadget for enhanced capabilities
   if (isGadgetInitialized) {
     const result = await syncToShopifyViaGadget(shopifyContext, items);
     if (result.success) return true;
   }
   
-  // Fall back to direct Shopify API
+  // Fall back to direct Shopify API if Gadget is unavailable
   return await syncWithShopify(shopifyContext, items);
 };
 ```
@@ -147,11 +167,32 @@ export const performBatchOperations = async <T, R>(
   processFn: (item: T) => Promise<R>,
   batchSize = 50
 ): Promise<R[]> => {
-  // Split items into batches
+  // Split items into batches for parallel processing
   // Process batches sequentially to avoid rate limiting
+  // Handle errors gracefully with retries and detailed logging
   // Return combined results
 };
 ```
+
+## Integration with Klaviyo
+
+Gadget.dev facilitates the connection between Shopify product data and Klaviyo for personalized email marketing:
+
+1. Customer purchase history is extracted from Shopify via Gadget
+2. Price changes are processed and analyzed
+3. Customer segments are created in Klaviyo based on purchase patterns
+4. Email templates for price increases and discontinued products are prepared
+5. Automated campaigns are scheduled based on price change effective dates
+
+## Shopify Plus Enhanced Features
+
+For Shopify Plus merchants, Gadget.dev provides additional enterprise capabilities:
+
+1. **Multi-location inventory** synchronization and analysis
+2. **B2B price management** for wholesale customer segments
+3. **Script automation** for personalized pricing rules
+4. **Flow enhancements** for automated inventory and price change workflows
+5. **Enhanced metafield support** for rich product data
 
 ## Future Enhancements
 
@@ -165,6 +206,10 @@ export const performBatchOperations = async <T, R>(
 
 5. **Multi-tenant Support**: Extend to support multiple Shopify stores through Gadget's multi-tenant capabilities.
 
+6. **Automated AI Analysis**: Schedule regular market data enrichment and analysis jobs via Gadget's cron functionality.
+
+7. **Enhanced Klaviyo Integration**: Use Gadget as middleware to create advanced segmentation logic.
+
 ## Integration Sequence
 
 1. User configures Gadget.dev in the application
@@ -175,6 +220,9 @@ export const performBatchOperations = async <T, R>(
 4. For processing price changes:
    - Enriches data with market information via Gadget
    - Uses Gadget for batch operations when syncing to Shopify
+5. For customer communications:
+   - Gadget prepares segmented customer data
+   - Klaviyo integration receives segment data for email campaigns
 
 ## Technical Requirements
 
@@ -182,6 +230,42 @@ export const performBatchOperations = async <T, R>(
 - Gadget application with appropriate models and actions
 - Gadget API key with appropriate permissions
 - Configuration of CORS for your Gadget application
+
+## Advanced Integration Features
+
+### Shopify Plus Scripts via Gadget
+
+```typescript
+// Example of using Gadget to deploy Shopify Scripts
+export const deployShopifyScript = async (
+  context: ShopifyContext,
+  scriptConfig: ShopifyScriptConfig
+): Promise<boolean> => {
+  const client = initGadgetClient();
+  if (!client) return false;
+  
+  // Use Gadget to deploy and manage Shopify Scripts
+  // Scripts allow for dynamic pricing rules based on customer segments
+  return true;
+};
+```
+
+### Shopify Plus Flows via Gadget
+
+```typescript
+// Example of using Gadget to create Shopify Flows
+export const createShopifyFlow = async (
+  context: ShopifyContext,
+  flowConfig: ShopifyFlowConfig
+): Promise<boolean> => {
+  const client = initGadgetClient();
+  if (!client) return false;
+  
+  // Use Gadget to create and manage Shopify Flows
+  // Flows automate business processes based on triggers
+  return true;
+};
+```
 
 ## Limitations
 

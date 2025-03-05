@@ -1,4 +1,3 @@
-
 // Core Price Item Interface
 export interface PriceItem {
   sku: string;
@@ -86,6 +85,37 @@ export interface PriceAnalysis {
     categorySpecific?: Record<string, any>[];
     generalStrategy?: string;
   };
+  // Cross-supplier analysis
+  crossSupplierTrends?: {
+    categoryTrends: {
+      category: string;
+      averageChangePercent: number;
+      description: string;
+    }[];
+    supplierComparison: {
+      supplierName: string;
+      averageIncrease: number;
+      focusCategories: string[];
+    }[];
+  };
+  // Product lifecycle insights
+  discontinuedItemsInsights?: {
+    categories: string[];
+    possibleReasons: string[];
+    recommendation: string;
+  };
+  // Size/packaging trends
+  packagingTrends?: {
+    trendToward: 'smaller' | 'larger' | 'mixed' | 'no change';
+    details: string;
+    affectedCategories: string[];
+  };
+  // Brand focus areas
+  brandFocusAreas?: {
+    brand: string;
+    focusCategories: string[];
+    priceStrategy: string;
+  }[];
 }
 
 export interface AnomalyStats {

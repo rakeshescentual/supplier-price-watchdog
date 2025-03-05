@@ -1,3 +1,4 @@
+
 export interface PriceItem {
   sku: string;
   name: string;
@@ -44,6 +45,20 @@ export interface PriceItem {
   // Added for price suggestions functionality
   suggestedPrice?: number;
   suggestionReason?: string;
+  // Added for Google Drive backups
+  backupId?: string;
+  backupDate?: string;
+  // Added for Shopify Plus features
+  scheduledPriceChange?: {
+    price: number;
+    effectiveDate: string;
+  };
+  b2bPrice?: number;
+  locationInventory?: {
+    locationId: string;
+    locationName: string;
+    available: number;
+  }[];
 }
 
 export interface PriceAnalysis {
@@ -111,4 +126,72 @@ export interface KlaviyoSegmentSettings {
   minDaysBefore?: number;
   urgencyLevel: string;
   includeInventoryLevels?: boolean;
+}
+
+// Google Workspace integration interfaces
+export interface GoogleWorkspaceConfig {
+  apiKey?: string;
+  clientId?: string;
+  scopes: string[];
+}
+
+export interface GoogleDriveBackup {
+  id: string;
+  name: string;
+  url: string;
+  createdAt: string;
+  size?: number;
+}
+
+// Gadget.dev integration interfaces
+export interface GadgetConfig {
+  apiKey: string;
+  appId: string;
+  environment: 'development' | 'production';
+}
+
+// Enhanced interfaces for Shopify Plus features
+export interface ShopifyPlusFeatures {
+  multiLocationInventory: boolean;
+  b2bFunctionality: boolean;
+  automatedDiscounts: boolean;
+  scriptsEnabled: boolean;
+  flowsEnabled: boolean;
+  enterpriseAppsConnected: string[];
+}
+
+export interface ShopifyFlowConfig {
+  title: string;
+  triggerType: 'product_update' | 'inventory_update' | 'order_create';
+  conditions: any[];
+  actions: any[];
+}
+
+export interface ShopifyScriptConfig {
+  id?: string;
+  title: string;
+  scriptCustomerScope: 'all' | 'specific_tags' | 'specific_customers';
+  source: string;
+}
+
+// AI Analysis interfaces
+export interface AIAnalysisRequest {
+  items: PriceItem[];
+  previousAnalysis?: PriceAnalysis;
+  shopifyData?: any;
+  marketData?: any;
+}
+
+export interface AIAnalysisResponse {
+  analysis: PriceAnalysis;
+  suggestedPrices?: {
+    sku: string;
+    suggestedPrice: number;
+    reason: string;
+  }[];
+  competitiveInsights?: {
+    category: string;
+    position: 'low' | 'average' | 'high';
+    recommendation: string;
+  }[];
 }

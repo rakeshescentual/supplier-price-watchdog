@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,12 +7,12 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useShopify } from "@/contexts/ShopifyContext";
 import { cn } from "@/lib/utils";
 import { MenuIcon, HomeIcon, BarChart2, FileText, Settings, ShoppingCart, Cog, Check, FileSpreadsheet, ArrowUpRight, Share2 } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Navigation = () => {
   const { isShopifyConnected } = useShopify();
   const location = useLocation();
-  const { isMobile } = useMobile();
+  const { isMobile } = useIsMobile();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   // Close sheet when route changes

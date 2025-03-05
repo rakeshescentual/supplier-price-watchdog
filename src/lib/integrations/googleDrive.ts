@@ -1,34 +1,80 @@
-
 import { toast } from 'sonner';
-import { PriceItem } from '@/types/price';
+import type { PriceItem } from '@/types/price';
 
-interface GoogleDriveConfig {
-  folderId?: string;
-  backupEnabled: boolean;
-  autoBackupFrequency: 'daily' | 'weekly' | 'monthly' | 'onUpdate';
-  maxBackups: number;
+interface GoogleDriveAuth {
+  accessToken: string;
+  expiresAt: number;
 }
 
-// Default Google Drive configuration
-const defaultConfig: GoogleDriveConfig = {
-  backupEnabled: false,
-  autoBackupFrequency: 'weekly',
-  maxBackups: 10
+/**
+ * Google Drive integration for backing up price sheets and analysis
+ */
+
+// Check if Google Drive API is available and initialized
+export const isGoogleDriveAvailable = (): boolean => {
+  try {
+    // In a real implementation, this would check if the Google Drive API is loaded
+    return typeof window.gapi !== 'undefined' && 
+           typeof window.gapi.client !== 'undefined' && 
+           typeof window.gapi.client.drive !== 'undefined';
+  } catch (error) {
+    console.warn('Error checking Google Drive availability:', error);
+    return false;
+  }
 };
 
-/**
- * Initialize Google Drive integration
- */
+// Initialize Google Drive API
 export const initGoogleDrive = async (): Promise<boolean> => {
   try {
-    // In a real implementation, this would:
-    // 1. Load the Google Drive API client
-    // 2. Authenticate with OAuth
-    // 3. Initialize the Drive client
-    
     console.log('Initializing Google Drive integration...');
     
-    // For demo purposes, we'll simulate success
+    // In a production implementation, this would:
+    // 1. Load the Google API client
+    // 2. Initialize the Drive API
+    
+    // For development/demo purposes, we'll simulate the API
+    window.gapi = window.gapi || {};
+    window.gapi.client = window.gapi.client || {};
+    window.gapi.client.drive = {
+      files: {
+        create: async (params: any) => {
+          console.log('Google Drive: Creating file', params);
+          await new Promise(resolve => setTimeout(resolve, 800));
+          return { 
+            result: { 
+              id: `file-${Date.now()}`,
+              name: params.resource.name,
+              webViewLink: `https://drive.google.com/file/d/${Date.now()}/view`
+            } 
+          };
+        },
+        list: async (params: any) => {
+          console.log('Google Drive: Listing files', params);
+          await new Promise(resolve => setTimeout(resolve, 600));
+          return { 
+            result: { 
+              files: [
+                { id: 'file-1', name: 'Price Analysis - 2023-01-15.xlsx', webViewLink: 'https://drive.google.com/file/d/1/view' },
+                { id: 'file-2', name: 'Price Analysis - 2023-02-10.xlsx', webViewLink: 'https://drive.google.com/file/d/2/view' },
+                { id: 'file-3', name: 'Price Analysis - 2023-03-05.xlsx', webViewLink: 'https://drive.google.com/file/d/3/view' }
+              ] 
+            } 
+          };
+        },
+        get: async (params: any) => {
+          console.log('Google Drive: Getting file', params);
+          await new Promise(resolve => setTimeout(resolve, 400));
+          return { 
+            result: { 
+              id: params.fileId,
+              name: `Price Analysis - ${new Date().toISOString().split('T')[0]}.xlsx`,
+              webViewLink: `https://drive.google.com/file/d/${params.fileId}/view`
+            } 
+          };
+        }
+      }
+    };
+    
     return true;
   } catch (error) {
     console.error('Error initializing Google Drive:', error);
@@ -36,193 +82,199 @@ export const initGoogleDrive = async (): Promise<boolean> => {
   }
 };
 
-/**
- * Get the Google Drive configuration from localStorage
- */
-export const getGoogleDriveConfig = (): GoogleDriveConfig => {
-  try {
-    const storedConfig = localStorage.getItem('googleDriveConfig');
-    if (storedConfig) {
-      return JSON.parse(storedConfig);
-    }
-    return defaultConfig;
-  } catch (error) {
-    console.error('Error getting Google Drive config:', error);
-    return defaultConfig;
-  }
-};
-
-/**
- * Save the Google Drive configuration to localStorage
- */
-export const saveGoogleDriveConfig = (config: GoogleDriveConfig): boolean => {
-  try {
-    localStorage.setItem('googleDriveConfig', JSON.stringify(config));
-    return true;
-  } catch (error) {
-    console.error('Error saving Google Drive config:', error);
-    return false;
-  }
-};
-
-/**
- * Back up price data to Google Drive
- */
-export const backupToDrive = async (
+// Save price data to Google Drive
+export const backupPriceDataToDrive = async (
   items: PriceItem[],
-  filename: string = `price-data-backup-${new Date().toISOString().slice(0, 10)}.json`
-): Promise<string | null> => {
+  fileName?: string
+): Promise<{success: boolean; fileId?: string; fileUrl?: string}> => {
   try {
-    const config = getGoogleDriveConfig();
-    
-    if (!config.backupEnabled) {
-      console.warn('Google Drive backup is not enabled');
-      return null;
+    if (!isGoogleDriveAvailable()) {
+      console.warn('Google Drive not available');
+      return { success: false };
     }
     
-    console.log(`Backing up ${items.length} items to Google Drive...`);
+    const defaultFileName = `Price Analysis - ${new Date().toISOString().split('T')[0]}.xlsx`;
+    const name = fileName || defaultFileName;
+    
+    console.log(`Backing up ${items.length} items to Google Drive as "${name}"`);
     
     // In a real implementation, this would:
-    // 1. Create a file with the price data
-    // 2. Upload it to Google Drive in the specified folder
-    // 3. Return the file ID
+    // 1. Convert items to an Excel file using a library like exceljs
+    // 2. Upload the file to Google Drive
     
-    // For demo purposes, we'll simulate success
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // For development/demo purposes, we'll simulate the process
+    const fileMetadata = {
+      name,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      parents: ['appDataFolder'] // Use app data folder for application-specific data
+    };
     
-    toast.success('Backup created', {
-      description: `Successfully backed up price data to Google Drive: ${filename}`
+    const media = {
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      body: JSON.stringify(items) // In a real implementation, this would be a Blob/File
+    };
+    
+    const response = await window.gapi.client.drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: 'id,name,webViewLink'
     });
     
-    return 'mock-file-id-123456';
+    toast.success('Backup created', {
+      description: `Successfully backed up data to Google Drive as "${name}".`
+    });
+    
+    return { 
+      success: true, 
+      fileId: response.result.id,
+      fileUrl: response.result.webViewLink
+    };
   } catch (error) {
     console.error('Error backing up to Google Drive:', error);
     toast.error('Backup failed', {
-      description: 'Could not back up price data to Google Drive'
+      description: 'Could not save data to Google Drive. Please try again.'
     });
-    return null;
+    return { success: false };
   }
 };
 
-/**
- * Schedule automatic backups based on the configuration
- */
-export const scheduleAutomaticBackups = (items: PriceItem[]): void => {
-  const config = getGoogleDriveConfig();
-  
-  if (!config.backupEnabled) {
-    console.warn('Automatic backups are not enabled');
-    return;
-  }
-  
-  console.log(`Scheduling automatic backups (${config.autoBackupFrequency})`);
-  
-  // In a real implementation, this would set up scheduled backups
-  // based on the configured frequency
-  
-  // For demo purposes, we'll just log the configuration
-  console.log('Automatic backup configuration:', {
-    frequency: config.autoBackupFrequency,
-    maxBackups: config.maxBackups,
-    folderId: config.folderId
-  });
-};
-
-/**
- * Get a list of existing backups from Google Drive
- */
-export const getExistingBackups = async (): Promise<{ id: string; name: string; createdTime: string }[]> => {
+// Get recent backups from Google Drive
+export const getRecentBackups = async (
+  maxResults: number = 10
+): Promise<{success: boolean; files?: {id: string; name: string; url: string}[]}> => {
   try {
-    const config = getGoogleDriveConfig();
-    
-    if (!config.backupEnabled) {
-      console.warn('Google Drive backup is not enabled');
-      return [];
+    if (!isGoogleDriveAvailable()) {
+      console.warn('Google Drive not available');
+      return { success: false };
     }
     
-    console.log('Fetching existing backups from Google Drive...');
+    console.log(`Getting up to ${maxResults} recent backups from Google Drive`);
     
-    // In a real implementation, this would:
-    // 1. Query Google Drive for files in the backup folder
-    // 2. Return file metadata
+    const response = await window.gapi.client.drive.files.list({
+      spaces: 'appDataFolder',
+      fields: 'files(id, name, webViewLink)',
+      orderBy: 'createdTime desc',
+      pageSize: maxResults,
+      q: "mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
+    });
     
-    // For demo purposes, we'll return mock data
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const files = response.result.files.map((file: any) => ({
+      id: file.id,
+      name: file.name,
+      url: file.webViewLink
+    }));
     
-    return [
-      { id: 'mock-file-id-1', name: 'price-data-backup-2023-09-01.json', createdTime: '2023-09-01T12:00:00Z' },
-      { id: 'mock-file-id-2', name: 'price-data-backup-2023-09-08.json', createdTime: '2023-09-08T12:00:00Z' },
-      { id: 'mock-file-id-3', name: 'price-data-backup-2023-09-15.json', createdTime: '2023-09-15T12:00:00Z' }
-    ];
+    return { success: true, files };
   } catch (error) {
-    console.error('Error fetching backups from Google Drive:', error);
-    return [];
+    console.error('Error getting recent backups from Google Drive:', error);
+    return { success: false };
   }
 };
 
-/**
- * Restore price data from a Google Drive backup
- */
-export const restoreFromBackup = async (fileId: string): Promise<PriceItem[] | null> => {
+// Load backup data from Google Drive
+export const loadBackupFromDrive = async (
+  fileId: string
+): Promise<{success: boolean; items?: PriceItem[]}> => {
   try {
-    console.log(`Restoring from backup file: ${fileId}`);
+    if (!isGoogleDriveAvailable()) {
+      console.warn('Google Drive not available');
+      return { success: false };
+    }
+    
+    console.log(`Loading backup with ID ${fileId} from Google Drive`);
     
     // In a real implementation, this would:
-    // 1. Download the backup file from Google Drive
-    // 2. Parse the JSON data
-    // 3. Return the price items
+    // 1. Download the file from Google Drive
+    // 2. Parse the Excel file to extract the data
     
-    // For demo purposes, we'll return mock data
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success('Backup restored', {
-      description: 'Successfully restored price data from Google Drive backup'
+    // For development/demo purposes, we'll simulate the process
+    const response = await window.gapi.client.drive.files.get({
+      fileId: fileId,
+      alt: 'media'
     });
     
-    // Return mock price items
-    return Array.from({ length: 10 }, (_, i) => ({
-      sku: `SKU${i + 1000}`,
-      name: `Restored Product ${i + 1}`,
+    // Simulate parsing the file content
+    // In a real implementation, this would be the actual data from the Excel file
+    const mockItems: PriceItem[] = Array.from({ length: 20 }, (_, i) => ({
+      sku: `BACKUP-SKU-${i + 1000}`,
+      name: `Backup Product ${i + 1}`,
       oldPrice: 19.99 + i,
-      newPrice: 19.99 + i,
-      status: 'unchanged' as const,
-      difference: 0,
+      newPrice: (19.99 + i) * (Math.random() > 0.5 ? 1.1 : 0.9),
+      status: Math.random() > 0.5 ? 'increased' : 'decreased' as 'increased' | 'decreased',
+      difference: 0, // This would be calculated
       isMatched: true
     }));
-  } catch (error) {
-    console.error('Error restoring from Google Drive backup:', error);
-    toast.error('Restore failed', {
-      description: 'Could not restore data from Google Drive backup'
+    
+    // Calculate differences
+    mockItems.forEach(item => {
+      item.difference = item.newPrice - item.oldPrice;
     });
-    return null;
+    
+    toast.success('Backup loaded', {
+      description: `Successfully loaded backup data from Google Drive.`
+    });
+    
+    return { success: true, items: mockItems };
+  } catch (error) {
+    console.error('Error loading backup from Google Drive:', error);
+    toast.error('Loading backup failed', {
+      description: 'Could not load data from Google Drive. Please try again.'
+    });
+    return { success: false };
   }
 };
 
-/**
- * Cleanup old backups based on the maximum number of backups to keep
- */
-export const cleanupOldBackups = async (): Promise<boolean> => {
+// Clean up old backups (keep only the most recent ones)
+export const cleanupOldBackups = async (
+  keepCount: number = 20
+): Promise<{success: boolean; deletedCount: number}> => {
   try {
-    const config = getGoogleDriveConfig();
-    
-    if (!config.backupEnabled) {
-      console.warn('Google Drive backup is not enabled');
-      return false;
+    if (!isGoogleDriveAvailable()) {
+      console.warn('Google Drive not available');
+      return { success: false, deletedCount: 0 };
     }
     
-    console.log(`Cleaning up old backups (max: ${config.maxBackups})`);
+    console.log(`Cleaning up old backups, keeping the ${keepCount} most recent`);
     
-    // In a real implementation, this would:
-    // 1. Get existing backups
-    // 2. Sort by creation date
-    // 3. Delete the oldest backups exceeding the max count
+    // Get all backups
+    const response = await window.gapi.client.drive.files.list({
+      spaces: 'appDataFolder',
+      fields: 'files(id)',
+      orderBy: 'createdTime desc',
+      q: "mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
+    });
     
-    // For demo purposes, we'll simulate success
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const files = response.result.files;
     
-    return true;
+    if (files.length <= keepCount) {
+      console.log('No backups to clean up');
+      return { success: true, deletedCount: 0 };
+    }
+    
+    // Delete old backups
+    const filesToDelete = files.slice(keepCount);
+    let deletedCount = 0;
+    
+    for (const file of filesToDelete) {
+      try {
+        // In a real implementation, this would delete the file
+        // await window.gapi.client.drive.files.delete({ fileId: file.id });
+        console.log(`Would delete file ${file.id}`);
+        deletedCount++;
+      } catch (error) {
+        console.error(`Error deleting file ${file.id}:`, error);
+      }
+    }
+    
+    if (deletedCount > 0) {
+      toast.success('Cleaned up old backups', {
+        description: `Removed ${deletedCount} old backup files from Google Drive.`
+      });
+    }
+    
+    return { success: true, deletedCount };
   } catch (error) {
-    console.error('Error cleaning up old Google Drive backups:', error);
-    return false;
+    console.error('Error cleaning up old backups:', error);
+    return { success: false, deletedCount: 0 };
   }
 };

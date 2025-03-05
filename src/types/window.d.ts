@@ -1,5 +1,6 @@
 
 interface Window {
+  // Google API Client Library
   gapi: {
     load: (libraries: string, callback: () => void) => void;
     client: {
@@ -22,5 +23,20 @@ interface Window {
         signOut: () => Promise<any>;
       };
     };
+  };
+
+  // Google Analytics 4
+  gtag: (...args: any[]) => void;
+
+  // Google Merchant Center
+  merchant?: {
+    updateProducts: (products: any[], options?: any) => Promise<any>;
+    fetchProductStatus: (productIds: string[]) => Promise<any>;
+  };
+
+  // Google Search Console
+  gsc?: {
+    submit: (url: string, options?: any) => Promise<any>;
+    fetch: (query: string, options?: any) => Promise<any>;
   };
 }

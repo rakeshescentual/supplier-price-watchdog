@@ -105,8 +105,7 @@ export const performBatchOperations = async <T, R>(
           // Last attempt failed, record error
           if (attempt === (options.retryCount || 3) - 1) {
             errors[itemIndex] = error instanceof Error ? error.message : "Unknown error";
-            // Return a placeholder value to maintain array structure
-            return {} as R;
+            return {} as R; // Return placeholder value for failed items
           }
           
           // Wait before retry
@@ -114,7 +113,8 @@ export const performBatchOperations = async <T, R>(
         }
       }
       
-      // Fallback return if all retries fail (should never reach here due to return in catch block)
+      // This is a fallback return to satisfy TypeScript
+      // It should never be reached due to the return in the catch block above
       return {} as R;
     });
     

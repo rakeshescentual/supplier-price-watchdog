@@ -1,9 +1,10 @@
 
-import { CheckCircle, Info, ExternalLink, Link as LinkIcon } from 'lucide-react';
+import { CheckCircle, Info, ExternalLink, Link as LinkIcon, FileText } from 'lucide-react';
 import { GadgetConfig } from '@/types/price';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface ConfigStatusIndicatorProps {
   isConfigured: boolean;
@@ -75,7 +76,7 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
             <span className="text-xs">All API interactions are handled securely. Your credentials never leave your browser except to authenticate with Gadget.dev</span>
           </div>
         </div>
-        <div className="mt-4 flex gap-3">
+        <div className="mt-4 flex gap-3 flex-wrap">
           <Button 
             variant="outline" 
             size="sm" 
@@ -85,13 +86,24 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
             <LinkIcon className="mr-1 h-3.5 w-3.5" />
             Open Dashboard
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+            asChild
+          >
+            <Link to="/gadget-documentation">
+              <FileText className="mr-1 h-3.5 w-3.5" />
+              View Integration Docs
+            </Link>
+          </Button>
           <a 
             href="https://gadget.dev/docs" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center text-xs text-green-700 hover:text-green-800 hover:underline"
           >
-            View Gadget documentation
+            Gadget.dev Documentation
             <ExternalLink className="ml-1 h-3 w-3" />
           </a>
         </div>

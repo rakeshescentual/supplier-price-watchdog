@@ -337,6 +337,7 @@ const IndexContent = () => {
             Upload your supplier price list (Excel or PDF) to compare old vs new prices. 
             Supplier Price Watch will analyze price changes, identify anomalies, and calculate the potential impact on your business.
             {isShopifyConnected && " It also integrates with your Shopify store to provide tailored insights."}
+            {isGadgetInitialized && " Gadget.dev integration enhances PDF processing and data enrichment capabilities."}
           </p>
           <div className="flex flex-wrap gap-4 justify-center mt-6">
             <div className="text-center">
@@ -357,6 +358,24 @@ const IndexContent = () => {
               </div>
               <p className="text-sm font-medium">Sync to Shopify</p>
             </div>
+          </div>
+          
+          <div className="flex justify-center mt-6 gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/documentation" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                View Documentation
+              </Link>
+            </Button>
+            
+            {isGadgetInitialized && (
+              <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
+                <Link to="/gadget-documentation" className="flex items-center gap-2">
+                  <Server className="h-4 w-4" />
+                  Gadget Integration
+                </Link>
+              </Button>
+            )}
           </div>
           
           {savedAnalyses.length > 0 && (

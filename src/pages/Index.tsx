@@ -371,7 +371,7 @@ const IndexContent = () => {
             {isGadgetInitialized && (
               <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
                 <Link to="/gadget-documentation" className="flex items-center gap-2">
-                  <Server className="h-4 w-4" />
+                  <FileText className="h-4 w-4" />
                   Gadget Integration
                 </Link>
               </Button>

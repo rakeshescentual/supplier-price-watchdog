@@ -288,7 +288,7 @@ export const performBatchOperations = async <T, R>(
         // Filter successful results
         batchResults.forEach((result, index) => {
           if (result.status === 'fulfilled') {
-            results.push(result.value);
+            results.push(result.value as R);
           }
         });
       } catch (batchError) {

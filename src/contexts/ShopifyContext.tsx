@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { PriceItem, ShopifyContext as ShopifyContextType, ShopifyContextType as ShopifyProviderContextType } from '@/types/price';
@@ -9,7 +8,8 @@ import {
   checkShopifyConnection,
   batchShopifyOperations
 } from '@/lib/shopifyApi';
-import { getGadgetConfig, initGadgetClient, authenticateShopify, syncToShopifyViaGadget } from '@/lib/gadgetApi';
+import { initGadgetClient, authenticateShopify, syncToShopifyViaGadget } from '@/lib/gadgetApi';
+import { getGadgetConfig } from '@/utils/gadget-helpers';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
@@ -34,7 +34,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   const [connectionCheckInterval, setConnectionCheckInterval] = useState<number | null>(null);
   const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
   
-  // Clear any existing intervals on unmount
   useEffect(() => {
     return () => {
       if (connectionCheckInterval) {
@@ -44,21 +43,17 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   }, [connectionCheckInterval]);
   
   useEffect(() => {
-    // Initialize Shopify App Bridge
     initializeShopifyApp();
     
-    // Check if Gadget is initialized
     const gadgetClient = initGadgetClient();
     setIsGadgetInitialized(!!gadgetClient?.ready);
     
-    // Load Shopify context from localStorage
     const storedContext = localStorage.getItem('shopifyContext');
     if (storedContext) {
       try {
         const parsedContext = JSON.parse(storedContext);
         setShopifyContext(parsedContext);
         
-        // Check connection health immediately
         checkShopifyConnection(parsedContext)
           .then(isHealthy => {
             setIsShopifyConnected(true);
@@ -75,7 +70,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
               });
             }
             
-            // Set up connection health check interval (every 5 minutes)
             const intervalId = window.setInterval(() => {
               if (parsedContext) {
                 checkShopifyConnection(parsedContext)
@@ -94,13 +88,13 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
                     setIsShopifyHealthy(false);
                   });
               }
-            }, 5 * 60 * 1000); // 5 minutes
+            }, 5 * 60 * 1000);
             
             setConnectionCheckInterval(intervalId);
           })
           .catch(error => {
             console.error("Error checking initial Shopify connection:", error);
-            setIsShopifyConnected(true); // Still consider connected, but not healthy
+            setIsShopifyConnected(true);
             setIsShopifyHealthy(false);
           });
       } catch (error) {
@@ -116,7 +110,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     try {
       const newContext: ShopifyContextType = { shop, accessToken };
       
-      // Check connection health before confirming
       const isHealthy = await checkShopifyConnection(newContext);
       
       setShopifyContext(newContext);
@@ -124,13 +117,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
       setIsShopifyHealthy(isHealthy);
       setLastConnectionCheck(new Date());
       
-      // Save to localStorage
       localStorage.setItem('shopifyContext', JSON.stringify(newContext));
-      
-      // Set up connection health check interval
-      if (connectionCheckInterval) {
-        clearInterval(connectionCheckInterval);
-      }
       
       const intervalId = window.setInterval(() => {
         if (newContext) {
@@ -141,7 +128,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
             })
             .catch(() => setIsShopifyHealthy(false));
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 5 * 60 * 1000);
       
       setConnectionCheckInterval(intervalId);
       
@@ -165,7 +152,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     setIsShopifyHealthy(false);
     localStorage.removeItem('shopifyContext');
     
-    // Clear connection check interval
     if (connectionCheckInterval) {
       clearInterval(connectionCheckInterval);
       setConnectionCheckInterval(null);
@@ -198,7 +184,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     }
     
     if (!isShopifyHealthy) {
-      // Re-check connection health before attempting sync
       const isHealthy = await checkShopifyConnection(shopifyContext);
       setIsShopifyHealthy(isHealthy);
       
@@ -212,7 +197,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     setIsSyncing(true);
     
     try {
-      // Try with Gadget first if gadget is initialized
       if (isGadgetInitialized && initGadgetClient()?.ready) {
         console.log("Attempting to sync with Shopify via Gadget...");
         const result = await syncToShopifyViaGadget(shopifyContext, items);
@@ -227,7 +211,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
         console.warn("Gadget sync failed, falling back to direct API");
       }
       
-      // Fall back to direct Shopify API with retry logic
       console.log("Syncing with Shopify via direct API...");
       const syncResult = await syncWithShopify(shopifyContext, items, {
         retryAttempts: 3,
@@ -256,7 +239,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     }
   }, [shopifyContext, isGadgetInitialized, isShopifyHealthy]);
   
-  // New method for batch operations
   const batchProcessShopifyItems = useCallback(async <T, R>(
     items: T[],
     processFn: (item: T) => Promise<R>,

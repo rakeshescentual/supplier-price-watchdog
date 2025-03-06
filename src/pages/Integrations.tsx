@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { MarketingIntegrations } from "@/components/integrations/MarketingIntegrations";
 import { KlaviyoIntegration } from "@/components/integrations/KlaviyoIntegration";
 import { PriceAlertChannels } from "@/components/integrations/PriceAlertChannels";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
-import { GadgetConfigForm } from "@/components/GadgetConfigForm";
+import GadgetConfigForm from "@/components/GadgetConfigForm";
 import { 
   Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter
 } from "@/components/ui/card";

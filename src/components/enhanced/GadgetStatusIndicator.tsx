@@ -1,80 +1,73 @@
 
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CircleCheck, CircleAlert, CircleX, CircleDashed } from "lucide-react";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useGadgetConnection } from '@/hooks/useGadgetConnection';
 
-export const GadgetStatusIndicator: React.FC = () => {
-  const { isConnected, isLoading, error, lastChecked, config } = useGadgetConnection();
+export const GadgetStatusIndicator = () => {
+  const gadgetConnection = useGadgetConnection();
+  const { isConfigured, isConnected, isInitialized, lastConnectionTest, config } = gadgetConnection;
 
-  let status: 'connected' | 'error' | 'disconnected' | 'checking' = 'disconnected';
-  let icon = <CircleX className="h-4 w-4" />;
-  let label = "Disconnected";
-  let color = "text-gray-500 bg-gray-100";
-  
-  if (isLoading) {
-    status = 'checking';
-    icon = <CircleDashed className="h-4 w-4 animate-spin" />;
-    label = "Checking...";
-    color = "text-blue-500 bg-blue-100";
-  } else if (isConnected) {
-    status = 'connected';
-    icon = <CircleCheck className="h-4 w-4" />;
-    label = "Connected";
-    color = "text-green-500 bg-green-100";
-  } else if (error) {
-    status = 'error';
-    icon = <CircleAlert className="h-4 w-4" />;
-    label = "Error";
-    color = "text-red-500 bg-red-100";
+  if (!isConfigured) {
+    return null;
   }
-  
-  const formattedTime = lastChecked 
-    ? new Intl.DateTimeFormat('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true 
-      }).format(lastChecked) 
-    : 'Never';
+
+  const getStatusIcon = () => {
+    if (isConnected) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    } else if (!isInitialized) {
+      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    } else {
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    }
+  };
+
+  const getStatusText = () => {
+    if (isConnected) {
+      return "Connected";
+    } else if (!isInitialized) {
+      return "Not Initialized";
+    } else {
+      return "Connection Failed";
+    }
+  };
+
+  const getStatusColor = () => {
+    if (isConnected) {
+      return "bg-green-50 text-green-700 border-green-200";
+    } else if (!isInitialized) {
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    } else {
+      return "bg-red-50 text-red-700 border-red-200";
+    }
+  };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="outline" className={`${color} flex items-center gap-1 cursor-default`}>
-            {icon}
-            <span>Gadget: {label}</span>
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent className="w-64 p-3">
-          <div className="space-y-2">
-            <p className="font-medium text-sm">Gadget.dev Status</p>
-            
-            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              <span className="text-muted-foreground">Status:</span>
-              <span className="font-medium">{label}</span>
-              
-              <span className="text-muted-foreground">App ID:</span>
-              <span className="font-medium">{config?.appId || 'Not configured'}</span>
-              
-              <span className="text-muted-foreground">Environment:</span>
-              <span className="font-medium">{config?.environment || 'Not configured'}</span>
-              
-              <span className="text-muted-foreground">Last Checked:</span>
-              <span className="font-medium">{formattedTime}</span>
-              
-              {error && (
-                <>
-                  <span className="text-muted-foreground">Error:</span>
-                  <span className="font-medium text-red-500">{error.message}</span>
-                </>
-              )}
+    <Card className="mt-4">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {getStatusIcon()}
+            <div>
+              <h3 className="font-medium">Gadget.dev Connection</h3>
+              <p className="text-sm text-muted-foreground">
+                {config?.appId ? `App: ${config.appId}` : 'Not configured'}
+              </p>
             </div>
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <Badge variant="outline" className={`${getStatusColor()} ml-auto`}>
+            {getStatusText()}
+          </Badge>
+        </div>
+        {lastConnectionTest && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Last tested: {lastConnectionTest.toLocaleString()}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
+
+export default GadgetStatusIndicator;

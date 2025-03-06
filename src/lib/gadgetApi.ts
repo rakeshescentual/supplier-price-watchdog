@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import type { PriceItem, ShopifyContext } from '@/types/price';
 import { getGadgetConfig } from '@/utils/gadget-helpers';
@@ -18,6 +19,14 @@ export const initGadgetClient = () => {
   // });
   
   return { config, ready: true };
+};
+
+/**
+ * Check if Gadget is initialized
+ */
+export const isGadgetInitialized = (): boolean => {
+  const client = initGadgetClient();
+  return !!client?.ready;
 };
 
 /**
@@ -73,10 +82,28 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
     //   }
     // });
     
-    // Mock data
+    // Mock data with correct PriceItem properties
     return Promise.resolve([
-      { id: "mock1", sku: "DEMO-001", name: "Demo Product 1", price: 19.99, cost: 9.99 },
-      { id: "mock2", sku: "DEMO-002", name: "Demo Product 2", price: 24.99, cost: 12.50 }
+      { 
+        id: "mock1", 
+        sku: "DEMO-001", 
+        name: "Demo Product 1", 
+        oldPrice: 19.99, 
+        newPrice: 21.99, 
+        status: 'increased', 
+        difference: 2.00,
+        isMatched: true
+      },
+      { 
+        id: "mock2", 
+        sku: "DEMO-002", 
+        name: "Demo Product 2", 
+        oldPrice: 24.99, 
+        newPrice: 24.99, 
+        status: 'unchanged', 
+        difference: 0,
+        isMatched: true
+      }
     ]);
   } catch (error) {
     console.error("Error processing PDF with Gadget:", error);
@@ -107,10 +134,14 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
     // Mock enriched data
     return items.map(item => ({
       ...item,
-      marketAverage: item.price * 1.2,
-      marketLow: item.price * 0.9,
-      marketHigh: item.price * 1.5,
-      competitorCount: Math.floor(Math.random() * 10) + 1
+      marketData: {
+        pricePosition: 'average' as 'low' | 'average' | 'high',
+        averagePrice: item.newPrice * 1.2,
+        minPrice: item.newPrice * 0.9,
+        maxPrice: item.newPrice * 1.5,
+        competitorPrices: [item.newPrice * 0.9, item.newPrice * 1.1, item.newPrice * 1.3]
+      },
+      potentialImpact: item.difference * 10
     }));
   } catch (error) {
     console.error("Error enriching data via Gadget:", error);

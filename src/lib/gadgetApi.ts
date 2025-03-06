@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import type { PriceItem, ShopifyContext, GadgetConfig } from '@/types/price';
 import { getGadgetConfig } from '@/utils/gadget-helpers';
@@ -281,6 +280,9 @@ export const performBatchOperations = async <T, R>(
               );
             }
           }
+          
+          // This return is needed to satisfy TypeScript
+          return {} as R;
         });
         
         const batchResults = await Promise.allSettled(batchPromises);

@@ -1,4 +1,5 @@
 
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -10,12 +11,46 @@ import {
 import { TrendingUp, TrendingDown, AlertTriangle, AlertCircle, PlusCircle } from "lucide-react";
 import type { PriceItem } from "@/types/price";
 import { Badge } from "./ui/badge";
+import { PriceTableFilter, type PriceItemFilters } from "./PriceTableFilter";
 
 interface PriceTableProps {
   items: PriceItem[];
 }
 
 export const PriceTable = ({ items }: PriceTableProps) => {
+  const [filters, setFilters] = useState<PriceItemFilters>({
+    search: "",
+    statuses: ['increased', 'decreased', 'new', 'discontinued', 'anomaly'],
+  });
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      // Filter by status
+      if (!filters.statuses.includes(item.status)) {
+        return false;
+      }
+      
+      // Filter by search term
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const searchFields = [
+          item.sku,
+          item.name,
+          item.oldSupplierCode,
+          item.newSupplierCode,
+          item.oldTitle,
+          item.newTitle
+        ].filter(Boolean);
+        
+        return searchFields.some(field => 
+          field?.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      return true;
+    });
+  }, [items, filters]);
+
   const getStatusIcon = (status: PriceItem['status']) => {
     switch (status) {
       case 'increased':
@@ -55,108 +90,124 @@ export const PriceTable = ({ items }: PriceTableProps) => {
   };
 
   return (
-    <div className="rounded-md border overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Old Price</TableHead>
-              <TableHead>New Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Difference</TableHead>
-              <TableHead>Supplier Code</TableHead>
-              <TableHead>Pack Size</TableHead>
-              <TableHead>Margin</TableHead>
-              <TableHead>Potential Impact</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow 
-                key={item.sku} 
-                className={
-                  item.status === 'anomaly' 
-                    ? 'bg-purple-50 hover:bg-purple-100'
-                    : item.status === 'new'
-                    ? 'bg-blue-50 hover:bg-blue-100'
-                    : undefined
-                }
-              >
-                <TableCell>{item.sku}</TableCell>
-                <TableCell>
-                  <div className={item.oldTitle !== item.newTitle && item.oldTitle && item.newTitle ? 'relative' : ''}>
-                    {item.name}
-                    {item.oldTitle !== item.newTitle && item.oldTitle && item.newTitle && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        <span className="line-through">{item.oldTitle}</span> → {item.newTitle}
-                      </div>
-                    )}
-                    {renderAnomalyBadges(item)}
-                  </div>
-                </TableCell>
-                <TableCell>${item.oldPrice.toFixed(2)}</TableCell>
-                <TableCell>${item.newPrice.toFixed(2)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(item.status)}
-                    <span className="capitalize">{item.status}</span>
-                  </div>
-                </TableCell>
-                <TableCell className={item.difference > 0 ? 'text-red-500' : item.difference < 0 ? 'text-green-500' : ''}>
-                  {item.difference > 0 ? '+' : ''}{item.difference.toFixed(2)}%
-                </TableCell>
-                <TableCell>
-                  {item.oldSupplierCode !== item.newSupplierCode && item.oldSupplierCode && item.newSupplierCode ? (
-                    <div>
-                      <span className="line-through text-xs text-muted-foreground">{item.oldSupplierCode}</span>
-                      <span className="text-xs"> → </span>
-                      <span>{item.newSupplierCode}</span>
-                    </div>
-                  ) : (
-                    item.newSupplierCode || item.oldSupplierCode || '-'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {item.oldPackSize !== item.newPackSize && item.oldPackSize && item.newPackSize ? (
-                    <div>
-                      <span className="line-through text-xs text-muted-foreground">{item.oldPackSize}</span>
-                      <span className="text-xs"> → </span>
-                      <span>{item.newPackSize}</span>
-                    </div>
-                  ) : (
-                    item.newPackSize || item.oldPackSize || '-'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {item.oldMargin !== undefined && item.newMargin !== undefined ? (
-                    <div>
-                      <div className={
-                        item.marginChange && item.marginChange < 0 ? 'text-red-500' : 
-                        item.marginChange && item.marginChange > 0 ? 'text-green-500' : ''
-                      }>
-                        {item.newMargin.toFixed(1)}%
-                        {item.marginChange ? 
-                          <span className="text-xs ml-1">
-                            ({item.marginChange > 0 ? '+' : ''}{item.marginChange.toFixed(1)}%)
-                          </span> : null
-                        }
-                      </div>
-                    </div>
-                  ) : '-'}
-                </TableCell>
-                <TableCell>
-                  {item.potentialImpact ? (
-                    <span className={item.potentialImpact > 0 ? 'text-red-500' : 'text-green-500'}>
-                      ${Math.abs(item.potentialImpact).toLocaleString()}
-                    </span>
-                  ) : '-'}
-                </TableCell>
+    <div>
+      <PriceTableFilter onFilterChange={setFilters} />
+      
+      <div className="rounded-md border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>SKU</TableHead>
+                <TableHead>Product Name</TableHead>
+                <TableHead>Old Price</TableHead>
+                <TableHead>New Price</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Difference</TableHead>
+                <TableHead>Supplier Code</TableHead>
+                <TableHead>Pack Size</TableHead>
+                <TableHead>Margin</TableHead>
+                <TableHead>Potential Impact</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <TableRow 
+                    key={item.sku} 
+                    className={
+                      item.status === 'anomaly' 
+                        ? 'bg-purple-50 hover:bg-purple-100'
+                        : item.status === 'new'
+                        ? 'bg-blue-50 hover:bg-blue-100'
+                        : undefined
+                    }
+                  >
+                    <TableCell>{item.sku}</TableCell>
+                    <TableCell>
+                      <div className={item.oldTitle !== item.newTitle && item.oldTitle && item.newTitle ? 'relative' : ''}>
+                        {item.name}
+                        {item.oldTitle !== item.newTitle && item.oldTitle && item.newTitle && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="line-through">{item.oldTitle}</span> → {item.newTitle}
+                          </div>
+                        )}
+                        {renderAnomalyBadges(item)}
+                      </div>
+                    </TableCell>
+                    <TableCell>${item.oldPrice.toFixed(2)}</TableCell>
+                    <TableCell>${item.newPrice.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(item.status)}
+                        <span className="capitalize">{item.status}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={item.difference > 0 ? 'text-red-500' : item.difference < 0 ? 'text-green-500' : ''}>
+                      {item.difference > 0 ? '+' : ''}{item.difference.toFixed(2)}%
+                    </TableCell>
+                    <TableCell>
+                      {item.oldSupplierCode !== item.newSupplierCode && item.oldSupplierCode && item.newSupplierCode ? (
+                        <div>
+                          <span className="line-through text-xs text-muted-foreground">{item.oldSupplierCode}</span>
+                          <span className="text-xs"> → </span>
+                          <span>{item.newSupplierCode}</span>
+                        </div>
+                      ) : (
+                        item.newSupplierCode || item.oldSupplierCode || '-'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.oldPackSize !== item.newPackSize && item.oldPackSize && item.newPackSize ? (
+                        <div>
+                          <span className="line-through text-xs text-muted-foreground">{item.oldPackSize}</span>
+                          <span className="text-xs"> → </span>
+                          <span>{item.newPackSize}</span>
+                        </div>
+                      ) : (
+                        item.newPackSize || item.oldPackSize || '-'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.oldMargin !== undefined && item.newMargin !== undefined ? (
+                        <div>
+                          <div className={
+                            item.marginChange && item.marginChange < 0 ? 'text-red-500' : 
+                            item.marginChange && item.marginChange > 0 ? 'text-green-500' : ''
+                          }>
+                            {item.newMargin.toFixed(1)}%
+                            {item.marginChange ? 
+                              <span className="text-xs ml-1">
+                                ({item.marginChange > 0 ? '+' : ''}{item.marginChange.toFixed(1)}%)
+                              </span> : null
+                            }
+                          </div>
+                        </div>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {item.potentialImpact ? (
+                        <span className={item.potentialImpact > 0 ? 'text-red-500' : 'text-green-500'}>
+                          ${Math.abs(item.potentialImpact).toLocaleString()}
+                        </span>
+                      ) : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={10} className="h-24 text-center">
+                    No results found. Try adjusting your filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      
+      <div className="mt-2 text-sm text-muted-foreground">
+        Showing {filteredItems.length} of {items.length} items
       </div>
     </div>
   );

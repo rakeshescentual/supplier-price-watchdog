@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { initGadgetClient, testGadgetConnection } from '@/lib/gadgetApi';
-import { getGadgetConfig } from '@/utils/gadget-helpers';
+import { initGadgetClient } from '@/lib/gadgetApi';
+import { getGadgetConfig, testGadgetConnection } from '@/utils/gadget-helpers';
 import type { GadgetConfig } from '@/types/price';
 
 interface GadgetConnectionState {

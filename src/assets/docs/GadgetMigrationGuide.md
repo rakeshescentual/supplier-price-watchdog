@@ -138,11 +138,12 @@ export default async function(context, params) {
   const accessToken = await ShopifyAuth.exchangeCodeForToken(shop, code);
   
   // Store in database
-  const auth = await ShopifyAuth.create({
+  const auth = await context.models.ShopifyAuth.create({
     shop,
     accessToken,
     installedAt: new Date(),
-    isActive: true
+    isActive: true,
+    user: context.currentUser
   });
   
   return { success: true, shop };
@@ -165,8 +166,12 @@ export default async function(context, params) {
   // Get file from storage
   const file = await context.storage.getFile(fileId);
   
-  // Extract text from PDF
-  const textContent = await extractPdfText(file.content);
+  // Extract text from PDF using Gadget's PDF processing capabilities
+  const textContent = await extractPdfText(file.content, {
+    useOCR: true,
+    extractTables: true,
+    confidence: 0.85
+  });
   
   // Parse price data from text
   const priceItems = parsePriceData(textContent, supplierName);
@@ -198,25 +203,29 @@ export default async function(context, params) {
   return {
     success: true,
     priceListId: priceList.id,
-    itemCount: createdItems.length
+    itemCount: createdItems.length,
+    items: createdItems
   };
 }
 ```
 
 ## 5. Set up Shopify Connections
 
-### Enable Shopify Connection in Gadget
+### Configure Shopify Connection in Gadget
 
 1. Go to "Connections" in your Gadget app dashboard
 2. Enable the Shopify connection
-3. Configure scopes and permissions
+3. Configure scopes and permissions:
+   - `read_products`
+   - `write_products`
+   - `read_orders`
 
 ### Create Product Sync Action
 
 ```javascript
 // syncProductPrice action
 export default async function(context, params) {
-  const { shop, accessToken, sku, newPrice } = params;
+  const { shop, sku, newPrice } = params;
   
   // Get auth record for shop
   const auth = await context.models.ShopifyAuth.findOne({
@@ -227,111 +236,243 @@ export default async function(context, params) {
     throw new Error("Shop not authenticated");
   }
   
-  // Find product in Shopify by SKU
-  const shopify = new Shopify(shop, auth.accessToken);
-  const product = await shopify.findProductBySku(sku);
-  
-  if (!product) {
-    throw new Error(`Product with SKU ${sku} not found`);
-  }
-  
-  // Update product price
-  await shopify.updateProductPrice(product.variantId, newPrice);
-  
-  // Update price item record
-  const priceItem = await context.models.PriceItem.findOne({
-    where: { sku }
-  });
-  
-  if (priceItem) {
-    await priceItem.update({
-      syncedToShopify: true,
-      shopifyProductId: product.id,
-      shopifyVariantId: product.variantId
+  try {
+    // Find product in Shopify by SKU
+    const shopify = context.connections.shopify.forShop(shop);
+    
+    // Search for products with this SKU
+    const products = await shopify.product.search({
+      query: `sku:${sku}`,
+      first: 1
     });
+    
+    if (!products.edges.length) {
+      throw new Error(`Product with SKU ${sku} not found`);
+    }
+    
+    const product = products.edges[0].node;
+    const variant = product.variants.edges[0].node;
+    
+    // Update product price
+    await shopify.productVariant.update({
+      id: variant.id,
+      input: {
+        price: String(newPrice)
+      }
+    });
+    
+    // Update price item record if it exists
+    const priceItem = await context.models.PriceItem.findOne({
+      where: { sku }
+    });
+    
+    if (priceItem) {
+      await priceItem.update({
+        syncedToShopify: true,
+        shopifyProductId: product.id,
+        shopifyVariantId: variant.id
+      });
+    }
+    
+    return { 
+      success: true, 
+      product: {
+        id: product.id,
+        title: product.title,
+        sku: sku,
+        oldPrice: variant.price,
+        newPrice: newPrice
+      }
+    };
+  } catch (error) {
+    console.error("Error syncing product price:", error);
+    throw error;
   }
-  
-  return { success: true, product };
 }
 ```
 
 ## 6. Create Batch Operations Functionality
 
-### Implement Batch Processing
+### Implement Batch Processing Utility
 
-1. Create a batch processing utility in Gadget
+Create a new file in your Gadget application under `lib/batchProcessing.js`:
 
 ```javascript
-// batchProcess.js in Gadget
-export async function batchProcess(items, processFn, batchSize = 50) {
+// batchProcessing.js in Gadget
+
+/**
+ * Process items in batches to avoid rate limits
+ * @param {Array} items - Array of items to process
+ * @param {Function} processFn - Async function to process each item
+ * @param {Object} options - Configuration options
+ * @returns {Object} Results and errors
+ */
+export async function batchProcess(items, processFn, options = {}) {
+  const {
+    batchSize = 50,
+    maxConcurrency = 5,
+    retryCount = 3,
+    retryDelay = 1000,
+    onProgress = null
+  } = options;
+  
   const results = [];
   const errors = [];
+  let processedCount = 0;
   
+  // Create batches
+  const batches = [];
   for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    
-    try {
-      const batchResults = await Promise.all(
-        batch.map(async (item) => {
-          try {
-            return await processFn(item);
-          } catch (error) {
-            errors.push({ item, error: error.message });
-            return null;
-          }
-        })
-      );
-      
-      results.push(...batchResults.filter(r => r !== null));
-    } catch (error) {
-      console.error(`Error processing batch ${i / batchSize}:`, error);
-    }
+    batches.push(items.slice(i, i + batchSize));
   }
   
-  return { results, errors };
+  console.log(`Processing ${items.length} items in ${batches.length} batches`);
+  
+  // Process a single item with retry logic
+  const processWithRetry = async (item, attempt = 0) => {
+    try {
+      return await processFn(item);
+    } catch (error) {
+      if (attempt < retryCount) {
+        // Exponential backoff
+        const delay = retryDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return processWithRetry(item, attempt + 1);
+      }
+      errors.push({ item, error: error.message });
+      return null;
+    }
+  };
+  
+  // Process batches sequentially
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    console.log(`Processing batch ${i + 1}/${batches.length} (${batch.length} items)`);
+    
+    // Process items in the batch with limited concurrency
+    const batchPromises = [];
+    let running = 0;
+    let index = 0;
+    
+    // Results for this batch
+    const batchResults = [];
+    
+    while (index < batch.length || running > 0) {
+      // Start new tasks if below concurrency limit and items remain
+      while (running < maxConcurrency && index < batch.length) {
+        const item = batch[index++];
+        const promise = processWithRetry(item).then(result => {
+          running--;
+          if (result !== null) {
+            batchResults.push(result);
+          }
+          
+          // Update progress if callback provided
+          processedCount++;
+          if (onProgress) {
+            onProgress(processedCount, items.length);
+          }
+          
+          return result;
+        });
+        
+        batchPromises.push(promise);
+        running++;
+      }
+      
+      // Wait for a task to finish if at concurrency limit
+      if (running >= maxConcurrency || (index >= batch.length && running > 0)) {
+        await Promise.race(batchPromises.filter(p => !p.isResolved));
+      }
+    }
+    
+    // Wait for all promises in this batch to complete
+    await Promise.all(batchPromises);
+    
+    // Add successful results from this batch
+    results.push(...batchResults.filter(r => r !== null));
+    
+    console.log(`Completed batch ${i + 1}: ${batchResults.length} successful, ${batch.length - batchResults.length} failed`);
+  }
+  
+  return {
+    results,
+    errors,
+    summary: {
+      total: items.length,
+      successful: results.length,
+      failed: errors.length
+    }
+  };
 }
 ```
 
-2. Create a batch sync action
+### Create Batch Sync Action
 
 ```javascript
 // batchSyncPrices action
-import { batchProcess } from "../lib/batchProcess";
+import { batchProcess } from "../lib/batchProcessing";
 
 export default async function(context, params) {
   const { shop, items } = params;
   
-  const { results, errors } = await batchProcess(
-    items,
-    async (item) => {
-      return await context.actions.syncProductPrice({
-        shop,
-        sku: item.sku,
-        newPrice: item.newPrice
-      });
-    },
-    20 // Process 20 items at a time
-  );
+  // Validate input
+  if (!shop) {
+    throw new Error("Shop parameter is required");
+  }
   
-  return {
-    success: errors.length === 0,
-    syncedCount: results.length,
-    errorCount: errors.length,
-    errors: errors.length > 0 ? errors : undefined
-  };
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("Items array is required and cannot be empty");
+  }
+  
+  try {
+    // Process items in batches
+    const { results, errors, summary } = await batchProcess(
+      items,
+      async (item) => {
+        // Call the syncProductPrice action for each item
+        return await context.actions.syncProductPrice.run({
+          shop,
+          sku: item.sku,
+          newPrice: item.newPrice
+        });
+      },
+      {
+        batchSize: 20, // Process 20 items at a time
+        maxConcurrency: 5, // 5 concurrent operations maximum
+        retryCount: 3, // Retry failed operations up to 3 times
+        onProgress: (processed, total) => {
+          console.log(`Progress: ${processed}/${total} (${Math.round(processed/total*100)}%)`);
+        }
+      }
+    );
+    
+    return {
+      success: true,
+      syncedCount: results.length,
+      errorCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      summary
+    };
+  } catch (error) {
+    console.error("Error in batch sync operation:", error);
+    throw error;
+  }
 }
 ```
 
 ## 7. Data Enrichment and Market Analysis
 
-### Implement Market Data Enrichment
-
-1. Create a data enrichment action
+### Create Market Data Enrichment Action
 
 ```javascript
 // enrichWithMarketData action
 export default async function(context, params) {
   const { itemIds } = params;
+  
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new Error("Item IDs array is required and cannot be empty");
+  }
   
   const items = await context.models.PriceItem.findMany({
     where: { id: { in: itemIds } }
@@ -339,50 +480,144 @@ export default async function(context, params) {
   
   const enrichedItems = await Promise.all(
     items.map(async (item) => {
-      // Get market data from external API
-      const marketData = await fetchMarketData(item.sku, item.name);
-      
-      // Update item with market data
-      await item.update({
-        marketData: {
-          averagePrice: marketData.averagePrice,
-          competitorPrices: marketData.competitorPrices,
-          pricePosition: marketData.pricePosition,
-          lastUpdated: new Date()
-        }
-      });
-      
-      return item;
+      try {
+        // Get market data from external API or service
+        // Here you would integrate with a data provider API
+        // For example, using a market data integration or web scraping service
+        const marketData = await fetchMarketData(item.sku, item.name);
+        
+        // Update item with market data
+        await item.update({
+          marketData: {
+            averagePrice: marketData.averagePrice,
+            competitorPrices: marketData.competitorPrices,
+            pricePosition: marketData.pricePosition,
+            lastUpdated: new Date()
+          }
+        });
+        
+        return item;
+      } catch (error) {
+        console.error(`Error enriching item ${item.id}:`, error);
+        throw error;
+      }
     })
   );
   
   return { 
     success: true, 
-    count: enrichedItems.length 
+    count: enrichedItems.length,
+    items: enrichedItems
   };
 }
 
-// Helper function to fetch market data
+// Helper function to fetch market data (implementation would vary based on your data source)
 async function fetchMarketData(sku, name) {
-  // Implement API call to market data provider
-  // For now, return mock data
+  // Implementation would connect to market data provider APIs
+  // For demonstration, return sample data
   return {
-    averagePrice: Math.random() * 100,
+    averagePrice: Math.random() * 100 + 50,
     competitorPrices: [
-      Math.random() * 90,
-      Math.random() * 110,
-      Math.random() * 100
+      Math.random() * 90 + 40,
+      Math.random() * 110 + 45,
+      Math.random() * 100 + 50
     ],
     pricePosition: Math.random() < 0.33 ? 'low' : Math.random() < 0.66 ? 'average' : 'high'
   };
 }
 ```
 
+### Create Price Trend Analysis Action
+
+```javascript
+// analyzePriceTrends action
+export default async function(context, params) {
+  const { itemIds, timeframe = 'quarter' } = params;
+  
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new Error("Item IDs array is required and cannot be empty");
+  }
+  
+  const items = await context.models.PriceItem.findMany({
+    where: { id: { in: itemIds } }
+  });
+  
+  // Get historical price data
+  // This would typically come from a historical price database
+  // For demonstration, we'll generate sample data
+  const analyzedItems = await Promise.all(
+    items.map(async (item) => {
+      try {
+        // Generate or fetch historical data
+        const historicalData = await generateHistoricalData(item, timeframe);
+        
+        // Update item with trend analysis
+        await item.update({
+          historicalData
+        });
+        
+        return {
+          ...item,
+          historicalData
+        };
+      } catch (error) {
+        console.error(`Error analyzing trends for item ${item.id}:`, error);
+        throw error;
+      }
+    })
+  );
+  
+  return { 
+    success: true, 
+    count: analyzedItems.length,
+    items: analyzedItems,
+    timeframe
+  };
+}
+
+// Helper function to generate historical data (in production, this would fetch real data)
+async function generateHistoricalData(item, timeframe) {
+  // Determine how many months of data to include
+  const months = timeframe === 'month' ? 1 : timeframe === 'quarter' ? 3 : 12;
+  
+  // Generate realistic trend percentages based on current price movement
+  const trendDirection = item.status === 'increase' ? 1 : 
+                        item.status === 'decrease' ? -1 : 0;
+  
+  const industryTrend = (Math.random() * 5 + 1) * (Math.random() > 0.5 ? 1 : -1);
+  const categoryTrend = industryTrend + (Math.random() * 3 - 1.5);
+  const itemTrend = trendDirection * (Math.random() * 8 + 2);
+  
+  // Generate historical price points
+  const historyPoints = [];
+  let currentPrice = item.newPrice;
+  
+  for (let i = 0; i < months; i++) {
+    // Work backwards from current price
+    const monthlyChange = (Math.random() * 3 - 1) * (i + 1);
+    const historicalPrice = currentPrice - (monthlyChange * (i + 1));
+    
+    historyPoints.push({
+      date: new Date(Date.now() - (i * 30 * 24 * 60 * 60 * 1000)).toISOString(),
+      price: Math.max(1, historicalPrice)
+    });
+  }
+  
+  return {
+    itemTrendPercent: itemTrend,
+    categoryTrendPercent: categoryTrend,
+    industryTrendPercent: industryTrend,
+    volatility: Math.random() * 10,
+    timeframe: timeframe,
+    dataPoints: 12 * (timeframe === 'month' ? 1 : timeframe === 'quarter' ? 3 : 12),
+    history: historyPoints.reverse() // Order from oldest to newest
+  };
+}
+```
+
 ## 8. Testing and Validation
 
-### Create Testing Actions
-
-1. Implement a test connection action
+### Create Test Connection Action
 
 ```javascript
 // testConnection action
@@ -392,15 +627,68 @@ export default async function(context, params) {
     throw new Error("Invalid API key");
   }
   
-  // Return system status
+  // Return system status and information
   return {
     ready: true,
-    timestamp: new Date(),
-    environment: process.env.GADGET_ENVIRONMENT,
+    timestamp: new Date().toISOString(),
+    environment: process.env.GADGET_ENV || 'development',
+    app: {
+      id: process.env.GADGET_APP_ID,
+      name: process.env.GADGET_APP_NAME
+    },
     user: context.currentUser ? {
       id: context.currentUser.id,
       email: context.currentUser.email
-    } : null
+    } : null,
+    connections: {
+      shopify: !!context.connections.shopify
+    }
+  };
+}
+```
+
+### Create Health Check Endpoint
+
+```javascript
+// healthCheck action
+export default async function(context, params) {
+  // Test database connection
+  let dbStatus = "healthy";
+  try {
+    // Try a simple query to verify database connection
+    await context.models.PriceItem.findFirst();
+  } catch (error) {
+    dbStatus = "degraded";
+    console.error("Database health check failed:", error);
+  }
+  
+  // Test Shopify connection if applicable
+  let shopifyStatus = "not_configured";
+  if (context.connections.shopify) {
+    try {
+      // Try a simple Shopify API call
+      await context.connections.shopify.shop.get();
+      shopifyStatus = "healthy";
+    } catch (error) {
+      shopifyStatus = "degraded";
+      console.error("Shopify health check failed:", error);
+    }
+  }
+  
+  // Determine overall health
+  const overallHealth = 
+    dbStatus === "healthy" && 
+    (shopifyStatus === "healthy" || shopifyStatus === "not_configured")
+      ? "healthy"
+      : "degraded";
+  
+  return {
+    status: overallHealth,
+    services: {
+      database: dbStatus,
+      shopify: shopifyStatus
+    },
+    timestamp: new Date().toISOString()
   };
 }
 ```
@@ -409,15 +697,87 @@ export default async function(context, params) {
 
 ### Preparing for Production
 
-1. Configure environment variables in Gadget
-2. Set up proper authentication and security
-3. Update client code to use production endpoints
+1. Configure environment variables in Gadget:
+   - Set up production API keys
+   - Configure security settings
+   - Set feature flags
+
+2. Set up authentication and security:
+   - Configure proper authentication for your API
+   - Set up roles and permissions
+   - Implement API key restrictions
+
+3. Update client code:
+   - Replace mock implementations with real Gadget API calls
+   - Update configuration settings
+   - Set up proper error handling
 
 ### Client Integration Updates
 
-1. Replace mock implementations with real Gadget API calls
-2. Update environment configuration
-3. Implement proper error handling for production
+1. Update the client initialization code:
+
+```javascript
+import { Client } from '@gadget-client/supplier-price-watch';
+
+// Initialize the client with your API key
+const gadgetClient = new Client({
+  apiKey: config.apiKey,
+  environment: config.environment,
+  logLevel: config.environment === 'development' ? 'debug' : 'warn'
+});
+
+// Example of calling an action
+async function processPdf(file) {
+  try {
+    // Create a file upload
+    const uploadResult = await gadgetClient.files.upload(file);
+    
+    // Process the uploaded file
+    const result = await gadgetClient.actions.processPdfPriceList.run({
+      fileId: uploadResult.file.id,
+      supplierName: 'Example Supplier',
+      effectiveDate: new Date().toISOString()
+    });
+    
+    return result.data.priceItems;
+  } catch (error) {
+    console.error('Error processing PDF:', error);
+    throw error;
+  }
+}
+```
+
+2. Implement proper error handling:
+
+```javascript
+// Error handling wrapper
+function withErrorHandling(asyncFn) {
+  return async function(...args) {
+    try {
+      return await asyncFn(...args);
+    } catch (error) {
+      // Check for specific error types
+      if (error.statusCode === 401) {
+        // Handle authentication errors
+        console.error('Authentication error:', error);
+        // Redirect to login or refresh token
+      } else if (error.statusCode === 429) {
+        // Handle rate limiting
+        console.error('Rate limit exceeded:', error);
+        // Implement backoff strategy
+      } else {
+        // Handle other errors
+        console.error('Operation failed:', error);
+      }
+      
+      throw error;
+    }
+  };
+}
+
+// Use the wrapper
+const safeSyncToShopify = withErrorHandling(syncToShopify);
+```
 
 ## Finalization Checklist
 
@@ -441,8 +801,23 @@ If you encounter issues during migration:
 4. Ensure proper CORS configuration for client access
 5. Contact Gadget.dev support for assistance with platform-specific issues
 
+## Continuous Integration/Deployment
+
+For a professional setup, consider implementing:
+
+1. CI/CD pipeline for Gadget actions using GitHub Actions
+2. Automated testing of your Gadget actions
+3. Staging environment for testing before production
+4. Monitoring and alerts for Gadget API usage and errors
+
 ## Conclusion
 
 By following this guide, you should be able to successfully migrate your application to use Gadget.dev as a backend. This will provide enhanced capabilities, better scalability, and reduced maintenance overhead compared to custom server implementations.
+
+Gadget.dev's platform specifically excels at:
+- Managing Shopify integrations without rate limiting concerns
+- Processing complex documents like PDFs with built-in OCR
+- Handling batch operations efficiently
+- Providing a serverless environment for your business logic
 
 For additional assistance, reference the [Gadget.dev documentation](https://docs.gadget.dev) or contact support.

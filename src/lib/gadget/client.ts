@@ -41,7 +41,8 @@ export const initGadgetClient = () => {
     featureFlags: config.featureFlags || {}
   }, 'client');
   
-  // In production: Use Gadget SDK
+  // For Gadget.dev migration:
+  // Import the Gadget client SDK for your app
   // import { createClient } from '@gadget-client/your-app-id';
   // cachedClient = createClient({ 
   //   apiKey: config.apiKey,
@@ -92,7 +93,8 @@ export const checkGadgetHealth = async (): Promise<{
       environment: config.environment
     }, 'client');
     
-    // In production: Check Gadget API health
+    // For Gadget.dev migration:
+    // Check Gadget API health
     // const url = `${getGadgetApiUrl(config)}health`;
     // const response = await fetch(url, {
     //   method: 'GET',

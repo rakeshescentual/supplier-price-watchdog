@@ -1,105 +1,232 @@
 
 /**
- * Utility functions for batch processing with Gadget
+ * Batch processing utilities for Gadget operations
  */
+import { toast } from 'sonner';
+import { logInfo, logError, logDebug } from './logging';
+import { reportError, trackPerformance } from './telemetry';
 
 /**
- * Perform batch operations with retry logic
- * @param items Items to process
+ * Performs batch operations with configurable batch size, concurrency, and retry logic
+ * @param items Array of items to process
  * @param processFn Function to process each item
- * @param options Batch processing options
+ * @param options Configuration options for batch processing
  * @returns Promise resolving to array of results
  */
 export const performBatchOperations = async <T, R>(
   items: T[],
   processFn: (item: T) => Promise<R>,
-  options = { 
-    batchSize: 50,
-    retryCount: 3,
-    retryDelay: 1000,
-    maxConcurrency: 5,
-    onProgress: (processed: number, total: number) => void
-  }
+  options: { 
+    batchSize?: number;
+    maxConcurrency?: number;
+    retryCount?: number;
+    retryDelay?: number;
+    onProgress?: (processed: number, total: number) => void;
+  } = {}
 ): Promise<R[]> => {
-  const results: R[] = [];
-  const errors: Record<number, string> = {};
-  const batchSize = options.batchSize || 50;
-  
-  // Process in batches to avoid rate limiting
+  // Default options
+  const {
+    batchSize = 50,
+    maxConcurrency = 5,
+    retryCount = 3,
+    retryDelay = 1000,
+    onProgress
+  } = options;
+
+  if (items.length === 0) {
+    return [];
+  }
+
+  logInfo(`Starting batch operation for ${items.length} items`, {
+    batchSize,
+    maxConcurrency,
+    retryCount
+  }, 'batch');
+
+  // Track performance
+  const performanceData = {
+    startTime: Date.now(),
+    itemCount: items.length,
+    batchCount: Math.ceil(items.length / batchSize),
+    successCount: 0,
+    errorCount: 0,
+    retryCount: 0
+  };
+
+  // Create batches
+  const batches: T[][] = [];
   for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(items.length / batchSize)}`);
-    
-    // Process batch items with concurrency limit
-    const batchPromises = batch.map(async (item, batchIndex) => {
-      const itemIndex = i + batchIndex;
+    batches.push(items.slice(i, i + batchSize));
+  }
+
+  logDebug(`Created ${batches.length} batches`, {}, 'batch');
+
+  const results: R[] = [];
+  let processedItems = 0;
+
+  // Helper function to process an item with retries
+  const processWithRetry = async (item: T, attempt = 0): Promise<R | null> => {
+    try {
+      const result = await processFn(item);
+      performanceData.successCount++;
+      return result;
+    } catch (error) {
+      performanceData.errorCount++;
       
-      // Implement retry logic
-      for (let attempt = 0; attempt < (options.retryCount || 3); attempt++) {
-        try {
-          const result = await processFn(item);
-          
-          // Report progress if callback provided
-          if (options.onProgress) {
-            options.onProgress(itemIndex + 1, items.length);
-          }
-          
-          return result;
-        } catch (error) {
-          console.error(`Error processing item ${itemIndex} (attempt ${attempt + 1}/${options.retryCount}):`, error);
-          
-          // Last attempt failed, record error
-          if (attempt === (options.retryCount || 3) - 1) {
-            errors[itemIndex] = error instanceof Error ? error.message : "Unknown error";
-            return {} as R; // Return placeholder value for failed items
-          }
-          
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, options.retryDelay || 1000));
-        }
+      if (attempt < retryCount) {
+        performanceData.retryCount++;
+        
+        logDebug(`Retrying item (attempt ${attempt + 1}/${retryCount})`, {
+          error: error instanceof Error ? error.message : String(error)
+        }, 'batch');
+        
+        // Exponential backoff
+        const delay = retryDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return processWithRetry(item, attempt + 1);
       }
       
-      // This is a fallback return to satisfy TypeScript
-      // It should never be reached due to the return in the catch block above
-      return {} as R;
-    });
+      // Report the error after all retries have failed
+      await reportError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'batchProcessing',
+        severity: 'medium',
+        metadata: { item }
+      });
+      
+      logError(`Failed to process item after ${retryCount} retries`, {
+        error: error instanceof Error ? error.message : String(error),
+        item
+      }, 'batch');
+      
+      return null;
+    }
+  };
+
+  // Process batches with limited concurrency
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
     
-    // Process batch with limited concurrency
-    const batchResults = await processBatchWithConcurrency(
-      batchPromises, 
-      options.maxConcurrency || 5
-    );
+    logDebug(`Processing batch ${i + 1}/${batches.length} (${batch.length} items)`, {}, 'batch');
     
-    results.push(...batchResults);
+    // Process items in batch with limited concurrency
+    const batchPromises = batch.map(item => processWithRetry(item));
+    const batchResults = await Promise.all(batchPromises);
+    
+    // Filter out nulls (failed items) and add successful results
+    const successfulResults = batchResults.filter((r): r is R => r !== null);
+    results.push(...successfulResults);
+    
+    // Update progress
+    processedItems += batch.length;
+    if (onProgress) {
+      onProgress(processedItems, items.length);
+    }
+    
+    logDebug(`Completed batch ${i + 1}/${batches.length}`, {
+      successCount: successfulResults.length,
+      failCount: batch.length - successfulResults.length
+    }, 'batch');
   }
+
+  // Calculate performance metrics
+  const totalTime = Date.now() - performanceData.startTime;
+  const itemsPerSecond = items.length / (totalTime / 1000);
   
-  // Log any errors that occurred
-  const errorCount = Object.keys(errors).length;
-  if (errorCount > 0) {
-    console.warn(`${errorCount} items failed to process:`, errors);
-  }
+  // Report performance
+  await trackPerformance('batchProcessing', {
+    totalItems: items.length,
+    successfulItems: performanceData.successCount,
+    failedItems: performanceData.errorCount,
+    retryCount: performanceData.retryCount,
+    totalTimeMs: totalTime,
+    itemsPerSecond
+  });
+  
+  logInfo(`Batch operation completed in ${totalTime}ms`, {
+    success: performanceData.successCount,
+    errors: performanceData.errorCount,
+    retries: performanceData.retryCount,
+    itemsPerSecond: itemsPerSecond.toFixed(2)
+  }, 'batch');
   
   return results;
 };
 
 /**
- * Process promises with concurrency limit
- * @param promises Array of promises to process
- * @param concurrency Maximum number of concurrent promises
- * @returns Promise resolving to array of results
+ * Processes paginated data using a fetch function
+ * @param fetchFn Function to fetch a page of data
+ * @param options Pagination options
+ * @returns Promise resolving to all items
  */
-export async function processBatchWithConcurrency<R>(
-  promises: Promise<R>[], 
-  concurrency: number
-): Promise<R[]> {
-  const results: R[] = [];
+export const processPaginatedData = async <T>(
+  fetchFn: (page: number, pageSize: number) => Promise<{
+    items: T[];
+    totalItems: number;
+    hasMore: boolean;
+  }>,
+  options: {
+    pageSize?: number;
+    maxPages?: number;
+    onProgress?: (page: number, totalPages: number | null) => void;
+  } = {}
+): Promise<{
+  items: T[];
+  totalItems: number;
+  pageCount: number;
+}> => {
+  const { pageSize = 50, maxPages = 0, onProgress } = options;
   
-  // Process in chunks based on concurrency limit
-  for (let i = 0; i < promises.length; i += concurrency) {
-    const chunk = promises.slice(i, i + concurrency);
-    const chunkResults = await Promise.all(chunk);
-    results.push(...chunkResults);
+  let page = 1;
+  let hasMore = true;
+  let totalItems = 0;
+  let estimatedTotalPages = null;
+  const allItems: T[] = [];
+  
+  logInfo(`Starting paginated data processing`, {
+    pageSize,
+    maxPages: maxPages > 0 ? maxPages : 'unlimited'
+  }, 'batch');
+  
+  while (hasMore && (maxPages === 0 || page <= maxPages)) {
+    logDebug(`Fetching page ${page}`, { pageSize }, 'batch');
+    
+    const result = await fetchFn(page, pageSize);
+    allItems.push(...result.items);
+    
+    totalItems = result.totalItems;
+    hasMore = result.hasMore;
+    
+    // Calculate estimated total pages on first response
+    if (page === 1) {
+      estimatedTotalPages = Math.ceil(totalItems / pageSize);
+      logDebug(`Estimated total pages: ${estimatedTotalPages}`, {
+        totalItems
+      }, 'batch');
+    }
+    
+    if (onProgress) {
+      onProgress(page, estimatedTotalPages);
+    }
+    
+    logDebug(`Processed page ${page}`, {
+      itemsInPage: result.items.length,
+      totalItemsProcessed: allItems.length,
+      totalItems,
+      hasMore
+    }, 'batch');
+    
+    page++;
   }
   
-  return results;
-}
+  logInfo(`Paginated data processing complete`, {
+    totalPages: page - 1,
+    totalItems: allItems.length
+  }, 'batch');
+  
+  return {
+    items: allItems,
+    totalItems,
+    pageCount: page - 1
+  };
+};

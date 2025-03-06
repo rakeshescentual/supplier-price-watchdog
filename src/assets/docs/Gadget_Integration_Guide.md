@@ -28,7 +28,7 @@ The application uses a configuration component (`GadgetConfigForm.tsx`) to set u
 }
 ```
 
-This configuration is stored in `localStorage` and used by the `initGadgetClient()` function in `gadget/client.ts`.
+This configuration is stored in `localStorage` and used by the `initGadgetClient()` function in `client.ts`.
 
 ### 2. Shopify Authentication Bridge
 
@@ -125,11 +125,14 @@ export const syncToShopifyViaGadget = async (
 
 The Gadget integration is organized into a modular structure:
 
-- **client.ts**: Initialization and connection testing
-- **auth.ts**: Authentication with Shopify
-- **processing.ts**: Document processing and data enrichment
-- **operations.ts**: Batch operations and Shopify sync
-- **diagnostics.ts**: Health checks and diagnostics
+- **client.ts**: Initialization, connection testing, and health checks
+- **sync.ts**: Shopify synchronization and price updates
+- **batch.ts**: Batch processing with retry logic and concurrency control
+- **export.ts**: Data export capabilities
+- **logging.ts**: Comprehensive logging system
+- **telemetry.ts**: Performance tracking and error reporting
+- **pagination.ts**: Efficient data pagination
+- **mocks.ts**: Development mock implementations
 
 This modular approach improves maintainability and makes it easier to understand each component's responsibility.
 
@@ -175,7 +178,28 @@ export const performBatchOperations = async <T, R>(
 };
 ```
 
-### 3. Fallback Mechanisms
+### 3. Telemetry and Monitoring
+
+```typescript
+export const reportError = async (
+  error: Error | string,
+  options: ErrorReportOptions = {}
+): Promise<void> => {
+  // Send error details to telemetry system
+  // Log error information locally
+  // Display user-friendly error message if needed
+};
+
+export const startPerformanceTracking = (
+  operation: string,
+  metadata: Record<string, any> = {}
+): () => Promise<void> => {
+  // Start timing an operation
+  // Return function to complete timing and report results
+};
+```
+
+### 4. Fallback Mechanisms
 
 The application is designed to work even without Gadget.dev, with graceful fallbacks:
 
@@ -266,6 +290,21 @@ The Gadget integration includes robust error handling:
 4. **Retry Logic**: Automatic retries with exponential backoff for transient failures
 5. **Fallback Mechanisms**: Graceful degradation to direct API calls when Gadget is unavailable
 
+## Development and Production Mode
+
+The integration supports both development and production modes:
+
+1. **Development Mode**:
+   - Mock implementations for testing without real Gadget infrastructure
+   - Detailed logging and console output
+   - Feature flags for enabling/disabling capabilities
+
+2. **Production Mode**:
+   - Real Gadget API calls
+   - Optimized performance
+   - Enhanced security with proper authentication
+   - Minimized logging output
+
 ## Future Enhancements
 
 1. **Custom Gadget Actions**: Create specialized Gadget actions for price analysis and recommendations
@@ -303,6 +342,29 @@ The Gadget integration includes robust error handling:
    - Gadget prepares segmented customer data
    - Klaviyo integration receives segment data for email campaigns
 
+## Performance Considerations
+
+1. **Batch Size Optimization**: Adjust batch sizes based on operation type and rate limits
+2. **Caching Strategy**: Cache frequently accessed data to reduce API calls
+3. **Connection Pooling**: Reuse connections to improve performance
+4. **Background Processing**: Move intensive operations to background jobs
+5. **Pagination Optimization**: Implement efficient pagination for large datasets
+
+## Security Best Practices
+
+1. **API Key Management**: Secure storage of API keys
+2. **CORS Configuration**: Proper CORS setup to prevent unauthorized access
+3. **Data Validation**: Validate all input before sending to Gadget
+4. **Minimal Permissions**: Use least privilege principle for API keys
+5. **Encrypted Storage**: Encrypt sensitive data in localStorage
+
 ## Conclusion
 
 The integration with Gadget.dev significantly enhances the Supplier Price Watch application's capabilities, particularly for PDF processing, Shopify integration, and market data enrichment. The modular design allows for flexible use of Gadget features while maintaining core functionality even without Gadget.
+
+By leveraging Gadget.dev, the application achieves:
+- Improved scalability and performance
+- Enhanced data processing capabilities
+- Simplified Shopify integration
+- Reduced maintenance overhead
+- Greater flexibility for future enhancements

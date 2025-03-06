@@ -1,168 +1,448 @@
 
-# Migrating to Gadget.dev
+# Migrating to Gadget.dev - Implementation Guide
 
-This guide provides practical steps for moving the application from GitHub to Gadget.dev, ensuring a smooth transition.
+## Introduction
 
-## Pre-Migration Checklist
+This guide outlines the process of migrating our application from its current architecture to a Gadget.dev-powered backend. Gadget.dev will provide enhanced capabilities for Shopify integration, PDF processing, and data analysis without requiring maintenance of custom server infrastructure.
 
-- [ ] Ensure you have a Gadget.dev account
-- [ ] Create a new Gadget application in the Gadget dashboard
-- [ ] Generate an API key with appropriate permissions
-- [ ] Configure CORS in your Gadget application settings
-- [ ] Make a backup of your GitHub repository
+## Migration Steps Overview
 
-## Migration Process
+1. [Set up Gadget.dev account and application](#1-set-up-gadgetdev-account-and-application)
+2. [Create data models in Gadget](#2-create-data-models-in-gadget)
+3. [Implement authentication integration](#3-implement-authentication-integration)
+4. [Implement PDF processing actions](#4-implement-pdf-processing-actions)
+5. [Set up Shopify connections](#5-set-up-shopify-connections)
+6. [Create batch operations functionality](#6-create-batch-operations-functionality)
+7. [Data enrichment and market analysis](#7-data-enrichment-and-market-analysis)
+8. [Testing and validation](#8-testing-and-validation)
+9. [Production deployment](#9-production-deployment)
 
-### Step 1: Configure Your Gadget Application
+## 1. Set up Gadget.dev Account and Application
 
-1. Create the necessary data models in Gadget:
-   - Product model (matching your PriceItem interface)
-   - Supplier model
-   - PriceChange model
-   - Any other models specific to your application
+### Create Your Account
 
-2. Configure appropriate connections in Gadget:
-   - Shopify connection (if using Shopify integration)
-   - Email provider connection (if using email notifications)
+1. Go to [https://app.gadget.dev/signup](https://app.gadget.dev/signup)
+2. Complete the registration process
+3. Verify your email address
 
-3. Set up environment variables in Gadget for any secrets
+### Create a New Gadget Application
 
-### Step 2: Prepare Your Codebase
+1. Click "New Application" from your Gadget dashboard
+2. Name your application (e.g., "SupplierPriceWatch")
+3. Choose a development environment
+4. Select "Shopify Integration" from the available templates (if offered)
 
-1. Use the Gadget configuration form to set up your connection:
-   - Enter your App ID
-   - Add your API key
-   - Select the appropriate environment
-   - Enable necessary feature flags
+## 2. Create Data Models in Gadget
 
-2. Update Gadget-specific code paths to use actual Gadget SDK:
-   - Replace mock implementations with real Gadget client code
-   - Use the provided `@gadgetinc/api-client-core` package
+### Required Models
 
-3. Test your application with the Gadget connection
+Create the following models in your Gadget application:
 
-### Step 3: Implement Gadget Actions
+#### PriceItem Model
 
-1. Create custom actions in Gadget for:
-   - Processing PDF files
-   - Syncing with Shopify
-   - Batch operations
-   - Market data enrichment
-
-2. Update your code to call these Gadget actions:
-
-```typescript
-// Example of calling a Gadget action
-const result = await client.mutate.processPriceList({
-  file: uploadedFileId,
-  options: {
-    parseColumns: true,
-    inferTypes: true
+```javascript
+// PriceItem model
+{
+  fields: {
+    sku: { type: "string", required: true },
+    name: { type: "string", required: true },
+    oldPrice: { type: "number" },
+    newPrice: { type: "number", required: true },
+    difference: { type: "number" },
+    diffPercent: { type: "number" },
+    status: { type: "string", enum: ["increase", "decrease", "unchanged", "new"] },
+    syncedToShopify: { type: "boolean", default: false },
+    shopifyProductId: { type: "string" },
+    shopifyVariantId: { type: "string" },
+    marketData: { type: "object" }
+  },
+  connections: {
+    priceList: { type: "belongs-to", model: "PriceList" }
   }
-});
+}
 ```
 
-### Step 4: Deploy Your Frontend
+#### PriceList Model
 
-1. Build your React application:
-   ```
-   npm run build
-   ```
+```javascript
+// PriceList model
+{
+  fields: {
+    name: { type: "string", required: true },
+    uploadedAt: { type: "datetime", required: true },
+    supplierName: { type: "string" },
+    effectiveDate: { type: "datetime" },
+    shop: { type: "string" },
+    fileName: { type: "string" },
+    fileType: { type: "string" },
+    fileUrl: { type: "string" },
+    processed: { type: "boolean", default: false },
+    itemCount: { type: "number", default: 0 }
+  },
+  connections: {
+    items: { type: "has-many", model: "PriceItem" },
+    user: { type: "belongs-to", model: "User" }
+  }
+}
+```
 
-2. Deploy your frontend to a hosting provider that supports SPAs:
-   - Netlify
-   - Vercel
-   - GitHub Pages
-   - Or use Gadget's frontend hosting capability
+#### ShopifyAuth Model
 
-3. Update your CORS settings in Gadget to allow requests from your frontend domain
+```javascript
+// ShopifyAuth model
+{
+  fields: {
+    shop: { type: "string", required: true, unique: true },
+    accessToken: { type: "string", required: true, encrypted: true },
+    scope: { type: "string" },
+    isActive: { type: "boolean", default: true },
+    installedAt: { type: "datetime", required: true }
+  },
+  connections: {
+    user: { type: "belongs-to", model: "User" }
+  }
+}
+```
 
-### Step 5: Test and Verify
+## 3. Implement Authentication Integration
 
-1. Test all critical features:
-   - Gadget configuration
-   - Shopify integration
-   - PDF processing
-   - Data enrichment
-   - Batch operations
+### Create Auth Actions in Gadget
 
-2. Verify error handling and retry mechanisms
+1. Navigate to the "Actions" section in your Gadget app
+2. Create a new action called "authenticateWithShopify"
 
-3. Test performance with realistic data volumes
+```javascript
+// authenticateWithShopify action
+export default async function(context, params) {
+  const { shop, redirectUri } = params;
+  
+  // Generate authentication URL
+  const authUrl = ShopifyAuth.getAuthUrl(shop, redirectUri, [
+    "read_products", 
+    "write_products", 
+    "read_orders"
+  ]);
+  
+  return { authUrl };
+}
+```
 
-## Gadget Features to Leverage
+3. Create a callback action to handle OAuth response
 
-### 1. Actions
+```javascript
+// shopifyAuthCallback action
+export default async function(context, params) {
+  const { shop, code } = params;
+  
+  // Exchange code for access token
+  const accessToken = await ShopifyAuth.exchangeCodeForToken(shop, code);
+  
+  // Store in database
+  const auth = await ShopifyAuth.create({
+    shop,
+    accessToken,
+    installedAt: new Date(),
+    isActive: true
+  });
+  
+  return { success: true, shop };
+}
+```
 
-Gadget Actions are perfect for:
-- Processing PDFs with OCR
-- Market data enrichment
-- Batch operations
-- Complex business logic
+## 4. Implement PDF Processing Actions
 
-### 2. Connections
+1. Create a file upload handler in Gadget
+2. Implement PDF processing action
 
-Utilize pre-built connections for:
-- Shopify
-- Email providers
-- Klaviyo
-- Other third-party services
+```javascript
+// processPdfPriceList action
+import { extractPdfText } from "@gadget/pdf-processing";
+import { parsePriceData } from "../lib/priceParser";
 
-### 3. Background Jobs
+export default async function(context, params) {
+  const { fileId, supplierName, effectiveDate } = params;
+  
+  // Get file from storage
+  const file = await context.storage.getFile(fileId);
+  
+  // Extract text from PDF
+  const textContent = await extractPdfText(file.content);
+  
+  // Parse price data from text
+  const priceItems = parsePriceData(textContent, supplierName);
+  
+  // Create price list record
+  const priceList = await context.models.PriceList.create({
+    name: file.name,
+    uploadedAt: new Date(),
+    supplierName,
+    effectiveDate,
+    fileName: file.name,
+    fileType: file.contentType,
+    fileUrl: file.url,
+    processed: true,
+    itemCount: priceItems.length,
+    user: context.currentUser
+  });
+  
+  // Create price items linked to the list
+  const createdItems = await Promise.all(
+    priceItems.map(item => 
+      context.models.PriceItem.create({
+        ...item,
+        priceList: priceList.id
+      })
+    )
+  );
+  
+  return {
+    success: true,
+    priceListId: priceList.id,
+    itemCount: createdItems.length
+  };
+}
+```
 
-Ideal for:
-- Long-running PDF processing
-- Web scraping for market data
-- Bulk Shopify synchronization
-- Data analysis tasks
+## 5. Set up Shopify Connections
 
-### 4. Role-Based Permissions
+### Enable Shopify Connection in Gadget
 
-Configure granular access controls:
-- Admin vs regular users
-- Read-only access to certain data
-- Action-specific permissions
+1. Go to "Connections" in your Gadget app dashboard
+2. Enable the Shopify connection
+3. Configure scopes and permissions
 
-## Common Issues and Solutions
+### Create Product Sync Action
 
-### CORS Issues
+```javascript
+// syncProductPrice action
+export default async function(context, params) {
+  const { shop, accessToken, sku, newPrice } = params;
+  
+  // Get auth record for shop
+  const auth = await context.models.ShopifyAuth.findOne({
+    where: { shop, isActive: true }
+  });
+  
+  if (!auth) {
+    throw new Error("Shop not authenticated");
+  }
+  
+  // Find product in Shopify by SKU
+  const shopify = new Shopify(shop, auth.accessToken);
+  const product = await shopify.findProductBySku(sku);
+  
+  if (!product) {
+    throw new Error(`Product with SKU ${sku} not found`);
+  }
+  
+  // Update product price
+  await shopify.updateProductPrice(product.variantId, newPrice);
+  
+  // Update price item record
+  const priceItem = await context.models.PriceItem.findOne({
+    where: { sku }
+  });
+  
+  if (priceItem) {
+    await priceItem.update({
+      syncedToShopify: true,
+      shopifyProductId: product.id,
+      shopifyVariantId: product.variantId
+    });
+  }
+  
+  return { success: true, product };
+}
+```
 
-If you see CORS errors:
-1. Go to Gadget App Settings → CORS
-2. Add your frontend domain(s)
-3. Enable the required HTTP methods
-4. Allow credentials if needed
+## 6. Create Batch Operations Functionality
 
-### Authentication Issues
+### Implement Batch Processing
 
-If you experience authentication problems:
-1. Verify API key permissions
-2. Check API key expiration
-3. Ensure proper Authorization header
+1. Create a batch processing utility in Gadget
 
-### Performance Issues
+```javascript
+// batchProcess.js in Gadget
+export async function batchProcess(items, processFn, batchSize = 50) {
+  const results = [];
+  const errors = [];
+  
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    
+    try {
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            return await processFn(item);
+          } catch (error) {
+            errors.push({ item, error: error.message });
+            return null;
+          }
+        })
+      );
+      
+      results.push(...batchResults.filter(r => r !== null));
+    } catch (error) {
+      console.error(`Error processing batch ${i / batchSize}:`, error);
+    }
+  }
+  
+  return { results, errors };
+}
+```
 
-For slow operations:
-1. Use batch operations for bulk processing
-2. Implement pagination for large data sets
-3. Consider using background jobs for heavy tasks
-4. Enable caching for frequent API calls
+2. Create a batch sync action
 
-## Best Practices
+```javascript
+// batchSyncPrices action
+import { batchProcess } from "../lib/batchProcess";
 
-1. **Environment Separation**: Maintain separate development and production environments
+export default async function(context, params) {
+  const { shop, items } = params;
+  
+  const { results, errors } = await batchProcess(
+    items,
+    async (item) => {
+      return await context.actions.syncProductPrice({
+        shop,
+        sku: item.sku,
+        newPrice: item.newPrice
+      });
+    },
+    20 // Process 20 items at a time
+  );
+  
+  return {
+    success: errors.length === 0,
+    syncedCount: results.length,
+    errorCount: errors.length,
+    errors: errors.length > 0 ? errors : undefined
+  };
+}
+```
 
-2. **Error Tracking**: Use Gadget's logging and monitor error rates
+## 7. Data Enrichment and Market Analysis
 
-3. **Progressive Implementation**: Migrate one feature at a time to reduce risk
+### Implement Market Data Enrichment
 
-4. **Stateless Design**: Design your frontend to be stateless and rely on Gadget APIs
+1. Create a data enrichment action
 
-5. **Backup Strategy**: Regularly back up your Gadget data models
+```javascript
+// enrichWithMarketData action
+export default async function(context, params) {
+  const { itemIds } = params;
+  
+  const items = await context.models.PriceItem.findMany({
+    where: { id: { in: itemIds } }
+  });
+  
+  const enrichedItems = await Promise.all(
+    items.map(async (item) => {
+      // Get market data from external API
+      const marketData = await fetchMarketData(item.sku, item.name);
+      
+      // Update item with market data
+      await item.update({
+        marketData: {
+          averagePrice: marketData.averagePrice,
+          competitorPrices: marketData.competitorPrices,
+          pricePosition: marketData.pricePosition,
+          lastUpdated: new Date()
+        }
+      });
+      
+      return item;
+    })
+  );
+  
+  return { 
+    success: true, 
+    count: enrichedItems.length 
+  };
+}
 
-## Support Resources
+// Helper function to fetch market data
+async function fetchMarketData(sku, name) {
+  // Implement API call to market data provider
+  // For now, return mock data
+  return {
+    averagePrice: Math.random() * 100,
+    competitorPrices: [
+      Math.random() * 90,
+      Math.random() * 110,
+      Math.random() * 100
+    ],
+    pricePosition: Math.random() < 0.33 ? 'low' : Math.random() < 0.66 ? 'average' : 'high'
+  };
+}
+```
 
-- [Gadget Documentation](https://docs.gadget.dev)
-- [Gadget API Reference](https://docs.gadget.dev/api)
-- [Gadget Community Discord](https://discord.gg/gadget)
-- [GitHub Repository](https://github.com/yourusername/your-repo)
+## 8. Testing and Validation
+
+### Create Testing Actions
+
+1. Implement a test connection action
+
+```javascript
+// testConnection action
+export default async function(context, params) {
+  // Verify API key is valid
+  if (!context.api.isAuthenticated) {
+    throw new Error("Invalid API key");
+  }
+  
+  // Return system status
+  return {
+    ready: true,
+    timestamp: new Date(),
+    environment: process.env.GADGET_ENVIRONMENT,
+    user: context.currentUser ? {
+      id: context.currentUser.id,
+      email: context.currentUser.email
+    } : null
+  };
+}
+```
+
+## 9. Production Deployment
+
+### Preparing for Production
+
+1. Configure environment variables in Gadget
+2. Set up proper authentication and security
+3. Update client code to use production endpoints
+
+### Client Integration Updates
+
+1. Replace mock implementations with real Gadget API calls
+2. Update environment configuration
+3. Implement proper error handling for production
+
+## Finalization Checklist
+
+- [ ] All models created and validated
+- [ ] Authentication flow tested
+- [ ] PDF processing implemented and tested
+- [ ] Shopify integration verified with test store
+- [ ] Batch operations performance tested
+- [ ] Market data enrichment functionally complete
+- [ ] Error handling and logging properly implemented
+- [ ] Client code updated to use production endpoints
+- [ ] Documentation updated with final integration details
+
+## Troubleshooting
+
+If you encounter issues during migration:
+
+1. Check Gadget logs for specific error messages
+2. Verify API credentials and permissions
+3. Test individual actions before implementing batch operations
+4. Ensure proper CORS configuration for client access
+5. Contact Gadget.dev support for assistance with platform-specific issues
+
+## Conclusion
+
+By following this guide, you should be able to successfully migrate your application to use Gadget.dev as a backend. This will provide enhanced capabilities, better scalability, and reduced maintenance overhead compared to custom server implementations.
+
+For additional assistance, reference the [Gadget.dev documentation](https://docs.gadget.dev) or contact support.

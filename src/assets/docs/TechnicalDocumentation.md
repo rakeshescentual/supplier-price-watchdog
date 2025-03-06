@@ -117,10 +117,14 @@ Supplier Price Watch is a web application designed to help eCommerce businesses,
 - `shopifyApi.ts`: Functions for interacting with Shopify API
 - `gadget/*.ts`: Modular functions for Gadget.dev integration
   - `client.ts`: Client initialization and connection management
-  - `auth.ts`: Authentication handlers
-  - `processing.ts`: Document and data processing
-  - `operations.ts`: Batch operations and sync functions
-  - `diagnostics.ts`: Health checks and diagnostics
+  - `sync.ts`: Shopify synchronization and price updates
+  - `batch.ts`: Batch processing with retry logic and concurrency control
+  - `export.ts`: Data export capabilities
+  - `logging.ts`: Comprehensive logging system
+  - `telemetry.ts`: Performance tracking and error reporting
+  - `pagination.ts`: Efficient data pagination
+  - `mocks.ts`: Development mock implementations
+  - `operations.ts`: Re-exports all functions for backward compatibility
 - `googleWorkspaceApi.ts`: Functions for Google Workspace integration
 
 ### UI Components
@@ -155,6 +159,15 @@ The application utilizes Gadget.dev for several key features:
    - Provides an alternative path for syncing data to Shopify
    - Handles bulk operations with better error handling and reporting
 
+6. **Telemetry & Logging**
+   - Comprehensive error reporting system
+   - Performance tracking for operations
+   - Structured logging for debugging
+
+7. **Pagination**
+   - Efficient handling of large datasets
+   - Smart fetching of data with automatic continuation
+
 ### Configuration
 
 The application configures Gadget.dev through the `GadgetConfigForm` component, which allows the user to set:
@@ -164,6 +177,97 @@ The application configures Gadget.dev through the `GadgetConfigForm` component, 
 - Feature flags for optional capabilities
 
 Configuration is stored in localStorage for persistence between sessions.
+
+## Module Structure & Responsibilities
+
+### 1. Client Module (`client.ts`)
+- Initialize Gadget client
+- Check connection health
+- Manage client caching for performance
+- Handle environment-specific configuration
+
+### 2. Sync Module (`sync.ts`)
+- Synchronize price updates to Shopify
+- Validate items before sync
+- Process sync results and handle errors
+- Track performance of sync operations
+
+### 3. Batch Module (`batch.ts`)
+- Process items in batches to avoid rate limits
+- Implement retry logic for transient failures
+- Control concurrency for optimal performance
+- Report progress during batch operations
+
+### 4. Export Module (`export.ts`)
+- Export data to CSV or JSON formats
+- Track usage of export functionality
+- Handle export errors gracefully
+- Provide progress feedback during export
+
+### 5. Logging Module (`logging.ts`)
+- Structured logging with levels (debug, info, warn, error)
+- Context-aware logging for better debugging
+- Memory-based log storage for development
+- Remote logging capability for production
+
+### 6. Telemetry Module (`telemetry.ts`)
+- Track performance metrics for operations
+- Report errors to telemetry system
+- Track feature usage for analytics
+- Health reporting for system status
+
+### 7. Pagination Module (`pagination.ts`)
+- Fetch paginated data efficiently
+- Handle continuation tokens for large datasets
+- Provide consistent interface for all paginated operations
+- Error handling for pagination failures
+
+### 8. Mocks Module (`mocks.ts`)
+- Provide realistic mock implementations for development
+- Simulate network delays and errors for testing
+- Generate placeholder data that mimics production
+- Enable offline development workflow
+
+## Advanced Integration Features
+
+### Health Monitoring
+
+The Gadget integration includes a health monitoring system:
+
+```typescript
+export const checkGadgetHealth = async (): Promise<{
+  healthy: boolean;
+  statusCode?: number;
+  message?: string;
+}> => {
+  // Check Gadget connection health
+  // Report health status to telemetry
+  // Return health information
+};
+```
+
+### Intelligent Fallbacks
+
+The application implements intelligent fallbacks if Gadget services are unavailable:
+
+```typescript
+if (!isGadgetInitialized() || !(await checkGadgetHealth()).healthy) {
+  // Switch to direct API access
+  // Use local processing capabilities
+  // Notify user of degraded functionality
+}
+```
+
+### Feature Flags
+
+The integration supports feature flags to enable/disable specific capabilities:
+
+```typescript
+const config = getGadgetConfig();
+if (config?.featureFlags?.enableAdvancedAnalytics) {
+  // Enable advanced analytics features
+}
+```
 
 ## Technical Limitations
 
@@ -209,6 +313,31 @@ Configuration is stored in localStorage for persistence between sessions.
    - Extend beyond Shopify to other eCommerce platforms
    - Support for marketplaces like Amazon, eBay
 
+## Error Handling Strategy
+
+The application implements a comprehensive error handling strategy:
+
+1. **Tiered Severity Levels**
+   - Low: Non-critical issues, logged but not reported to user
+   - Medium: Minor issues that might affect functionality
+   - High: Significant issues that impact core functionality
+   - Critical: System-wide failures requiring immediate attention
+
+2. **User-friendly Error Messages**
+   - Technical details hidden from user
+   - Actionable error messages with suggestions
+   - Visual indicators of error states
+
+3. **Error Recovery**
+   - Automatic retry for transient failures
+   - Graceful degradation when services unavailable
+   - Data preservation during failures
+
+4. **Error Reporting**
+   - Detailed error logs for debugging
+   - Error aggregation for pattern detection
+   - Performance impact tracking
+
 ## Installation & Setup Instructions
 
 1. Clone the repository
@@ -218,6 +347,18 @@ Configuration is stored in localStorage for persistence between sessions.
 5. Authenticate with Google if using Gmail/Calendar features
 6. Run with `npm run dev` for development or deploy to production
 
+## Migrating to Gadget.dev
+
+For detailed instructions on migrating to Gadget.dev:
+
+1. See the [Migration Guide](GadgetMigrationGuide.md)
+2. Create the required models in Gadget.dev
+3. Set up authentication and API connections
+4. Implement the custom actions for PDF processing and data enrichment
+5. Update client code to use production endpoints
+
 ## Conclusion
 
 Supplier Price Watch provides a comprehensive solution for managing supplier price changes, with particular strengths in analysis, integration with Shopify, and leveraging Gadget.dev for enhanced functionality. The modular architecture allows for flexible use of features based on available integrations.
+
+The Gadget.dev integration enhances core capabilities while maintaining graceful fallbacks for operation without Gadget services. This hybrid approach provides flexibility for users at different stages of technical integration.

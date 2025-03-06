@@ -1,34 +1,71 @@
 
-import { GadgetConfig } from '@/types/price';
-import { getGadgetConfig } from '@/utils/gadget-helpers';
+/**
+ * Gadget client initialization and management
+ */
+import { toast } from 'sonner';
+import { getGadgetConfig, getGadgetApiUrl, createGadgetHeaders } from '@/utils/gadget-helpers';
+import { logInfo, logError } from './logging';
+import { reportHealthCheck } from './telemetry';
+
+// Cache for client instance to avoid recreating on every call
+let cachedClient: any = null;
+let lastConfigHash: string = '';
 
 /**
- * Initialize the Gadget client using the stored configuration
+ * Create a hash from config to detect changes
+ */
+const createConfigHash = (config: any): string => {
+  return `${config.appId}:${config.apiKey}:${config.environment}`;
+};
+
+/**
+ * Initialize Gadget client
  * @returns Initialized Gadget client or null if configuration is missing
  */
 export const initGadgetClient = () => {
   const config = getGadgetConfig();
-  if (!config) return null;
-
-  try {
-    // In production: use Gadget SDK
-    // import { createClient } from '@gadget-client/your-app-slug';
-    // return createClient({ 
-    //   apiKey: config.apiKey,
-    //   environment: config.environment,
-    //   enableNetworkLogs: config.environment === 'development'
-    // });
-    
-    return { config, ready: true };
-  } catch (error) {
-    console.error("Error initializing Gadget client:", error);
+  if (!config) {
+    logInfo('Gadget client initialization skipped: No configuration found', {}, 'client');
     return null;
   }
+
+  // Create a hash of the current config
+  const configHash = createConfigHash(config);
+  
+  // Return cached client if configuration hasn't changed
+  if (cachedClient && configHash === lastConfigHash) {
+    return cachedClient;
+  }
+  
+  logInfo(`Initializing Gadget client for ${config.appId} (${config.environment})`, {
+    featureFlags: config.featureFlags || {}
+  }, 'client');
+  
+  // In production: Use Gadget SDK
+  // import { createClient } from '@gadget-client/your-app-id';
+  // cachedClient = createClient({ 
+  //   apiKey: config.apiKey,
+  //   environment: config.environment,
+  //   enableNetworkLogs: config.environment === 'development'
+  // });
+  
+  // For development: Create a mock client with API methods
+  cachedClient = { 
+    config, 
+    ready: true,
+    query: {},
+    mutate: {}
+  };
+  
+  // Update last config hash
+  lastConfigHash = configHash;
+  
+  return cachedClient;
 };
 
 /**
- * Check if Gadget is initialized
- * @returns Boolean indicating if Gadget client is ready
+ * Check if Gadget client is initialized
+ * @returns Boolean indicating if Gadget is initialized
  */
 export const isGadgetInitialized = (): boolean => {
   const client = initGadgetClient();
@@ -36,52 +73,88 @@ export const isGadgetInitialized = (): boolean => {
 };
 
 /**
- * Test Gadget connection with improved error handling
- * @param config Optional Gadget configuration to use for testing
- * @returns Promise resolving to a boolean indicating connection success
+ * Check Gadget connection health
+ * @returns Promise resolving to health status
  */
-export const testGadgetConnection = async (config?: GadgetConfig): Promise<boolean> => {
-  const configToUse = config || getGadgetConfig();
-  if (!configToUse) return false;
+export const checkGadgetHealth = async (): Promise<{
+  healthy: boolean;
+  statusCode?: number;
+  message?: string;
+}> => {
+  const config = getGadgetConfig();
+  if (!config) {
+    return { healthy: false, message: "No Gadget configuration found" };
+  }
   
   try {
-    console.log(`Testing Gadget connection to ${configToUse.appId}...`);
+    logInfo('Checking Gadget connection health', {
+      appId: config.appId,
+      environment: config.environment
+    }, 'client');
     
-    // In production, use actual Gadget API
-    // const response = await fetch(
-    //   `https://${configToUse.appId}.gadget.app/api/status`,
-    //   {
-    //     method: 'GET',
-    //     headers: {
-    //       'Authorization': `Bearer ${configToUse.apiKey}`,
-    //       'Content-Type': 'application/json'
-    //     },
-    //     signal: AbortSignal.timeout(5000) // 5 second timeout
-    //   }
-    // );
+    // In production: Check Gadget API health
+    // const url = `${getGadgetApiUrl(config)}health`;
+    // const response = await fetch(url, {
+    //   method: 'GET',
+    //   headers: createGadgetHeaders(config)
+    // });
     
-    // Mock successful response for demonstration
-    // return response.ok;
+    // const data = await response.json();
+    // const healthy = response.ok && data.status === 'healthy';
     
-    // For development: simulate a successful connection
-    return true;
+    // Simulate a health check
+    const healthy = Math.random() > 0.1; // 90% chance of being healthy
+    
+    // Report health status to telemetry
+    await reportHealthCheck(
+      healthy ? 'healthy' : 'degraded',
+      { appId: config.appId, environment: config.environment }
+    );
+    
+    return {
+      healthy,
+      statusCode: healthy ? 200 : 503,
+      message: healthy ? "Gadget services operational" : "Gadget services degraded"
+    };
   } catch (error) {
-    console.error("Gadget connection test failed:", error);
-    return false;
+    logError('Error checking Gadget health', { error }, 'client');
+    
+    return {
+      healthy: false,
+      statusCode: 500,
+      message: error instanceof Error ? error.message : "Unknown error checking Gadget health"
+    };
   }
 };
 
 /**
- * Check if a feature is enabled through Gadget feature flags
- * @param featureName Name of the feature to check
- * @returns Boolean indicating if the feature is enabled
+ * Reset client cache to force reinitialization
  */
-export const isGadgetFeatureEnabled = (featureName: string): boolean => {
-  const config = getGadgetConfig();
-  
-  if (!config || !config.featureFlags) {
-    return false;
+export const resetGadgetClient = (): void => {
+  cachedClient = null;
+  lastConfigHash = '';
+  logInfo('Gadget client cache reset', {}, 'client');
+};
+
+/**
+ * Display Gadget service status to user
+ */
+export const displayGadgetStatus = async (): Promise<void> => {
+  try {
+    const health = await checkGadgetHealth();
+    
+    if (health.healthy) {
+      toast.success("Gadget Services", {
+        description: "All Gadget services are operational."
+      });
+    } else {
+      toast.warning("Gadget Services", {
+        description: health.message || "Some Gadget services may be degraded."
+      });
+    }
+  } catch (error) {
+    toast.error("Gadget Status Check Failed", {
+      description: "Could not determine Gadget service status."
+    });
   }
-  
-  return !!config.featureFlags[featureName];
 };

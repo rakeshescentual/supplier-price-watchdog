@@ -16,7 +16,7 @@ import { mockSyncToShopify } from './mocks';
 export const syncToShopifyViaGadget = async (
   context: ShopifyContext, 
   items: PriceItem[]
-): Promise<{success: boolean; message?: string}> => {
+): Promise<{success: boolean; message?: string; syncedItems?: PriceItem[]}> => {
   const client = initGadgetClient();
   if (!client) {
     const error = new Error("Gadget configuration required");
@@ -83,7 +83,10 @@ export const syncToShopifyViaGadget = async (
     // Finish performance tracking
     await finishTracking();
     
-    return result;
+    return {
+      ...result,
+      syncedItems: result.success ? items : undefined
+    };
   } catch (error) {
     logError("Error syncing to Shopify via Gadget", { error }, 'sync');
     
@@ -106,4 +109,51 @@ export const syncToShopifyViaGadget = async (
     
     return { success: false, message: errorMessage };
   }
+};
+
+/**
+ * Check sync eligibility and validate items
+ * @param context Shopify context
+ * @param items Items to validate
+ * @returns Validation result with error message if any
+ */
+export const validateSyncItems = (
+  context: ShopifyContext,
+  items: PriceItem[]
+): { valid: boolean; message?: string } => {
+  if (!context.shop || !context.accessToken) {
+    return { valid: false, message: "Shopify authentication required" };
+  }
+  
+  if (items.length === 0) {
+    return { valid: false, message: "No items to sync" };
+  }
+  
+  // Check for items with invalid prices
+  const invalidItems = items.filter(item => 
+    item.newPrice <= 0 || isNaN(Number(item.newPrice))
+  );
+  
+  if (invalidItems.length > 0) {
+    return { 
+      valid: false, 
+      message: `${invalidItems.length} items have invalid prices` 
+    };
+  }
+  
+  return { valid: true };
+};
+
+/**
+ * Prepare items for sync by transforming them into the format expected by Gadget
+ * @param items Items to prepare
+ * @returns Prepared items
+ */
+export const prepareItemsForSync = (items: PriceItem[]): PriceItem[] => {
+  return items.map(item => ({
+    ...item,
+    // Add any additional fields required by Gadget
+    readyForSync: true,
+    syncTimestamp: new Date().toISOString()
+  }));
 };

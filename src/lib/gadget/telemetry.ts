@@ -1,175 +1,210 @@
 
+/**
+ * Telemetry utilities for monitoring and tracking Gadget operations
+ */
 import { toast } from 'sonner';
-import type { GadgetConfig } from '@/types/price';
 import { getGadgetConfig } from '@/utils/gadget-helpers';
 
-export interface TelemetryEvent {
-  category: 'error' | 'performance' | 'usage' | 'business';
-  action: string;
-  label?: string;
-  value?: number;
-  metadata?: Record<string, any>;
-  timestamp?: string;
-}
-
-export interface ErrorTelemetry extends TelemetryEvent {
-  category: 'error';
-  error: Error | string;
+interface ErrorReportOptions {
   component?: string;
-  stackTrace?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  action?: string;
   userId?: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  metadata?: Record<string, any>;
 }
 
-/**
- * Send telemetry data to Gadget for monitoring and analytics
- * @param event Telemetry event data
- * @returns Promise resolving to boolean indicating success
- */
-export const sendTelemetry = async (event: TelemetryEvent): Promise<boolean> => {
-  const config = getGadgetConfig();
-  if (!config) return false;
-  
-  try {
-    const telemetryData = {
-      ...event,
-      timestamp: event.timestamp || new Date().toISOString(),
-      appId: config.appId,
-      environment: config.environment
-    };
-    
-    console.log('Sending telemetry:', telemetryData);
-    
-    // In production: Use Gadget SDK to send telemetry
-    // const response = await fetch(`${getGadgetApiUrl(config)}telemetry`, {
-    //   method: 'POST',
-    //   headers: createGadgetHeaders(config),
-    //   body: JSON.stringify(telemetryData)
-    // });
-    // return response.ok;
-    
-    // For demonstration purposes, just log and return success
-    return true;
-  } catch (error) {
-    console.error('Failed to send telemetry:', error);
-    return false;
-  }
-};
+interface PerformanceMetrics {
+  startTime: number;
+  operation: string;
+  metadata?: Record<string, any>;
+}
+
+const metrics: PerformanceMetrics[] = [];
 
 /**
- * Report an error to the telemetry system
- * @param error Error object or message
- * @param metadata Additional information about the error
- * @returns Promise resolving to boolean indicating success
- */
-export const reportError = async (
-  error: Error | string,
-  metadata: {
-    component?: string;
-    severity?: 'low' | 'medium' | 'high' | 'critical';
-    action?: string;
-    userId?: string;
-  } = {}
-): Promise<boolean> => {
-  try {
-    const errorMessage = error instanceof Error ? error.message : error;
-    const stackTrace = error instanceof Error ? error.stack : undefined;
-    
-    // Determine severity based on error type or provided severity
-    const severity = metadata.severity || 'medium';
-    
-    // Send error telemetry
-    const result = await sendTelemetry({
-      category: 'error',
-      action: metadata.action || 'unknown_action',
-      label: errorMessage.substring(0, 100), // Truncate long error messages
-      metadata: metadata,
-      error: error,
-      component: metadata.component,
-      stackTrace: stackTrace,
-      userId: metadata.userId,
-      severity: severity
-    } as ErrorTelemetry);
-    
-    // For critical errors, notify the user
-    if (severity === 'critical' || severity === 'high') {
-      toast.error("An error occurred", {
-        description: `${errorMessage.substring(0, 150)}${errorMessage.length > 150 ? '...' : ''}`,
-      });
-    }
-    
-    return result;
-  } catch (e) {
-    // Fail silently to prevent error reporting loops
-    console.error('Error in error reporting:', e);
-    return false;
-  }
-};
-
-/**
- * Track performance metrics
- * @param action Name of the action being measured
- * @param durationMs Duration in milliseconds
- * @param metadata Additional information
- */
-export const trackPerformance = async (
-  action: string,
-  durationMs: number,
-  metadata: Record<string, any> = {}
-): Promise<void> => {
-  try {
-    await sendTelemetry({
-      category: 'performance',
-      action,
-      value: durationMs,
-      metadata
-    });
-    
-    // Log performance metrics to console in development
-    if (getGadgetConfig()?.environment === 'development') {
-      console.log(`[Performance] ${action}: ${durationMs}ms`, metadata);
-    }
-  } catch (error) {
-    console.error('Failed to track performance:', error);
-  }
-};
-
-/**
- * Create a performance tracker that automatically measures elapsed time
- * @param action Name of the action being measured
- * @param metadata Additional information
- * @returns Function to call when the action is complete
- */
-export const startPerformanceTracking = (
-  action: string,
-  metadata: Record<string, any> = {}
-): () => Promise<void> => {
-  const startTime = performance.now();
-  
-  return async () => {
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
-    await trackPerformance(action, duration, metadata);
-  };
-};
-
-/**
- * Track feature usage
- * @param feature Feature being used
- * @param metadata Additional information
+ * Track usage of specific features
+ * @param feature Feature name being used
+ * @param metadata Additional metadata about the usage
  */
 export const trackUsage = async (
   feature: string,
   metadata: Record<string, any> = {}
 ): Promise<void> => {
+  const config = getGadgetConfig();
+  if (!config) return;
+
   try {
-    await sendTelemetry({
-      category: 'usage',
-      action: 'feature_used',
-      label: feature,
-      metadata
-    });
+    // In production: Send telemetry data to Gadget
+    // const url = `${getGadgetApiUrl(config)}telemetry/usage`;
+    // await fetch(url, {
+    //   method: 'POST',
+    //   headers: createGadgetHeaders(config),
+    //   body: JSON.stringify({
+    //     feature,
+    //     timestamp: new Date().toISOString(),
+    //     appId: config.appId,
+    //     environment: config.environment,
+    //     ...metadata
+    //   })
+    // });
+    
+    console.log(`Tracking usage: ${feature}`, metadata);
   } catch (error) {
-    console.error('Failed to track usage:', error);
+    console.warn('Failed to track usage:', error);
+  }
+};
+
+/**
+ * Report errors to telemetry system
+ * @param error Error object or error message
+ * @param options Additional error reporting options
+ */
+export const reportError = async (
+  error: Error | string,
+  options: ErrorReportOptions = {}
+): Promise<void> => {
+  const config = getGadgetConfig();
+  if (!config) return;
+
+  const errorObj = typeof error === 'string' ? new Error(error) : error;
+  const severity = options.severity || 'medium';
+  
+  try {
+    // In production: Send error to Gadget
+    // const url = `${getGadgetApiUrl(config)}telemetry/errors`;
+    // await fetch(url, {
+    //   method: 'POST',
+    //   headers: createGadgetHeaders(config),
+    //   body: JSON.stringify({
+    //     message: errorObj.message,
+    //     stack: errorObj.stack,
+    //     component: options.component || 'unknown',
+    //     severity,
+    //     action: options.action,
+    //     userId: options.userId,
+    //     metadata: options.metadata,
+    //     timestamp: new Date().toISOString(),
+    //     appId: config.appId,
+    //     environment: config.environment
+    //   })
+    // });
+    
+    console.error(`[${severity.toUpperCase()}] Error in ${options.component || 'unknown'}:`, errorObj);
+    
+    // Only show toast for high/critical severity
+    if (severity === 'high' || severity === 'critical') {
+      toast.error("An error occurred", {
+        description: errorObj.message.substring(0, 100) + (errorObj.message.length > 100 ? '...' : '')
+      });
+    }
+  } catch (err) {
+    // Fallback to console if error reporting fails
+    console.error('Error reporting failed:', err);
+    console.error('Original error:', errorObj);
+  }
+};
+
+/**
+ * Track performance of operations
+ * @param operation Name of operation being tracked
+ * @param durationMs Duration in milliseconds
+ * @param metadata Additional metadata about the operation
+ */
+export const trackPerformance = async (
+  operation: string,
+  durationMs: number,
+  metadata: Record<string, any> = {}
+): Promise<void> => {
+  const config = getGadgetConfig();
+  if (!config) return;
+
+  try {
+    // In production: Send performance data to Gadget
+    // const url = `${getGadgetApiUrl(config)}telemetry/performance`;
+    // await fetch(url, {
+    //   method: 'POST',
+    //   headers: createGadgetHeaders(config),
+    //   body: JSON.stringify({
+    //     operation,
+    //     durationMs,
+    //     timestamp: new Date().toISOString(),
+    //     appId: config.appId,
+    //     environment: config.environment,
+    //     ...metadata
+    //   })
+    // });
+    
+    console.log(`Performance: ${operation} took ${durationMs}ms`, metadata);
+  } catch (error) {
+    console.warn('Failed to track performance:', error);
+  }
+};
+
+/**
+ * Start tracking performance for an operation
+ * @param operation Name of operation to track
+ * @param metadata Additional metadata about the operation
+ * @returns Function to call when operation completes
+ */
+export const startPerformanceTracking = (
+  operation: string,
+  metadata: Record<string, any> = {}
+): () => Promise<void> => {
+  const startTime = performance.now();
+  const metric: PerformanceMetrics = { startTime, operation, metadata };
+  metrics.push(metric);
+  
+  return async () => {
+    const endTime = performance.now();
+    const durationMs = Math.round(endTime - startTime);
+    
+    // Remove metric from tracking array
+    const index = metrics.indexOf(metric);
+    if (index !== -1) {
+      metrics.splice(index, 1);
+    }
+    
+    await trackPerformance(operation, durationMs, metadata);
+  };
+};
+
+/**
+ * Get all active performance metrics
+ * @returns Array of active performance metrics
+ */
+export const getActiveMetrics = (): PerformanceMetrics[] => {
+  return [...metrics];
+};
+
+/**
+ * Send health check data to telemetry system
+ * @param status Health status
+ * @param details Additional health check details
+ */
+export const reportHealthCheck = async (
+  status: 'healthy' | 'degraded' | 'unhealthy',
+  details: Record<string, any> = {}
+): Promise<void> => {
+  const config = getGadgetConfig();
+  if (!config) return;
+
+  try {
+    // In production: Send health check to Gadget
+    // const url = `${getGadgetApiUrl(config)}telemetry/health`;
+    // await fetch(url, {
+    //   method: 'POST',
+    //   headers: createGadgetHeaders(config),
+    //   body: JSON.stringify({
+    //     status,
+    //     timestamp: new Date().toISOString(),
+    //     appId: config.appId,
+    //     environment: config.environment,
+    //     ...details
+    //   })
+    // });
+    
+    console.log(`Health check: ${status}`, details);
+  } catch (error) {
+    console.warn('Failed to report health check:', error);
   }
 };

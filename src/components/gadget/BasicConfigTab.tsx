@@ -3,9 +3,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { GadgetConfig } from '@/types/price';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface BasicConfigTabProps {
   config: GadgetConfig;
@@ -32,10 +33,25 @@ export const BasicConfigTab = ({
   return (
     <div className="space-y-6 mt-4">
       <div className="space-y-2">
-        <Label htmlFor="gadget-app-id">
-          App ID
-          <span className="text-red-500 ml-1">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="gadget-app-id" className="flex items-center">
+            App ID
+            <span className="text-red-500 ml-1">*</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">The unique identifier for your Gadget application. Find this in your Gadget dashboard.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          {!config.appId && (
+            <span className="text-xs text-red-500">Required</span>
+          )}
+        </div>
         <Input
           id="gadget-app-id"
           value={config.appId}
@@ -50,10 +66,25 @@ export const BasicConfigTab = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="gadget-api-key">
-          API Key
-          <span className="text-red-500 ml-1">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="gadget-api-key" className="flex items-center">
+            API Key
+            <span className="text-red-500 ml-1">*</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Your API key provides secure access to Gadget services. Generate this in your Gadget dashboard's API Keys section.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          {!config.apiKey && (
+            <span className="text-xs text-red-500">Required</span>
+          )}
+        </div>
         <Input
           id="gadget-api-key"
           type="password"
@@ -69,7 +100,21 @@ export const BasicConfigTab = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="gadget-environment">Environment</Label>
+        <div className="flex items-center">
+          <Label htmlFor="gadget-environment" className="flex items-center">
+            Environment
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Choose 'Development' for testing and 'Production' for live usage.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+        </div>
         <Select
           value={config.environment}
           onValueChange={(value) => handleChange('environment', value as 'development' | 'production')}
@@ -122,14 +167,14 @@ export const BasicConfigTab = ({
         </Button>
         
         {connectionStatus === 'success' && (
-          <div className="mt-2 text-sm text-green-600 flex items-center gap-1.5 bg-green-50 p-2 rounded mt-3">
+          <div className="mt-2 text-sm text-green-600 flex items-center gap-1.5 bg-green-50 p-2 rounded mt-3 animate-fade-in">
             <CheckCircle className="h-4 w-4 flex-shrink-0" />
             <span>Connection to Gadget.dev successfully established</span>
           </div>
         )}
         
         {connectionStatus === 'error' && (
-          <div className="mt-2 text-sm text-red-600 flex items-center gap-1.5 bg-red-50 p-2 rounded mt-3">
+          <div className="mt-2 text-sm text-red-600 flex items-center gap-1.5 bg-red-50 p-2 rounded mt-3 animate-fade-in">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             <span>Connection failed. Please check your credentials and try again.</span>
           </div>

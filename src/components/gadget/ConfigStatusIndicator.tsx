@@ -1,5 +1,5 @@
 
-import { CheckCircle, Info } from 'lucide-react';
+import { CheckCircle, Info, ExternalLink } from 'lucide-react';
 import { GadgetConfig } from '@/types/price';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,7 +19,7 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
       aria-live="polite"
     >
       <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
-      <div>
+      <div className="flex-1">
         <p className="font-medium">Gadget.dev is configured</p>
         <div className="text-sm space-y-1 mt-1">
           <div className="flex items-center gap-1">
@@ -50,6 +50,17 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
             <Info className="h-4 w-4 mr-1" />
             <span className="text-xs">API key is securely stored in your browser</span>
           </div>
+        </div>
+        <div className="mt-3 text-xs">
+          <a 
+            href="https://gadget.dev/docs" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-green-700 hover:text-green-800 hover:underline"
+          >
+            View Gadget documentation
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </a>
         </div>
       </div>
     </div>

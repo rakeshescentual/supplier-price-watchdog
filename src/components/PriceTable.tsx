@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import {
   Table,
@@ -27,6 +26,15 @@ export const PriceTable = ({ items }: PriceTableProps) => {
     return items.filter(item => {
       // Filter by status
       if (!filters.statuses.includes(item.status)) {
+        return false;
+      }
+      
+      // Filter by price difference percentage
+      if (filters.minDifference !== undefined && item.difference < filters.minDifference) {
+        return false;
+      }
+      
+      if (filters.maxDifference !== undefined && item.difference > filters.maxDifference) {
         return false;
       }
       

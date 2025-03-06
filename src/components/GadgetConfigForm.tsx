@@ -224,3 +224,6 @@ export const GadgetConfigForm = () => {
     </Card>
   );
 };
+
+// Add default export to fix lazy loading
+export default GadgetConfigForm;

@@ -295,14 +295,17 @@ export const getShopifySyncHistory = (shopifyContext: ShopifyContext): { timesta
   const syncHistory: { timestamp: number, itemCount: number, status: string }[] = [];
   
   // Search cache for sync status entries
-  const cacheStats = shopifyCache.getStats();
   const allCacheKeys = shopifyCache.getAllKeys();
   
   for (const key of allCacheKeys) {
     if (key.startsWith('shopify-sync-status-')) {
       const syncStatus = shopifyCache.get(key);
-      if (syncStatus) {
-        syncHistory.push(syncStatus);
+      if (syncStatus && 
+          typeof syncStatus === 'object' && 
+          'timestamp' in syncStatus && 
+          'itemCount' in syncStatus && 
+          'status' in syncStatus) {
+        syncHistory.push(syncStatus as { timestamp: number, itemCount: number, status: string });
       }
     }
   }

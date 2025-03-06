@@ -1,177 +1,87 @@
 
 import { useState, useEffect } from "react";
-import { AlertCircle, CheckCircle, RefreshCw, History, XCircle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
 import { useShopify } from "@/contexts/ShopifyContext";
-import { checkShopifyConnection, getShopifySyncHistory } from "@/lib/shopifyApi";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { checkShopifyConnection } from "@/lib/shopifyApi";
+import { toast } from "sonner";
 
-export function ShopifyConnectionStatus() {
-  const { toast } = useToast();
+export const ShopifyConnectionStatus = () => {
   const { 
-    shopifyContext,
-    isShopifyConnected,
-    isShopifyHealthy,
-    lastConnectionCheck
+    shopifyContext, 
+    isShopifyConnected, 
+    isShopifyHealthy, 
+    lastConnectionCheck 
   } = useShopify();
-  
-  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
-  const [syncHistory, setSyncHistory] = useState<{timestamp: number, itemCount: number, status: string}[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  
-  // Load sync history when connected
-  useEffect(() => {
-    if (isShopifyConnected && shopifyContext) {
-      loadSyncHistory();
-    }
-  }, [isShopifyConnected, shopifyContext]);
-  
-  const handleCheckConnection = async () => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refreshConnectionStatus = async () => {
     if (!shopifyContext) return;
     
-    setIsCheckingConnection(true);
-    
+    setIsRefreshing(true);
     try {
       const isHealthy = await checkShopifyConnection(shopifyContext);
-      
       if (isHealthy) {
-        toast({
-          title: "Connection healthy",
-          description: "Your Shopify connection is working properly.",
-          variant: "default",
-        });
+        toast.success("Shopify connection is healthy");
       } else {
-        toast({
-          title: "Connection issues",
-          description: "Your Shopify connection may be experiencing problems.",
-          variant: "destructive",
+        toast.warning("Shopify connection has issues", {
+          description: "API may be experiencing slowdowns"
         });
       }
     } catch (error) {
-      console.error("Error checking connection:", error);
-      toast({
-        title: "Connection check failed",
-        description: "Unable to verify Shopify connection status.",
-        variant: "destructive",
-      });
+      toast.error("Connection check failed");
     } finally {
-      setIsCheckingConnection(false);
+      setIsRefreshing(false);
     }
   };
-  
-  const loadSyncHistory = async () => {
-    if (!shopifyContext) return;
-    
-    setIsLoadingHistory(true);
-    
-    try {
-      const history = getShopifySyncHistory(shopifyContext);
-      setSyncHistory(history);
-    } catch (error) {
-      console.error("Error loading sync history:", error);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+
+  let statusIndicator = null;
   
   if (!isShopifyConnected) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Shopify Connection</CardTitle>
-          <CardDescription>Connect to your Shopify store</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            <XCircle className="h-5 w-5 text-muted-foreground" />
-            <span>Not connected</span>
-          </div>
-        </CardContent>
-      </Card>
+    statusIndicator = (
+      <Badge variant="outline" className="text-gray-500 border-gray-300">
+        Not Connected
+      </Badge>
+    );
+  } else if (isShopifyHealthy) {
+    statusIndicator = (
+      <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+        <CheckCircle2 className="w-3 h-3 mr-1" />
+        Connected
+      </Badge>
+    );
+  } else {
+    statusIndicator = (
+      <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50">
+        <AlertCircle className="w-3 h-3 mr-1" />
+        Degraded
+      </Badge>
     );
   }
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Shopify Connection</span>
-          <Badge variant={isShopifyHealthy ? "default" : "outline"} className={isShopifyHealthy ? "bg-green-500" : "text-amber-500 border-amber-500"}>
-            {isShopifyHealthy ? "Healthy" : "Degraded"}
-          </Badge>
-        </CardTitle>
-        <CardDescription>
-          {shopifyContext?.shop}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-start space-x-2">
-          {isShopifyHealthy ? (
-            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-          )}
-          <div>
-            <div className="font-medium">
-              {isShopifyHealthy ? "Connection is healthy" : "Connection issues detected"}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {lastConnectionCheck 
-                ? `Last checked ${formatDistanceToNow(lastConnectionCheck)} ago` 
-                : "Connection not yet verified"}
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-2 flex items-center">
-            <History className="h-4 w-4 mr-1" /> Recent Sync Activity
-          </h4>
-          
-          {isLoadingHistory ? (
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          ) : syncHistory.length > 0 ? (
-            <ul className="space-y-2 text-sm">
-              {syncHistory.slice(0, 3).map((sync, index) => (
-                <li key={index} className="flex justify-between border-b pb-1 last:border-0">
-                  <span>{new Date(sync.timestamp).toLocaleString()}</span>
-                  <span>{sync.itemCount} items</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-sm text-muted-foreground">No recent sync activity</div>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter>
+    <div className="flex items-center space-x-2">
+      {statusIndicator}
+      
+      {isShopifyConnected && lastConnectionCheck && (
+        <span className="text-xs text-muted-foreground">
+          {`Checked ${formatDistanceToNow(lastConnectionCheck, { addSuffix: true })}`}
+        </span>
+      )}
+      
+      {isShopifyConnected && (
         <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={handleCheckConnection}
-          disabled={isCheckingConnection}
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6" 
+          onClick={refreshConnectionStatus}
+          disabled={isRefreshing}
         >
-          {isCheckingConnection ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Checking...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Check Connection
-            </>
-          )}
+          <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
         </Button>
-      </CardFooter>
-    </Card>
+      )}
+    </div>
   );
-}
+};

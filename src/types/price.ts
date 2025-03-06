@@ -143,12 +143,19 @@ export interface ShopifyContext {
 export interface ShopifyContextType {
   shopifyContext: ShopifyContext | null;
   isShopifyConnected: boolean;
+  isShopifyHealthy: boolean; // Added for connection health monitoring
+  lastConnectionCheck: Date | null; // Added to track last connection check time
   isGadgetInitialized: boolean;
   isSyncing: boolean;
-  connectToShopify: (shop: string, accessToken: string) => Promise<void>;
+  connectToShopify: (shop: string, accessToken: string) => Promise<boolean>; // Changed return type to boolean
   disconnectShopify: () => void;
   syncToShopify: (items: PriceItem[]) => Promise<boolean>;
-  loadShopifyData?: () => Promise<PriceItem[]>;
+  loadShopifyData: () => Promise<PriceItem[]>;
+  batchProcessShopifyItems: <T, R>(
+    items: T[],
+    processFn: (item: T) => Promise<R>,
+    options?: { batchSize: number; concurrency: number }
+  ) => Promise<R[]>;
 }
 
 // Klaviyo integration interfaces

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileUp, FileText, Share, Check, AlertCircle } from "lucide-react";
@@ -31,7 +30,6 @@ export const FileUpload = ({
   const [isUploading, setIsUploading] = useState(false);
   const { shopifyContext, isShopifyConnected, isShopifyHealthy } = useShopify();
 
-  // Reset upload state when Shopify connection changes
   useEffect(() => {
     if (!isShopifyConnected) {
       setShopifyFileUrl(null);
@@ -48,24 +46,20 @@ export const FileUpload = ({
       setShopifyUploadError(null);
       setIsUploading(true);
       
-      // Determine file type
       if (file.type === "application/pdf") {
         setFileType("pdf");
       } else {
         setFileType("excel");
       }
       
-      // Upload to Shopify if connected
       if (isShopifyConnected && shopifyContext) {
         try {
-          // Use the saveFileToShopify function with progress callback
           const fileUrl = await saveFileToShopify(
             shopifyContext, 
             file,
             (progress) => setUploadProgress(progress)
           );
           
-          // Update state based on result
           setUploadComplete(true);
           setIsUploading(false);
           
@@ -81,7 +75,6 @@ export const FileUpload = ({
             });
           }
           
-          // Continue with analysis
           onFileAccepted(file);
         } catch (error) {
           console.error("Error uploading file to Shopify:", error);
@@ -90,12 +83,10 @@ export const FileUpload = ({
             description: "The file will be processed locally only.",
           });
           
-          // Simulate upload progress for local processing
           simulateLocalProgress();
           onFileAccepted(file);
         }
       } else {
-        // Not connected to Shopify, process locally only
         simulateLocalProgress();
         onFileAccepted(file);
       }
@@ -103,7 +94,6 @@ export const FileUpload = ({
   }, [onFileAccepted, isShopifyConnected, shopifyContext, isShopifyHealthy]);
 
   const simulateLocalProgress = () => {
-    // Simulate upload progress
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 100) {
@@ -167,7 +157,7 @@ export const FileUpload = ({
       </div>
       
       {isShopifyConnectedButUnhealthy && (
-        <Alert variant="warning" className="mb-4">
+        <Alert className="mb-4" variant="warning">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Shopify connection may be experiencing issues. Files will still be processed locally.

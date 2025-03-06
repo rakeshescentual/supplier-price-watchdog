@@ -18,7 +18,7 @@ const Documentation = lazy(() => import("./pages/Documentation"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const GadgetDocumentation = lazy(() => import("./pages/GadgetDocumentation"));
 const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis"));
-const GadgetConfigForm = lazy(() => import("./components/GadgetConfigForm"));
+const GadgetConfigForm = lazy(() => import("./components/GadgetConfigForm").then(module => ({ default: module.GadgetConfigForm })));
 
 // Create QueryClient with optimized settings
 const queryClient = new QueryClient({

@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import {
   Table,
@@ -128,9 +127,7 @@ export const CompetitorPriceTable = ({ isLoading, data }: CompetitorPriceTablePr
               <TableHead>Frasers</TableHead>
               <TableHead>Fenwick</TableHead>
               <TableHead>Selfridges</TableHead>
-              <TableHead>Sephora</TableHead>
               <TableHead>The Fragrance Shop</TableHead>
-              <TableHead>myOrigines</TableHead>
               <TableHead>
                 <Button variant="ghost" className="p-0 font-semibold" onClick={() => requestSort('averageDiff')}>
                   Avg Diff <ArrowUpDown className="ml-1 h-3 w-3" />

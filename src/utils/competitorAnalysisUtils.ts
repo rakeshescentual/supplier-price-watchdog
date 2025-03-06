@@ -1,4 +1,3 @@
-
 import { CompetitorAnalysisData, CompetitorPriceItem, ScrapingSchedule, CompetitorInsight, HistoricalPriceData } from "@/types/price";
 import { toast } from "sonner";
 
@@ -20,7 +19,7 @@ export const fetchCompetitorData = async (): Promise<CompetitorAnalysisData> => 
       historicalData: getMockHistoricalData(),
       averageDifference: 3.7,
       trackedProductsCount: 45,
-      competitorCount: 10,
+      competitorCount: 7,
       lastUpdate: new Date().toISOString(),
       nextUpdate: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString() // 6 hours from now
     };
@@ -107,7 +106,7 @@ export const deleteScrapingSchedule = async (scheduleId: string): Promise<boolea
   }
 };
 
-// Mock data generators
+// Update mock data generators to only include UK competitors
 function getMockCompetitorPriceItems(): CompetitorPriceItem[] {
   const products = [
     { sku: "FR-1001", name: "Chanel No. 5 Eau de Parfum 100ml", retailPrice: 135.0 },
@@ -122,9 +121,15 @@ function getMockCompetitorPriceItems(): CompetitorPriceItem[] {
     { sku: "SK-2005", name: "Drunk Elephant Protini Polypeptide Cream 50ml", retailPrice: 68.0 }
   ];
 
+  // Updated to only include UK competitors
   const competitors = [
-    "Boots", "Harrods", "Harvey Nichols", "Frasers", "Fenwick",
-    "Selfridges", "Sephora", "The Fragrance Shop", "myOrigines"
+    "Boots",
+    "Harrods",
+    "Harvey Nichols",
+    "Frasers",
+    "Fenwick",
+    "Selfridges",
+    "The Fragrance Shop"
   ];
   
   return products.map(product => {
@@ -172,8 +177,8 @@ function getMockScrapingSchedules(): ScrapingSchedule[] {
       url: "https://www.boots.com",
       times: ["09:00", "16:00"],
       active: true,
-      lastRun: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-      nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString() // 6 hours from now
+      lastRun: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
     },
     {
       id: "schedule-2",
@@ -181,17 +186,53 @@ function getMockScrapingSchedules(): ScrapingSchedule[] {
       url: "https://www.harrods.com",
       times: ["08:30", "17:30"],
       active: true,
-      lastRun: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // 12 hours ago
-      nextRun: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString() // 4 hours from now
+      lastRun: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
     },
     {
       id: "schedule-3",
       name: "Selfridges",
       url: "https://www.selfridges.com",
       times: ["10:00", "18:00"],
-      active: false, // Paused
-      lastRun: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(), // 36 hours ago
-      nextRun: null
+      active: true,
+      lastRun: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: "schedule-4",
+      name: "Harvey Nichols",
+      url: "https://www.harveynichols.com",
+      times: ["09:00", "17:00"],
+      active: true,
+      lastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: "schedule-5",
+      name: "Frasers",
+      url: "https://www.frasers.com",
+      times: ["08:00", "16:00"],
+      active: true,
+      lastRun: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: "schedule-6",
+      name: "Fenwick",
+      url: "https://www.fenwick.co.uk",
+      times: ["09:30", "17:30"],
+      active: true,
+      lastRun: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: "schedule-7",
+      name: "The Fragrance Shop",
+      url: "https://www.thefragranceshop.co.uk",
+      times: ["08:30", "16:30"],
+      active: true,
+      lastRun: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
+      nextRun: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString()
     }
   ];
 }
@@ -276,7 +317,7 @@ function getMockHistoricalData(): HistoricalPriceData[] {
     { id: "SK-2001", name: "Estée Lauder Advanced Night Repair 50ml", sku: "SK-2001", basePrice: 78.0 }
   ];
   
-  const competitors = ["Boots", "Harrods", "Selfridges", "Sephora"];
+  const competitors = ["Boots", "Harrods", "Selfridges", "Harvey Nichols"];
   const days = 90; // 90 days of data
   
   return products.map(product => {

@@ -302,3 +302,63 @@ export interface GoogleAnalyticsEvent {
   customDimensions?: Record<string, string>;
   customMetrics?: Record<string, number>;
 }
+
+// Competitor Price Analysis Types
+export interface CompetitorPriceItem {
+  id: string;
+  sku: string;
+  name: string;
+  retailPrice: number;
+  competitorPrices: {
+    [key: string]: number | null; // e.g., "Boots": 19.99, "Harrods": null (not available)
+  };
+  competitorDiffs: {
+    [key: string]: number; // percentage difference vs. our price
+  };
+  averageDiff: number; // average percentage difference across all competitors
+  lastUpdated: string;
+}
+
+export interface ScrapingSchedule {
+  id: string;
+  name: string;
+  url: string;
+  times: string[]; // e.g., ["09:00", "18:00"]
+  active: boolean;
+  lastRun: string | null;
+  nextRun: string | null;
+}
+
+export interface CompetitorInsight {
+  id: string;
+  type: 'opportunity' | 'risk' | 'trend' | 'alert';
+  title: string;
+  description: string;
+  metrics?: Record<string, string | number>;
+  recommendations?: string[];
+  affectedProducts?: string[];
+  date: string;
+}
+
+export interface HistoricalPriceData {
+  id: string;
+  name: string;
+  sku: string;
+  prices: Array<{
+    date: string;
+    our_price: number;
+    [competitor: string]: number | string; // e.g., "Boots": 19.99
+  }>;
+}
+
+export interface CompetitorAnalysisData {
+  items: CompetitorPriceItem[];
+  scrapingSchedules: ScrapingSchedule[];
+  insights: CompetitorInsight[];
+  historicalData: HistoricalPriceData[];
+  averageDifference: number;
+  trackedProductsCount: number;
+  competitorCount: number;
+  lastUpdate: string | null;
+  nextUpdate: string | null;
+}

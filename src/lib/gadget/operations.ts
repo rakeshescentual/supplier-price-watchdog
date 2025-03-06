@@ -7,3 +7,7 @@
 export * from './sync';
 export * from './batch';
 export * from './export';
+export * from './logging';
+export * from './telemetry';
+export * from './pagination';
+export * from './mocks';

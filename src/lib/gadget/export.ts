@@ -2,6 +2,8 @@
 import { toast } from 'sonner';
 import type { PriceItem } from '@/types/price';
 import { initGadgetClient } from './client';
+import { reportError, trackUsage, startPerformanceTracking } from './telemetry';
+import { logInfo, logError } from './logging';
 
 /**
  * Export data from Gadget to CSV or JSON format
@@ -15,11 +17,25 @@ export const exportDataFromGadget = async (
 ): Promise<Blob> => {
   const client = initGadgetClient();
   if (!client) {
-    throw new Error("Gadget configuration required");
+    const error = new Error("Gadget configuration required");
+    await reportError(error, { component: 'exportDataFromGadget', severity: 'medium' });
+    throw error;
   }
   
+  // Start performance tracking
+  const finishTracking = startPerformanceTracking('exportDataFromGadget', {
+    itemCount: items.length,
+    format
+  });
+  
   try {
-    console.log(`Exporting ${items.length} items in ${format} format...`);
+    logInfo(`Exporting ${items.length} items in ${format} format...`, {
+      itemCount: items.length,
+      format
+    }, 'export');
+    
+    // Track feature usage
+    await trackUsage('data_export', { itemCount: items.length, format });
     
     // In production: Use Gadget SDK for export functionality
     // const result = await client.query.exportData({
@@ -54,17 +70,39 @@ export const exportDataFromGadget = async (
       { type: format === 'csv' ? 'text/csv' : 'application/json' }
     );
     
+    logInfo("Export completed successfully", { 
+      itemCount: items.length,
+      format,
+      contentSize: content.length
+    }, 'export');
+    
     toast.success("Export successful", {
       description: `${items.length} items exported to ${format.toUpperCase()} format`
     });
     
+    // Finish performance tracking
+    await finishTracking();
+    
     return blob;
   } catch (error) {
-    console.error(`Error exporting data from Gadget in ${format} format:`, error);
+    logError(`Error exporting data from Gadget in ${format} format`, { error }, 'export');
+    
+    // Report error to telemetry system
+    await reportError(error instanceof Error ? error : String(error), {
+      component: 'exportDataFromGadget',
+      severity: 'medium',
+      action: 'export_data',
+      metadata: { format }
+    });
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
     toast.error("Export failed", {
-      description: `Failed to export data: ${error instanceof Error ? error.message : "Unknown error"}`
+      description: `Failed to export data: ${errorMessage}`
     });
+    
+    // Finish performance tracking even on error
+    await finishTracking();
     
     throw error;
   }

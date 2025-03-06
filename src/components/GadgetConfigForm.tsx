@@ -10,6 +10,7 @@ import { GadgetConfig } from '@/types/price';
 import { BasicConfigTab } from './gadget/BasicConfigTab';
 import { AdvancedFeaturesTab } from './gadget/AdvancedFeaturesTab';
 import { ConfigStatusIndicator } from './gadget/ConfigStatusIndicator';
+import { loadConnectionContext, saveConnectionContext } from '@/utils/connection-helpers';
 
 export const GadgetConfigForm = () => {
   const [config, setConfig] = useState<GadgetConfig>({
@@ -30,15 +31,18 @@ export const GadgetConfigForm = () => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
 
   useEffect(() => {
-    const storedConfig = localStorage.getItem('gadgetConfig');
-    if (storedConfig) {
-      try {
-        const parsedConfig = JSON.parse(storedConfig);
-        setConfig(parsedConfig);
-        setIsConfigured(true);
-      } catch (error) {
+    const storedConfig = loadConnectionContext<GadgetConfig>('gadgetConfig', 
+      (error) => {
         console.error("Error parsing stored Gadget config:", error);
+        toast.error("Could not load saved configuration", {
+          description: "There was an error loading your Gadget configuration."
+        });
       }
+    );
+    
+    if (storedConfig) {
+      setConfig(storedConfig);
+      setIsConfigured(true);
     }
   }, []);
 
@@ -102,22 +106,24 @@ export const GadgetConfigForm = () => {
     setIsSaving(true);
 
     try {
-      localStorage.setItem('gadgetConfig', JSON.stringify(config));
-      
-      setIsConfigured(true);
-      
-      toast.success("Configuration Saved", {
-        description: "Your Gadget configuration has been saved. Please reload the page to apply changes."
-      });
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      console.error("Error saving Gadget config:", error);
-      toast.error("Save Error", {
-        description: "Could not save your configuration."
-      });
+      saveConnectionContext('gadgetConfig', config, 
+        () => {
+          setIsConfigured(true);
+          toast.success("Configuration Saved", {
+            description: "Your Gadget configuration has been saved. Please reload the page to apply changes."
+          });
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        },
+        (error) => {
+          console.error("Error saving Gadget config:", error);
+          toast.error("Save Error", {
+            description: "Could not save your configuration."
+          });
+        }
+      );
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +154,7 @@ export const GadgetConfigForm = () => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-md transition-all duration-300 hover:shadow-lg">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -170,7 +176,7 @@ export const GadgetConfigForm = () => {
       <CardContent className="space-y-4">
         <ConfigStatusIndicator isConfigured={isConfigured} config={config} />
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="basic">Basic Configuration</TabsTrigger>
             <TabsTrigger value="advanced">Advanced Features</TabsTrigger>
@@ -195,11 +201,11 @@ export const GadgetConfigForm = () => {
         </Tabs>
       </CardContent>
       
-      <CardFooter className="flex gap-2 justify-between">
+      <CardFooter className="flex gap-2 justify-between border-t pt-4">
         {isConfigured && (
-          <Button variant="outline" onClick={handleClear}>
-            <X className="mr-2 h-4 w-4" />
-            Clear Configuration
+          <Button variant="outline" onClick={handleClear} className="group transition-all">
+            <X className="mr-2 h-4 w-4 group-hover:text-destructive transition-colors" />
+            <span className="group-hover:text-destructive transition-colors">Clear Configuration</span>
           </Button>
         )}
         

@@ -21,7 +21,7 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
 
   return (
     <div 
-      className="bg-gradient-to-r from-green-50 to-green-100 text-green-700 p-4 rounded-lg text-sm flex items-start gap-3 shadow-sm border border-green-200 animate-fade-in"
+      className="bg-gradient-to-r from-green-50 to-green-100 text-green-700 p-4 rounded-lg text-sm flex items-start gap-3 shadow-sm border border-green-200 animate-fade-in transition-all duration-300"
       role="status"
       aria-live="polite"
     >
@@ -101,7 +101,7 @@ export const ConfigStatusIndicator = ({ isConfigured, config }: ConfigStatusIndi
             href="https://gadget.dev/docs" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="inline-flex items-center text-xs text-green-700 hover:text-green-800 hover:underline"
+            className="inline-flex items-center text-xs text-green-700 hover:text-green-800 hover:underline transition-colors"
           >
             Gadget.dev Documentation
             <ExternalLink className="ml-1 h-3 w-3" />

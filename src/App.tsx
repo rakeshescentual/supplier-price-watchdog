@@ -18,7 +18,7 @@ const Documentation = lazy(() => import("./pages/Documentation"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const GadgetDocumentation = lazy(() => import("./pages/GadgetDocumentation"));
 const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis"));
-const GadgetConfigForm = lazy(() => import("./components/GadgetConfigForm").then(module => ({ default: module.GadgetConfigForm })));
+const GadgetConfigForm = lazy(() => import("./components/GadgetConfigForm"));
 
 // Create QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -28,6 +28,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false, // Disable refetching on window focus for better performance
       refetchOnReconnect: true,    // Only refetch on reconnect
+      gcTime: 1000 * 60 * 10,     // Keep unused data in cache for 10 minutes
     },
   },
 });
@@ -42,6 +43,16 @@ const App = () => {
     };
   }, []);
 
+  // Simple loading component for better UX during suspense
+  const LoadingFallback = () => (
+    <div className="container mx-auto py-8 px-4 flex items-center justify-center h-[calc(100vh-4rem)]">
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ShopifyProvider>
@@ -51,7 +62,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Navigation />
-              <Suspense fallback={<div className="container mx-auto py-8 px-4 flex items-center justify-center h-screen">Loading...</div>}>
+              <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/dashboard" element={<Dashboard />} />

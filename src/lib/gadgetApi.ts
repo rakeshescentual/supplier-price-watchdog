@@ -1,19 +1,7 @@
-import type { PriceItem, ShopifyContext } from '@/types/price';
+import type { PriceItem, ShopifyContext, GadgetConfig } from '@/types/price';
 import { shopifyCache } from './api-cache';
-
-// Get the Gadget config from localStorage
-export const getGadgetConfig = () => {
-  try {
-    const storedConfig = localStorage.getItem('gadgetConfig');
-    if (storedConfig) {
-      return JSON.parse(storedConfig);
-    }
-    return null;
-  } catch (error) {
-    console.error("Error parsing Gadget config from localStorage:", error);
-    return null;
-  }
-};
+import { getGadgetConfig, prepareGadgetRequest, getGadgetApiUrl } from '@/utils/gadget-helpers';
+import { calculateBackoff } from '@/utils/connection-helpers';
 
 // Initialize Gadget client
 export const initGadgetClient = () => {
@@ -26,7 +14,11 @@ export const initGadgetClient = () => {
   try {
     // In real implementation, this would use the Gadget SDK
     // import { createClient } from '@gadget-client/your-app-id';
-    // return createClient({ apiKey: config.apiKey });
+    // return createClient({ 
+    //   apiKey: config.apiKey,
+    //   environment: config.environment,
+    //   logger: config.environment === 'development' ? console : undefined
+    // });
     
     console.log(`Initializing Gadget client for app ${config.appId} in ${config.environment} environment`);
     return {
@@ -44,6 +36,89 @@ export const isGadgetInitialized = () => {
   const client = initGadgetClient();
   return !!client?.ready;
 };
+
+/**
+ * Normalize error responses from Gadget
+ */
+export function normalizeGadgetError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  
+  if (typeof error === 'string') {
+    return new Error(error);
+  }
+  
+  if (typeof error === 'object' && error !== null) {
+    const anyError = error as any;
+    if (anyError.message) {
+      return new Error(anyError.message);
+    }
+    if (anyError.error) {
+      return new Error(anyError.error);
+    }
+  }
+  
+  return new Error('Unknown Gadget API error');
+}
+
+/**
+ * Type-safe wrapper for Gadget API calls with retries
+ */
+export async function callGadgetApi<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  config?: GadgetConfig,
+  retryConfig = { maxRetries: 3, initialDelay: 300 }
+): Promise<T> {
+  const gadgetConfig = config || getGadgetConfig();
+  if (!gadgetConfig) {
+    throw new Error("Gadget configuration is missing");
+  }
+  
+  const baseUrl = getGadgetApiUrl(gadgetConfig);
+  const url = `${baseUrl}${endpoint}`;
+  
+  let retryCount = 0;
+  
+  while (true) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          ...prepareGadgetRequest(gadgetConfig).headers
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || errorJson.error || `HTTP error ${response.status}`);
+        } catch (e) {
+          throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        }
+      }
+      
+      return await response.json() as T;
+    } catch (error) {
+      retryCount++;
+      
+      // Don't retry if we've reached the maximum number of retries
+      if (retryCount >= retryConfig.maxRetries) {
+        throw normalizeGadgetError(error);
+      }
+      
+      // Calculate backoff time with exponential increase and jitter
+      const delay = calculateBackoff(retryCount, retryConfig.initialDelay);
+      console.warn(`Gadget API call failed, retrying in ${delay}ms (attempt ${retryCount} of ${retryConfig.maxRetries})`, error);
+      
+      // Wait before trying again
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
 
 /**
  * Authenticate with Shopify via Gadget
@@ -210,10 +285,8 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
     
     console.log("Enriching data with market information...");
     
-    // In a real implementation, this would use the Gadget SDK to:
-    // 1. Send the items to a Gadget action that performs web search
-    // 2. Process the search results to extract market data
-    // 3. Return the enriched items
+    // In a real implementation, this would use callGadgetApi to handle all the retry
+    // and error normalization logic
     
     // For now, return mock data
     return items.map(item => ({
@@ -233,7 +306,7 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
     }));
   } catch (error) {
     console.error("Error enriching data with market information:", error);
-    throw error;
+    throw normalizeGadgetError(error);
   }
 };
 

@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { testGadgetConnection } from '@/utils/gadget-helpers';
 
 interface BasicConfigTabProps {
   config: GadgetConfig;
@@ -30,7 +30,6 @@ export const BasicConfigTab = ({
 
   const getInputBorderClass = (field: keyof GadgetConfig) => {
     const isEmpty = !config[field];
-    // Only show validation styling if the field has been touched
     if (!fieldTouched[field]) return "border-input";
     return cn(
       isEmpty ? "border-red-300 focus-visible:ring-red-400" : "border-green-300 focus-visible:ring-green-400"
@@ -43,6 +42,16 @@ export const BasicConfigTab = ({
 
   const toggleShowApiKey = () => {
     setShowApiKey(!showApiKey);
+  };
+
+  const handleTestConnection = async () => {
+    if (isTestingConnection || !config.apiKey || !config.appId) return;
+    
+    testConnection();
+    
+    // You can optionally use the enhanced testGadgetConnection directly:
+    // const success = await testGadgetConnection(config);
+    // Handle response status here if needed
   };
 
   return (
@@ -195,7 +204,7 @@ export const BasicConfigTab = ({
       <div className="mt-8">
         <Button 
           variant="outline" 
-          onClick={testConnection}
+          onClick={handleTestConnection}
           disabled={isTestingConnection || !config.apiKey || !config.appId}
           className={cn(
             "w-full transition-all h-12",

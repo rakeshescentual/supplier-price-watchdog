@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,9 +9,15 @@ import { GadgetConfig } from '@/types/price';
 import { BasicConfigTab } from './gadget/BasicConfigTab';
 import { AdvancedFeaturesTab } from './gadget/AdvancedFeaturesTab';
 import { ConfigStatusIndicator } from './gadget/ConfigStatusIndicator';
-import { loadConnectionContext, saveConnectionContext } from '@/utils/connection-helpers';
+import { 
+  getGadgetConfig, 
+  saveGadgetConfig, 
+  clearGadgetConfig, 
+  validateGadgetConfig, 
+  testGadgetConnection 
+} from '@/utils/gadget-helpers';
 
-export const GadgetConfigForm = () => {
+const GadgetConfigForm = () => {
   const [config, setConfig] = useState<GadgetConfig>({
     apiKey: '',
     appId: '',
@@ -31,14 +36,7 @@ export const GadgetConfigForm = () => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
 
   useEffect(() => {
-    const storedConfig = loadConnectionContext<GadgetConfig>('gadgetConfig', 
-      (error) => {
-        console.error("Error parsing stored Gadget config:", error);
-        toast.error("Could not load saved configuration", {
-          description: "There was an error loading your Gadget configuration."
-        });
-      }
-    );
+    const storedConfig = getGadgetConfig();
     
     if (storedConfig) {
       setConfig(storedConfig);
@@ -61,9 +59,11 @@ export const GadgetConfigForm = () => {
   };
 
   const testConnection = async () => {
-    if (!config.apiKey || !config.appId) {
+    const { isValid, errors } = validateGadgetConfig(config);
+    
+    if (!isValid) {
       toast.error("Missing configuration", {
-        description: "Please enter your Gadget API key and App ID."
+        description: errors.join(", ")
       });
       return;
     }
@@ -72,16 +72,24 @@ export const GadgetConfigForm = () => {
     setConnectionStatus('none');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const success = await testGadgetConnection(config);
       
-      setConnectionStatus('success');
-      toast.success("Connection successful", {
-        description: "Successfully connected to Gadget.dev"
-      });
+      setConnectionStatus(success ? 'success' : 'error');
+      
+      if (success) {
+        toast.success("Connection successful", {
+          description: "Successfully connected to Gadget.dev"
+        });
+      } else {
+        toast.error("Connection failed", {
+          description: "Could not connect to Gadget.dev. Please check your API key and App ID."
+        });
+      }
     } catch (error) {
+      console.error("Error testing Gadget connection:", error);
       setConnectionStatus('error');
-      toast.error("Connection failed", {
-        description: "Could not connect to Gadget.dev. Please check your API key and App ID."
+      toast.error("Connection error", {
+        description: "An error occurred while testing the connection."
       });
     } finally {
       setIsTestingConnection(false);
@@ -89,16 +97,11 @@ export const GadgetConfigForm = () => {
   };
 
   const handleSave = () => {
-    if (!config.apiKey.trim()) {
-      toast.error("API Key Required", {
-        description: "Please enter your Gadget API key."
-      });
-      return;
-    }
-
-    if (!config.appId.trim()) {
-      toast.error("App ID Required", {
-        description: "Please enter your Gadget App ID."
+    const { isValid, errors } = validateGadgetConfig(config);
+    
+    if (!isValid) {
+      toast.error("Validation error", {
+        description: errors.join(", ")
       });
       return;
     }
@@ -106,31 +109,26 @@ export const GadgetConfigForm = () => {
     setIsSaving(true);
 
     try {
-      saveConnectionContext('gadgetConfig', config, 
-        () => {
-          setIsConfigured(true);
-          toast.success("Configuration Saved", {
-            description: "Your Gadget configuration has been saved. Please reload the page to apply changes."
-          });
-          
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        },
-        (error) => {
-          console.error("Error saving Gadget config:", error);
-          toast.error("Save Error", {
-            description: "Could not save your configuration."
-          });
-        }
-      );
+      const saved = saveGadgetConfig(config, () => {
+        setIsConfigured(true);
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      });
+      
+      if (!saved) {
+        toast.error("Save error", {
+          description: "Could not save your configuration."
+        });
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleClear = () => {
-    localStorage.removeItem('gadgetConfig');
+    clearGadgetConfig();
     setConfig({
       apiKey: '',
       appId: '',
@@ -143,10 +141,6 @@ export const GadgetConfigForm = () => {
       }
     });
     setIsConfigured(false);
-    
-    toast.success("Configuration Cleared", {
-      description: "Gadget configuration has been removed. Please reload the page to apply changes."
-    });
     
     setTimeout(() => {
       window.location.reload();
@@ -231,5 +225,4 @@ export const GadgetConfigForm = () => {
   );
 };
 
-// Add default export to fix lazy loading
 export default GadgetConfigForm;

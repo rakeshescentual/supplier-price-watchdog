@@ -19,6 +19,7 @@ const Integrations = lazy(() => import("./pages/Integrations"));
 const GadgetDocumentation = lazy(() => import("./pages/GadgetDocumentation"));
 const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis"));
 const GadgetConfigForm = lazy(() => import("./components/GadgetConfigForm"));
+const GadgetMigration = lazy(() => import("./pages/GadgetMigration"));
 
 // Create QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -71,6 +72,7 @@ const App = () => {
                   <Route path="/competitor-analysis" element={<CompetitorAnalysis />} />
                   <Route path="/gadget-settings" element={<div className="container mx-auto py-8 px-4"><div className="max-w-lg mx-auto"><GadgetConfigForm /></div></div>} />
                   <Route path="/gadget-documentation" element={<GadgetDocumentation />} />
+                  <Route path="/gadget-migration" element={<GadgetMigration />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

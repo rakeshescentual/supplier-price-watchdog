@@ -72,7 +72,7 @@ export const performBatchOperations = async <T, R>(
     retryCount: 3,
     retryDelay: 1000,
     maxConcurrency: 5,
-    onProgress?: (processed: number, total: number) => void
+    onProgress: (processed: number, total: number) => void
   }
 ): Promise<R[]> => {
   const results: R[] = [];

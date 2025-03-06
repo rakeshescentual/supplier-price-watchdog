@@ -115,7 +115,12 @@ Supplier Price Watch is a web application designed to help eCommerce businesses,
 
 ### API Integration
 - `shopifyApi.ts`: Functions for interacting with Shopify API
-- `gadgetApi.ts`: Functions for Gadget.dev integration
+- `gadget/*.ts`: Modular functions for Gadget.dev integration
+  - `client.ts`: Client initialization and connection management
+  - `auth.ts`: Authentication handlers
+  - `processing.ts`: Document and data processing
+  - `operations.ts`: Batch operations and sync functions
+  - `diagnostics.ts`: Health checks and diagnostics
 - `googleWorkspaceApi.ts`: Functions for Google Workspace integration
 
 ### UI Components
@@ -156,6 +161,7 @@ The application configures Gadget.dev through the `GadgetConfigForm` component, 
 - App ID
 - API Key
 - Environment (development/production)
+- Feature flags for optional capabilities
 
 Configuration is stored in localStorage for persistence between sessions.
 

@@ -28,7 +28,7 @@ The application uses a configuration component (`GadgetConfigForm.tsx`) to set u
 }
 ```
 
-This configuration is stored in `localStorage` and used by the `initGadgetClient()` function in `gadgetApi.ts`.
+This configuration is stored in `localStorage` and used by the `initGadgetClient()` function in `gadget/client.ts`.
 
 ### 2. Shopify Authentication Bridge
 
@@ -165,14 +165,37 @@ const syncToShopify = async (items: PriceItem[]): Promise<boolean> => {
 export const performBatchOperations = async <T, R>(
   items: T[],
   processFn: (item: T) => Promise<R>,
-  batchSize = 50
-): Promise<R[]> => {
+  options = { 
+    batchSize: 50,
+    maxConcurrency: 5,
+    retryCount: 3,
+    retryDelay: 1000,
+    onProgress?: (processed: number, total: number) => void
+  }
+): Promise<{
+  success: boolean;
+  results: R[];
+  failed: number;
+  errors?: Record<number, string>;
+}> => {
   // Split items into batches for parallel processing
   // Process batches sequentially to avoid rate limiting
   // Handle errors gracefully with retries and detailed logging
   // Return combined results
 };
 ```
+
+## Module Structure
+
+The Gadget integration is now organized into a modular structure:
+
+- **client.ts**: Initialization and connection testing
+- **auth.ts**: Authentication with Shopify
+- **processing.ts**: Document processing and data enrichment
+- **operations.ts**: Batch operations and Shopify sync
+- **diagnostics.ts**: Health checks and diagnostics
+
+This modular approach improves maintainability and makes it easier to understand each component's responsibility.
 
 ## Integration with Klaviyo
 
@@ -196,19 +219,19 @@ For Shopify Plus merchants, Gadget.dev provides additional enterprise capabiliti
 
 ## Future Enhancements
 
-1. **Custom Gadget Actions**: Create specialized Gadget actions for price analysis and recommendations.
+1. **Custom Gadget Actions**: Create specialized Gadget actions for price analysis and recommendations
 
-2. **Enhanced PDF Processing**: Improve extraction from complex supplier price lists with custom Gadget actions.
+2. **Enhanced PDF Processing**: Improve extraction from complex supplier price lists with custom Gadget actions
 
-3. **Background Processing**: Use Gadget's background job capabilities for processing large datasets.
+3. **Background Processing**: Use Gadget's background job capabilities for processing large datasets
 
-4. **Webhooks**: Implement Gadget webhooks to trigger actions when supplier files are uploaded.
+4. **Webhooks**: Implement Gadget webhooks to trigger actions when supplier files are uploaded
 
-5. **Multi-tenant Support**: Extend to support multiple Shopify stores through Gadget's multi-tenant capabilities.
+5. **Multi-tenant Support**: Extend to support multiple Shopify stores through Gadget's multi-tenant capabilities
 
-6. **Automated AI Analysis**: Schedule regular market data enrichment and analysis jobs via Gadget's cron functionality.
+6. **Automated AI Analysis**: Schedule regular market data enrichment and analysis jobs via Gadget's cron functionality
 
-7. **Enhanced Klaviyo Integration**: Use Gadget as middleware to create advanced segmentation logic.
+7. **Enhanced Klaviyo Integration**: Use Gadget as middleware to create advanced segmentation logic
 
 ## Integration Sequence
 
@@ -224,54 +247,22 @@ For Shopify Plus merchants, Gadget.dev provides additional enterprise capabiliti
    - Gadget prepares segmented customer data
    - Klaviyo integration receives segment data for email campaigns
 
+## Error Handling Best Practices
+
+The Gadget integration includes robust error handling:
+
+1. **Configuration Validation**: All operations validate that Gadget is properly configured
+2. **Connection Testing**: Connection health checks before critical operations
+3. **Detailed Error Messages**: Specific error messages for different failure scenarios
+4. **Retry Logic**: Automatic retries with exponential backoff for transient failures
+5. **Fallback Mechanisms**: Graceful degradation to direct API calls when Gadget is unavailable
+
 ## Technical Requirements
 
 - Gadget.dev account
 - Gadget application with appropriate models and actions
 - Gadget API key with appropriate permissions
 - Configuration of CORS for your Gadget application
-
-## Advanced Integration Features
-
-### Shopify Plus Scripts via Gadget
-
-```typescript
-// Example of using Gadget to deploy Shopify Scripts
-export const deployShopifyScript = async (
-  context: ShopifyContext,
-  scriptConfig: ShopifyScriptConfig
-): Promise<boolean> => {
-  const client = initGadgetClient();
-  if (!client) return false;
-  
-  // Use Gadget to deploy and manage Shopify Scripts
-  // Scripts allow for dynamic pricing rules based on customer segments
-  return true;
-};
-```
-
-### Shopify Plus Flows via Gadget
-
-```typescript
-// Example of using Gadget to create Shopify Flows
-export const createShopifyFlow = async (
-  context: ShopifyContext,
-  flowConfig: ShopifyFlowConfig
-): Promise<boolean> => {
-  const client = initGadgetClient();
-  if (!client) return false;
-  
-  // Use Gadget to create and manage Shopify Flows
-  // Flows automate business processes based on triggers
-  return true;
-};
-```
-
-## Limitations
-
-- Currently uses mock implementations for demonstration
-- Real Gadget integration requires creating appropriate models and actions
-- PDF processing requires specific Gadget capabilities to be configured
 
 ## Conclusion
 

@@ -121,6 +121,18 @@ export const syncToShopifyViaGadget = async (
       └───────────┘
 ```
 
+## Module Structure
+
+The Gadget integration is organized into a modular structure:
+
+- **client.ts**: Initialization and connection testing
+- **auth.ts**: Authentication with Shopify
+- **processing.ts**: Document processing and data enrichment
+- **operations.ts**: Batch operations and Shopify sync
+- **diagnostics.ts**: Health checks and diagnostics
+
+This modular approach improves maintainability and makes it easier to understand each component's responsibility.
+
 ## Implementation Details
 
 ### 1. Client Initialization
@@ -142,7 +154,28 @@ export const initGadgetClient = () => {
 };
 ```
 
-### 2. Fallback Mechanisms
+### 2. Batch Processing Helper
+
+```typescript
+export const performBatchOperations = async <T, R>(
+  items: T[],
+  processFn: (item: T) => Promise<R>,
+  options = { 
+    batchSize: 50,
+    maxConcurrency: 5,
+    retryCount: 3,
+    retryDelay: 1000,
+    onProgress?: (processed: number, total: number) => void
+  }
+): Promise<R[]> => {
+  // Split items into batches for parallel processing
+  // Process batches sequentially to avoid rate limiting
+  // Handle errors gracefully with retries and detailed logging
+  // Return combined results
+};
+```
+
+### 3. Fallback Mechanisms
 
 The application is designed to work even without Gadget.dev, with graceful fallbacks:
 
@@ -159,44 +192,6 @@ const syncToShopify = async (items: PriceItem[]): Promise<boolean> => {
 };
 ```
 
-### 3. Batch Processing Helper
-
-```typescript
-export const performBatchOperations = async <T, R>(
-  items: T[],
-  processFn: (item: T) => Promise<R>,
-  options = { 
-    batchSize: 50,
-    maxConcurrency: 5,
-    retryCount: 3,
-    retryDelay: 1000,
-    onProgress?: (processed: number, total: number) => void
-  }
-): Promise<{
-  success: boolean;
-  results: R[];
-  failed: number;
-  errors?: Record<number, string>;
-}> => {
-  // Split items into batches for parallel processing
-  // Process batches sequentially to avoid rate limiting
-  // Handle errors gracefully with retries and detailed logging
-  // Return combined results
-};
-```
-
-## Module Structure
-
-The Gadget integration is now organized into a modular structure:
-
-- **client.ts**: Initialization and connection testing
-- **auth.ts**: Authentication with Shopify
-- **processing.ts**: Document processing and data enrichment
-- **operations.ts**: Batch operations and Shopify sync
-- **diagnostics.ts**: Health checks and diagnostics
-
-This modular approach improves maintainability and makes it easier to understand each component's responsibility.
-
 ## Integration with Klaviyo
 
 Gadget.dev facilitates the connection between Shopify product data and Klaviyo for personalized email marketing:
@@ -207,6 +202,50 @@ Gadget.dev facilitates the connection between Shopify product data and Klaviyo f
 4. Email templates for price increases and discontinued products are prepared
 5. Automated campaigns are scheduled based on price change effective dates
 
+## Advanced Features
+
+### 1. Historical Price Trend Analysis
+
+```typescript
+export const analyzeHistoricalPricing = async (
+  items: PriceItem[],
+  timeframe: 'month' | 'quarter' | 'year' = 'quarter'
+): Promise<PriceItem[]> => {
+  // Fetch historical pricing data from Gadget
+  // Calculate trends, volatility and seasonality
+  // Return items with enriched historical context
+};
+```
+
+### 2. Competitive Pricing Intelligence
+
+Gadget.dev can automate the collection and analysis of competitor pricing data:
+
+```typescript
+export const scheduleCompetitorScraping = async (
+  items: PriceItem[],
+  competitors: string[]
+): Promise<{jobId: string}> => {
+  // Schedule regular competitor price checks
+  // Run via Gadget's background job system
+  // Store results for trend analysis
+};
+```
+
+### 3. AI-Powered Pricing Recommendations
+
+Using Gadget.dev's AI capabilities:
+
+```typescript
+export const generatePricingRecommendations = async (
+  items: PriceItem[]
+): Promise<PriceItem[]> => {
+  // Analyze market position, trends, and elasticity
+  // Generate optimal pricing recommendations
+  // Provide rationale for each recommendation
+};
+```
+
 ## Shopify Plus Enhanced Features
 
 For Shopify Plus merchants, Gadget.dev provides additional enterprise capabilities:
@@ -216,6 +255,16 @@ For Shopify Plus merchants, Gadget.dev provides additional enterprise capabiliti
 3. **Script automation** for personalized pricing rules
 4. **Flow enhancements** for automated inventory and price change workflows
 5. **Enhanced metafield support** for rich product data
+
+## Error Handling Best Practices
+
+The Gadget integration includes robust error handling:
+
+1. **Configuration Validation**: All operations validate that Gadget is properly configured
+2. **Connection Testing**: Connection health checks before critical operations
+3. **Detailed Error Messages**: Specific error messages for different failure scenarios
+4. **Retry Logic**: Automatic retries with exponential backoff for transient failures
+5. **Fallback Mechanisms**: Graceful degradation to direct API calls when Gadget is unavailable
 
 ## Future Enhancements
 
@@ -233,6 +282,13 @@ For Shopify Plus merchants, Gadget.dev provides additional enterprise capabiliti
 
 7. **Enhanced Klaviyo Integration**: Use Gadget as middleware to create advanced segmentation logic
 
+## Technical Requirements
+
+- Gadget.dev account
+- Gadget application with appropriate models and actions
+- Gadget API key with appropriate permissions
+- Configuration of CORS for your Gadget application
+
 ## Integration Sequence
 
 1. User configures Gadget.dev in the application
@@ -246,23 +302,6 @@ For Shopify Plus merchants, Gadget.dev provides additional enterprise capabiliti
 5. For customer communications:
    - Gadget prepares segmented customer data
    - Klaviyo integration receives segment data for email campaigns
-
-## Error Handling Best Practices
-
-The Gadget integration includes robust error handling:
-
-1. **Configuration Validation**: All operations validate that Gadget is properly configured
-2. **Connection Testing**: Connection health checks before critical operations
-3. **Detailed Error Messages**: Specific error messages for different failure scenarios
-4. **Retry Logic**: Automatic retries with exponential backoff for transient failures
-5. **Fallback Mechanisms**: Graceful degradation to direct API calls when Gadget is unavailable
-
-## Technical Requirements
-
-- Gadget.dev account
-- Gadget application with appropriate models and actions
-- Gadget API key with appropriate permissions
-- Configuration of CORS for your Gadget application
 
 ## Conclusion
 

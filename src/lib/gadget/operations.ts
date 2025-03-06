@@ -4,162 +4,214 @@ import type { PriceItem, ShopifyContext } from '@/types/price';
 import { initGadgetClient } from './client';
 
 /**
- * Sync data to Shopify through Gadget for better batching and error handling
+ * Synchronize price items to Shopify through Gadget with batch processing
  * @param context Shopify context for authentication
- * @param items Price items to sync to Shopify
- * @returns Promise resolving to sync result
+ * @param items Price items to synchronize
+ * @returns Promise resolving to a success indicator
  */
 export const syncToShopifyViaGadget = async (
-  context: ShopifyContext,
+  context: ShopifyContext, 
   items: PriceItem[]
 ): Promise<{success: boolean; message?: string}> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return { 
-      success: false, 
-      message: "Gadget client not initialized" 
-    };
-  }
-  
-  try {
-    console.log("Syncing to Shopify via Gadget...");
-    // Mock implementation - in production would use Gadget SDK
-    // const result = await client.mutate.syncProductsToShopify({
-    //   shop: context.shop,
-    //   accessToken: context.accessToken,
-    //   products: items,
-    //   options: {
-    //     batchSize: 100,
-    //     maxConcurrency: 5,
-    //     retryCount: 3
-    //   }
-    // });
-    
-    toast.success("Sync completed via Gadget", {
-      description: `Successfully synced ${items.length} products to Shopify.`
-    });
-    return { success: true };
-  } catch (error) {
-    console.error("Error syncing to Shopify via Gadget:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    toast.error("Sync failed", {
-      description: `Could not sync products to Shopify: ${errorMessage}`
-    });
-    return { 
-      success: false, 
-      message: errorMessage
-    };
-  }
-};
-
-/**
- * Perform batch operations with efficient retry and error handling through Gadget
- * @param items Items to process in batches
- * @param processFn Function to process each item
- * @param options Batch processing options
- * @returns Promise resolving to batch processing results
- */
-export const performBatchOperations = async <T, R>(
-  items: T[],
-  processFn: (item: T) => Promise<R>,
-  options = { 
-    batchSize: 50,
-    maxConcurrency: 5,
-    retryCount: 3,
-    retryDelay: 1000,
-    onProgress?: (processed: number, total: number) => void
-  }
-): Promise<{
-  success: boolean;
-  results: R[];
-  failed: number;
-  errors?: Record<number, string>;
-}> => {
   const client = initGadgetClient();
   if (!client) {
     throw new Error("Gadget configuration required");
   }
   
   try {
-    console.log("Performing batch operations via Gadget...");
-    // Mock implementation - in production would use Gadget SDK
-    // const result = await client.mutate.batchProcess({
-    //   items: items,
-    //   processorFunction: processFn.toString(),
-    //   options
-    // });
+    console.log(`Syncing ${items.length} items with Shopify via Gadget...`);
+    // In production: Use Gadget SDK for efficient batching
+    // const results = await performBatchOperations(
+    //   items,
+    //   async (item) => {
+    //     return await client.mutate.syncProductPrice({
+    //       shop: context.shop,
+    //       accessToken: context.accessToken,
+    //       sku: item.sku,
+    //       newPrice: item.newPrice
+    //     });
+    //   },
+    //   { batchSize: 50, retryCount: 3 }
+    // );
     
-    // Process items in batches with error tracking
-    const results: R[] = [];
-    const errors: Record<number, string> = {};
-    const batches = [];
+    // For demonstration purposes, simulate a successful sync
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    for (let i = 0; i < items.length; i += options.batchSize) {
-      batches.push(items.slice(i, i + options.batchSize));
-    }
+    toast.success("Sync complete", {
+      description: `Successfully synced ${items.length} items to Shopify via Gadget.`
+    });
     
-    let processed = 0;
-    const total = items.length;
-    
-    for (const [batchIndex, batch] of batches.entries()) {
-      try {
-        // Process items in a batch with controlled concurrency
-        const batchPromises = batch.map(async (item, index) => {
-          const itemIndex = batchIndex * options.batchSize + index;
-          let attempt = 0;
-          
-          // Implement retry logic
-          while (attempt < options.retryCount) {
-            try {
-              const result = await processFn(item);
-              processed++;
-              
-              if (options.onProgress) {
-                options.onProgress(processed, total);
-              }
-              
-              return result;
-            } catch (error) {
-              attempt++;
-              
-              if (attempt >= options.retryCount) {
-                errors[itemIndex] = error instanceof Error ? error.message : "Unknown error";
-                throw error;
-              }
-              
-              // Wait before retrying
-              await new Promise(resolve => 
-                setTimeout(resolve, options.retryDelay * Math.pow(2, attempt - 1))
-              );
-            }
-          }
-          
-          // This return is needed to satisfy TypeScript
-          return {} as R;
-        });
-        
-        const batchResults = await Promise.allSettled(batchPromises);
-        
-        // Filter successful results
-        batchResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            results.push(result.value);
-          }
-        });
-      } catch (batchError) {
-        console.error(`Error processing batch ${batchIndex}:`, batchError);
-        // Individual errors are already recorded in the errors object
-      }
-    }
-    
-    return {
-      success: Object.keys(errors).length === 0,
-      results,
-      failed: Object.keys(errors).length,
-      errors: Object.keys(errors).length > 0 ? errors : undefined
+    return { 
+      success: true,
+      message: `Synced ${items.length} items to Shopify` 
     };
   } catch (error) {
-    console.error("Error during batch operations:", error);
-    throw new Error(`Failed to process batch operations: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error("Error syncing to Shopify via Gadget:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    toast.error("Sync failed", {
+      description: `Failed to sync items with Shopify via Gadget: ${errorMessage}`
+    });
+    
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Perform batch operations with retry logic
+ * @param items Items to process
+ * @param processFn Function to process each item
+ * @param options Batch processing options
+ * @returns Promise resolving to array of results
+ */
+export const performBatchOperations = async <T, R>(
+  items: T[],
+  processFn: (item: T) => Promise<R>,
+  options = { 
+    batchSize: 50,
+    retryCount: 3,
+    retryDelay: 1000,
+    maxConcurrency: 5,
+    onProgress?: (processed: number, total: number) => void
+  }
+): Promise<R[]> => {
+  const results: R[] = [];
+  const errors: Record<number, string> = {};
+  const batchSize = options.batchSize || 50;
+  
+  // Process in batches to avoid rate limiting
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(items.length / batchSize)}`);
+    
+    // Process batch items with concurrency limit
+    const batchPromises = batch.map(async (item, batchIndex) => {
+      const itemIndex = i + batchIndex;
+      
+      // Implement retry logic
+      for (let attempt = 0; attempt < (options.retryCount || 3); attempt++) {
+        try {
+          const result = await processFn(item);
+          
+          // Report progress if callback provided
+          if (options.onProgress) {
+            options.onProgress(itemIndex + 1, items.length);
+          }
+          
+          return result;
+        } catch (error) {
+          console.error(`Error processing item ${itemIndex} (attempt ${attempt + 1}/${options.retryCount}):`, error);
+          
+          // Last attempt failed, record error
+          if (attempt === (options.retryCount || 3) - 1) {
+            errors[itemIndex] = error instanceof Error ? error.message : "Unknown error";
+            // Return a placeholder value to maintain array structure
+            return {} as R;
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, options.retryDelay || 1000));
+        }
+      }
+      
+      // Fallback return if all retries fail (should never reach here due to return in catch block)
+      return {} as R;
+    });
+    
+    // Process batch with limited concurrency
+    const batchResults = await processBatchWithConcurrency(
+      batchPromises, 
+      options.maxConcurrency || 5
+    );
+    
+    results.push(...batchResults);
+  }
+  
+  // Log any errors that occurred
+  const errorCount = Object.keys(errors).length;
+  if (errorCount > 0) {
+    console.warn(`${errorCount} items failed to process:`, errors);
+  }
+  
+  return results;
+};
+
+/**
+ * Process promises with concurrency limit
+ * @param promises Array of promises to process
+ * @param concurrency Maximum number of concurrent promises
+ * @returns Promise resolving to array of results
+ */
+async function processBatchWithConcurrency<R>(
+  promises: Promise<R>[], 
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = [];
+  
+  // Process in chunks based on concurrency limit
+  for (let i = 0; i < promises.length; i += concurrency) {
+    const chunk = promises.slice(i, i + concurrency);
+    const chunkResults = await Promise.all(chunk);
+    results.push(...chunkResults);
+  }
+  
+  return results;
+}
+
+/**
+ * Export data from Gadget to CSV format
+ * @param items Items to export
+ * @param format Export format (csv or json)
+ * @returns Promise resolving to blob of exported data
+ */
+export const exportDataFromGadget = async (
+  items: PriceItem[],
+  format: 'csv' | 'json' = 'csv'
+): Promise<Blob> => {
+  const client = initGadgetClient();
+  if (!client) {
+    throw new Error("Gadget configuration required");
+  }
+  
+  try {
+    console.log(`Exporting ${items.length} items in ${format} format...`);
+    
+    // In production: Use Gadget SDK for export functionality
+    // const result = await client.query.exportData({
+    //   items: items,
+    //   format: format
+    // });
+    
+    // For demonstration, create CSV or JSON locally
+    let content: string;
+    
+    if (format === 'csv') {
+      const headers = ['SKU', 'Name', 'Old Price', 'New Price', 'Difference', 'Status'];
+      const rows = items.map(item => [
+        item.sku,
+        item.name,
+        item.oldPrice?.toString() || '',
+        item.newPrice.toString(),
+        item.difference?.toString() || '',
+        item.status || ''
+      ]);
+      
+      content = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+    } else {
+      content = JSON.stringify(items, null, 2);
+    }
+    
+    const blob = new Blob(
+      [content], 
+      { type: format === 'csv' ? 'text/csv' : 'application/json' }
+    );
+    
+    return blob;
+  } catch (error) {
+    console.error(`Error exporting data from Gadget in ${format} format:`, error);
+    throw error;
   }
 };

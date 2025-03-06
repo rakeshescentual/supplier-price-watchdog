@@ -21,11 +21,12 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
     //   file: file,
     //   options: {
     //     extractTables: true,
-    //     useOCR: true
+    //     useOCR: true,
+    //     confidence: 0.85
     //   }
     // });
     
-    // Mock data with correct PriceItem properties - Fixed to match PriceItem type
+    // Mock data with correct PriceItem properties
     return Promise.resolve([
       { 
         id: "mock1", 
@@ -73,25 +74,118 @@ export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceIte
     //   items: items,
     //   options: {
     //     searchCompetitors: true,
-    //     includeMarketPositioning: true
+    //     includeMarketPositioning: true,
+    //     competitorDomains: ['competitor1.com', 'competitor2.com'],
+    //     maxSearchResults: 5
     //   }
     // });
     
-    // Mock enriched data - Fixed to use newPrice instead of price
-    return items.map(item => ({
-      ...item,
-      marketData: {
-        pricePosition: 'average' as 'low' | 'average' | 'high',
-        averagePrice: item.newPrice * 1.2,
-        minPrice: item.newPrice * 0.9,
-        maxPrice: item.newPrice * 1.5,
-        competitorPrices: [item.newPrice * 0.9, item.newPrice * 1.1, item.newPrice * 1.3]
-      },
-      potentialImpact: item.difference * 10
-    }));
+    // Simulate processing delay for a more realistic experience
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Add market data with realistic values
+    return items.map(item => {
+      // Calculate realistic market values based on the product price
+      const basePrice = item.newPrice;
+      const marketVariance = 0.25; // 25% variance in market
+      const avgMultiplier = 1 + (Math.random() * 0.4 - 0.2); // ±20% from base
+      const minMultiplier = 0.8 + (Math.random() * 0.1); // 80-90% of base
+      const maxMultiplier = 1.2 + (Math.random() * 0.3); // 120-150% of base
+      
+      // Determine realistic price position
+      let pricePosition: 'low' | 'average' | 'high';
+      const priceRatio = basePrice / (basePrice * avgMultiplier);
+      
+      if (priceRatio < 0.9) {
+        pricePosition = 'low';
+      } else if (priceRatio > 1.1) {
+        pricePosition = 'high';
+      } else {
+        pricePosition = 'average';
+      }
+      
+      // Generate 3-5 competitive prices
+      const compCount = 3 + Math.floor(Math.random() * 3);
+      const competitorPrices = Array.from({length: compCount}, () => {
+        return basePrice * (1 + (Math.random() * marketVariance * 2 - marketVariance));
+      });
+      
+      // Calculate potential impact based on price difference and market position
+      const impact = item.difference 
+        ? Math.abs(item.difference) * (10 + Math.floor(Math.random() * 5))
+        : 0;
+      
+      return {
+        ...item,
+        marketData: {
+          pricePosition,
+          averagePrice: basePrice * avgMultiplier,
+          minPrice: basePrice * minMultiplier,
+          maxPrice: basePrice * maxMultiplier,
+          competitorPrices,
+          lastUpdated: new Date().toISOString()
+        },
+        potentialImpact: impact,
+        competitiveEdge: pricePosition === 'low' ? 'favorable' 
+          : pricePosition === 'high' ? 'premium' 
+          : 'neutral'
+      };
+    });
   } catch (error) {
     console.error("Error enriching data via Gadget:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     throw new Error(`Failed to enrich product data: ${errorMessage}`);
+  }
+};
+
+/**
+ * Analyze historical pricing data to identify trends
+ * @param items Current price items
+ * @param timeframe Timeframe for historical analysis
+ * @returns Promise resolving to analyzed items with trend data
+ */
+export const analyzeHistoricalPricing = async (
+  items: PriceItem[],
+  timeframe: 'month' | 'quarter' | 'year' = 'quarter'
+): Promise<PriceItem[]> => {
+  const client = initGadgetClient();
+  if (!client) {
+    throw new Error("Gadget configuration required");
+  }
+  
+  try {
+    console.log(`Analyzing historical pricing for ${timeframe}...`);
+    // In production: Use Gadget SDK to fetch and analyze historical data
+    // const result = await client.query.historicalPricing({
+    //   items: items.map(item => item.sku),
+    //   timeframe: timeframe
+    // });
+    
+    // Mock historical trend analysis
+    return items.map(item => {
+      // Generate realistic trend percentages based on current price movement
+      const trendDirection = item.status === 'increased' ? 1 : 
+                            item.status === 'decreased' ? -1 : 0;
+      
+      const industryTrend = (Math.random() * 5 + 1) * (Math.random() > 0.5 ? 1 : -1);
+      const categoryTrend = industryTrend + (Math.random() * 3 - 1.5);
+      const itemTrend = trendDirection * (Math.random() * 8 + 2);
+      
+      return {
+        ...item,
+        historicalData: {
+          itemTrendPercent: itemTrend,
+          categoryTrendPercent: categoryTrend,
+          industryTrendPercent: industryTrend,
+          volatility: Math.random() * 10,
+          timeframe: timeframe,
+          dataPoints: 12 * (timeframe === 'month' ? 1 : timeframe === 'quarter' ? 3 : 12)
+        }
+      };
+    });
+  } catch (error) {
+    console.error(`Error analyzing historical pricing data for ${timeframe}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to analyze historical pricing data: ${errorMessage}`);
   }
 };

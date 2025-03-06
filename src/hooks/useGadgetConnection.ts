@@ -1,115 +1,93 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { initGadgetClient } from '@/lib/gadgetApi';
+import { GadgetConfig } from '@/types/price';
+import { initGadgetClient, isGadgetInitialized } from '@/lib/gadgetApi';
 import { getGadgetConfig, testGadgetConnection } from '@/utils/gadget-helpers';
-import type { GadgetConfig } from '@/types/price';
 
-interface GadgetConnectionState {
-  isConnected: boolean;
-  isConfigured: boolean;
-  isInitialized: boolean;
-  lastConnectionTest: Date | null;
-  config: GadgetConfig | null;
-}
-
-export const useGadgetConnection = () => {
-  const [state, setState] = useState<GadgetConnectionState>({
-    isConnected: false,
-    isConfigured: false,
-    isInitialized: false,
-    lastConnectionTest: null,
-    config: null
-  });
-
+export function useGadgetConnection() {
+  const [isConfigured, setIsConfigured] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [config, setConfig] = useState<GadgetConfig | null>(null);
+  const [lastConnectionTest, setLastConnectionTest] = useState<Date | null>(null);
+  
   const init = useCallback(async () => {
-    const config = getGadgetConfig();
-    const client = initGadgetClient();
+    const storedConfig = getGadgetConfig();
     
-    setState(prev => ({
-      ...prev,
-      isConfigured: !!config,
-      isInitialized: !!client?.ready,
-      config
-    }));
-    
-    if (config) {
-      try {
-        const isConnected = await testGadgetConnection(config);
-        setState(prev => ({
-          ...prev,
-          isConnected,
-          lastConnectionTest: new Date()
-        }));
-        
-        if (isConnected) {
-          console.log("Gadget connection successful");
-        } else {
-          console.warn("Gadget connection test failed");
+    if (storedConfig) {
+      setConfig(storedConfig);
+      setIsConfigured(true);
+      
+      const initialized = isGadgetInitialized();
+      setIsInitialized(initialized);
+      
+      if (initialized) {
+        try {
+          const connected = await testGadgetConnection(storedConfig);
+          setIsConnected(connected);
+          setLastConnectionTest(new Date());
+          
+          if (connected) {
+            toast.success("Gadget connected", {
+              description: "Successfully connected to Gadget.dev"
+            });
+          } else {
+            toast.warning("Gadget connection issue", {
+              description: "Could not connect to Gadget.dev. Check your configuration."
+            });
+          }
+        } catch (error) {
+          console.error("Error testing Gadget connection:", error);
+          setIsConnected(false);
+          toast.error("Connection error", {
+            description: "An error occurred while testing the Gadget connection."
+          });
         }
-      } catch (error) {
-        console.error("Error testing Gadget connection:", error);
-        setState(prev => ({
-          ...prev,
-          isConnected: false,
-          lastConnectionTest: new Date()
-        }));
       }
+    } else {
+      setIsConfigured(false);
+      setIsConnected(false);
+      setIsInitialized(false);
+      setConfig(null);
     }
   }, []);
-
-  const testConnection = useCallback(async (config?: GadgetConfig): Promise<boolean> => {
-    const configToTest = config || state.config;
-    if (!configToTest) {
-      toast.error("No Gadget configuration", {
-        description: "Please provide configuration details to test connection."
-      });
-      return false;
-    }
-    
+  
+  const testConnection = useCallback(async (testConfig?: GadgetConfig): Promise<boolean> => {
     try {
-      const isConnected = await testGadgetConnection(configToTest);
+      const configToTest = testConfig || config;
       
-      setState(prev => ({
-        ...prev,
-        isConnected,
-        lastConnectionTest: new Date()
-      }));
-      
-      if (isConnected) {
-        toast.success("Gadget connection successful", {
-          description: "Successfully connected to Gadget.dev"
+      if (!configToTest) {
+        toast.error("Missing configuration", {
+          description: "Gadget configuration is required for testing"
         });
-      } else {
-        toast.error("Gadget connection failed", {
-          description: "Could not connect to Gadget. Please check your configuration."
-        });
+        return false;
       }
       
-      return isConnected;
+      const connected = await testGadgetConnection(configToTest);
+      setIsConnected(connected);
+      setLastConnectionTest(new Date());
+      
+      return connected;
     } catch (error) {
       console.error("Error testing Gadget connection:", error);
-      toast.error("Connection error", {
-        description: "An error occurred while testing Gadget connection."
-      });
-      
-      setState(prev => ({
-        ...prev,
-        isConnected: false,
-        lastConnectionTest: new Date()
-      }));
-      
+      setIsConnected(false);
+      setLastConnectionTest(new Date());
       return false;
     }
-  }, [state.config]);
-
+  }, [config]);
+  
   useEffect(() => {
     init();
   }, [init]);
-
+  
   return {
-    ...state,
     init,
-    testConnection
+    testConnection,
+    isConnected,
+    isConfigured,
+    isInitialized,
+    lastConnectionTest,
+    config: config as GadgetConfig
   };
-};
+}

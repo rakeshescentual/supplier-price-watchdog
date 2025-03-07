@@ -1,109 +1,170 @@
 
+/**
+ * Data export utilities for Gadget
+ */
 import { toast } from 'sonner';
 import type { PriceItem } from '@/types/price';
 import { initGadgetClient } from './client';
-import { reportError, trackUsage, startPerformanceTracking } from './telemetry';
 import { logInfo, logError } from './logging';
+import { startPerformanceTracking } from './telemetry';
 
 /**
- * Export data from Gadget to CSV or JSON format
+ * Export data to various formats via Gadget
  * @param items Items to export
- * @param format Export format (csv or json)
- * @returns Promise resolving to blob of exported data
+ * @param format Export format
+ * @param options Export options
+ * @returns Promise resolving to an export URL or Blob
  */
-export const exportDataFromGadget = async (
+export const exportData = async (
   items: PriceItem[],
-  format: 'csv' | 'json' = 'csv'
-): Promise<Blob> => {
+  format: 'csv' | 'xlsx' | 'json' | 'pdf',
+  options: {
+    fileName?: string;
+    includeMetadata?: boolean;
+    groupBy?: 'status' | 'category' | 'vendor';
+    filterFn?: (item: PriceItem) => boolean;
+  } = {}
+): Promise<string | Blob> => {
   const client = initGadgetClient();
-  if (!client) {
-    const error = new Error("Gadget configuration required");
-    await reportError(error, { component: 'exportDataFromGadget', severity: 'medium' });
-    throw error;
-  }
   
   // Start performance tracking
-  const finishTracking = startPerformanceTracking('exportDataFromGadget', {
+  const finishTracking = startPerformanceTracking('exportData', {
+    format,
     itemCount: items.length,
-    format
+    ...options
   });
   
   try {
-    logInfo(`Exporting ${items.length} items in ${format} format...`, {
-      itemCount: items.length,
-      format
-    }, 'export');
-    
-    // Track feature usage
-    await trackUsage('data_export', { itemCount: items.length, format });
-    
-    // In production: Use Gadget SDK for export functionality
-    // const result = await client.query.exportData({
-    //   items: items,
-    //   format: format
-    // });
-    
-    // For demonstration, create CSV or JSON locally
-    let content: string;
-    
-    if (format === 'csv') {
-      const headers = ['SKU', 'Name', 'Old Price', 'New Price', 'Difference', 'Status'];
-      const rows = items.map(item => [
-        item.sku,
-        item.name,
-        item.oldPrice?.toString() || '',
-        item.newPrice.toString(),
-        item.difference?.toString() || '',
-        item.status || ''
-      ]);
-      
-      content = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-      ].join('\n');
-    } else {
-      content = JSON.stringify(items, null, 2);
-    }
-    
-    const blob = new Blob(
-      [content], 
-      { type: format === 'csv' ? 'text/csv' : 'application/json' }
-    );
-    
-    logInfo("Export completed successfully", { 
-      itemCount: items.length,
+    logInfo(`Exporting ${items.length} items to ${format}`, {
       format,
-      contentSize: content.length
+      ...options
     }, 'export');
     
-    toast.success("Export successful", {
-      description: `${items.length} items exported to ${format.toUpperCase()} format`
-    });
+    // Apply filtering if provided
+    const filteredItems = options.filterFn 
+      ? items.filter(options.filterFn)
+      : items;
     
-    // Finish performance tracking
-    await finishTracking();
+    // Determine filename
+    const fileName = options.fileName || 
+      `price-data-export-${new Date().toISOString().split('T')[0]}.${format}`;
     
-    return blob;
+    if (client) {
+      // In production: Use Gadget for export processing
+      // const result = await client.mutate.generateExport({
+      //   data: JSON.stringify(filteredItems),
+      //   format,
+      //   options: JSON.stringify(options)
+      // });
+      // 
+      // return result.downloadUrl;
+      
+      // For development: Simple in-browser export
+      const blob = await generateLocalExport(filteredItems, format, options);
+      
+      logInfo(`Export completed: ${fileName}`, {
+        format,
+        size: blob.size,
+        itemCount: filteredItems.length
+      }, 'export');
+      
+      // Complete performance tracking
+      await finishTracking();
+      
+      return blob;
+    } else {
+      // No Gadget client available, fallback to local export
+      const blob = await generateLocalExport(filteredItems, format, options);
+      
+      logInfo(`Local export completed: ${fileName}`, {
+        format,
+        size: blob.size,
+        itemCount: filteredItems.length
+      }, 'export');
+      
+      // Complete performance tracking
+      await finishTracking();
+      
+      return blob;
+    }
   } catch (error) {
-    logError(`Error exporting data from Gadget in ${format} format`, { error }, 'export');
-    
-    // Report error to telemetry system
-    await reportError(error instanceof Error ? error : String(error), {
-      component: 'exportDataFromGadget',
-      severity: 'medium',
-      action: 'export_data',
-      metadata: { format }
+    logError('Error during export operation', { error }, 'export');
+    toast.error('Export failed', {
+      description: error instanceof Error ? error.message : 'Unknown error during export'
     });
     
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    toast.error("Export failed", {
-      description: `Failed to export data: ${errorMessage}`
-    });
-    
-    // Finish performance tracking even on error
+    // Complete performance tracking even on error
     await finishTracking();
     
     throw error;
+  }
+};
+
+/**
+ * Generate a local export for development without Gadget
+ * Note: For production, this would be handled by Gadget
+ */
+const generateLocalExport = async (
+  items: PriceItem[],
+  format: 'csv' | 'xlsx' | 'json' | 'pdf',
+  options: Record<string, any>
+): Promise<Blob> => {
+  // Convert items to the appropriate format
+  switch (format) {
+    case 'json':
+      return new Blob([JSON.stringify(items, null, 2)], { 
+        type: 'application/json' 
+      });
+      
+    case 'csv': {
+      if (items.length === 0) return new Blob([''], { type: 'text/csv' });
+      
+      // Get all possible headers from all items
+      const headers = Array.from(
+        new Set(
+          items.flatMap(item => Object.keys(item))
+            .filter(key => {
+              // Filter out complex objects that don't serialize well to CSV
+              const sample = items.find(item => item[key as keyof PriceItem]);
+              const value = sample?.[key as keyof PriceItem];
+              return typeof value !== 'object' || value === null;
+            })
+        )
+      );
+      
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...items.map(item => 
+          headers.map(header => {
+            const value = item[header as keyof PriceItem];
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
+            return String(value);
+          }).join(',')
+        )
+      ].join('\n');
+      
+      return new Blob([csvContent], { type: 'text/csv' });
+    }
+      
+    case 'xlsx':
+      // For XLSX, we would use a library like xlsx
+      // In a real implementation, this would be handled by Gadget
+      // For demo, just return JSON in an XLSX-mimetype blob
+      return new Blob([JSON.stringify(items)], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+    case 'pdf':
+      // For PDF, we would use a library like jsPDF or PDFKit
+      // In a real implementation, this would be handled by Gadget
+      // For demo, just return JSON in a PDF-mimetype blob
+      return new Blob([JSON.stringify(items)], { 
+        type: 'application/pdf' 
+      });
+      
+    default:
+      throw new Error(`Unsupported export format: ${format}`);
   }
 };

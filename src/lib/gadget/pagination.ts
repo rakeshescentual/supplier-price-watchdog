@@ -1,154 +1,174 @@
 
-import { toast } from 'sonner';
-import { logInfo, logError } from './logging';
+/**
+ * Pagination utilities for Gadget operations
+ */
+import { logInfo, logDebug } from './logging';
 
-export interface PaginationOptions {
-  pageSize: number;
-  maxPages?: number;
-  startPage?: number;
-}
-
+/**
+ * Interface for paginated results
+ */
 export interface PaginatedResult<T> {
   items: T[];
   totalItems: number;
-  totalPages: number;
   currentPage: number;
+  totalPages: number;
   pageSize: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
 }
 
 /**
- * Generic function to fetch paginated data from Gadget
- * @param fetchFn Function to fetch a single page of data
- * @param options Pagination options
- * @returns Promise resolving to paginated result
- */
-export const fetchPaginatedData = async <T>(
-  fetchFn: (page: number, pageSize: number) => Promise<{
-    items: T[];
-    totalItems?: number;
-    hasMore?: boolean;
-  }>,
-  options: PaginationOptions = { pageSize: 50, startPage: 1 }
-): Promise<PaginatedResult<T>> => {
-  const pageSize = options.pageSize;
-  const startPage = options.startPage || 1;
-  const maxPages = options.maxPages;
-  
-  try {
-    logInfo('Fetching paginated data', { pageSize, startPage, maxPages }, 'pagination');
-    
-    // Fetch first page to get total items or determine if there's more
-    const firstPageResult = await fetchFn(startPage, pageSize);
-    const items = [...firstPageResult.items];
-    let totalItems = firstPageResult.totalItems;
-    let hasMore = firstPageResult.hasMore;
-    
-    // If total items is not provided but hasMore is true, we need to fetch more pages
-    let currentPage = startPage;
-    if (!totalItems && hasMore && (!maxPages || currentPage < maxPages)) {
-      logInfo('Total items unknown, fetching additional pages', {}, 'pagination');
-      
-      // Continue fetching pages until we either run out of data or hit maxPages
-      while (hasMore && (!maxPages || currentPage < maxPages)) {
-        currentPage++;
-        const nextPageResult = await fetchFn(currentPage, pageSize);
-        
-        items.push(...nextPageResult.items);
-        hasMore = nextPageResult.hasMore;
-        
-        if (nextPageResult.totalItems) {
-          totalItems = nextPageResult.totalItems;
-        }
-      }
-    }
-    
-    // If we still don't have totalItems, use the number of items we've fetched
-    if (!totalItems) {
-      totalItems = items.length;
-    }
-    
-    // Calculate total pages
-    const totalPages = Math.ceil(totalItems / pageSize);
-    
-    const result: PaginatedResult<T> = {
-      items,
-      totalItems,
-      totalPages,
-      currentPage: startPage,
-      pageSize,
-      hasNextPage: currentPage < totalPages,
-      hasPreviousPage: startPage > 1
-    };
-    
-    logInfo('Paginated data fetched successfully', { 
-      totalItems: result.totalItems,
-      totalPages: result.totalPages,
-      itemsFetched: result.items.length
-    }, 'pagination');
-    
-    return result;
-  } catch (error) {
-    logError('Error fetching paginated data', { error }, 'pagination');
-    
-    toast.error("Pagination error", {
-      description: "Failed to fetch paginated data. Please try again."
-    });
-    
-    // Return an empty result with error information
-    return {
-      items: [],
-      totalItems: 0,
-      totalPages: 0,
-      currentPage: startPage,
-      pageSize,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
-  }
-};
-
-/**
- * Fetch specific page from a paginated data source
- * @param fetchFn Function to fetch a single page of data
- * @param page Page number to fetch
+ * Create a paginated result from an array of items
+ * @param items Full array of items
+ * @param page Current page number (1-indexed)
  * @param pageSize Number of items per page
- * @returns Promise resolving to paginated result
+ * @returns Paginated result
  */
-export const fetchPage = async <T>(
-  fetchFn: (page: number, pageSize: number) => Promise<{
-    items: T[];
-    totalItems?: number;
-    hasMore?: boolean;
-  }>,
-  page: number,
-  pageSize: number
-): Promise<PaginatedResult<T>> => {
-  return fetchPaginatedData(fetchFn, {
+export const paginate = <T>(
+  items: T[],
+  page: number = 1,
+  pageSize: number = 20
+): PaginatedResult<T> => {
+  const totalItems = items.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const currentPage = Math.max(1, Math.min(page, totalPages));
+  
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  
+  const paginatedItems = items.slice(startIndex, endIndex);
+  
+  return {
+    items: paginatedItems,
+    totalItems,
+    currentPage,
+    totalPages,
     pageSize,
-    startPage: page
-  });
+    hasNextPage: currentPage < totalPages,
+    hasPreviousPage: currentPage > 1
+  };
 };
 
 /**
- * Create a paginated fetch function for a specific Gadget endpoint
- * @param endpointFn Function to call Gadget endpoint with pagination parameters
- * @returns Function to fetch paginated data
+ * Extract pagination parameters from a URL query string
+ * @param query URL query string or URLSearchParams
+ * @param defaults Default pagination parameters
+ * @returns Pagination parameters
  */
-export const createPaginatedFetcher = <T>(
-  endpointFn: (params: { page: number; pageSize: number }) => Promise<{
-    data: T[];
-    meta?: { total?: number; hasMore?: boolean };
-  }>
-) => {
-  return async (page: number, pageSize: number) => {
-    const response = await endpointFn({ page, pageSize });
-    
-    return {
-      items: response.data,
-      totalItems: response.meta?.total,
-      hasMore: response.meta?.hasMore
-    };
+export const getPaginationParams = (
+  query: string | URLSearchParams,
+  defaults: { page?: number; pageSize?: number } = {}
+): { page: number; pageSize: number } => {
+  const params = typeof query === 'string' 
+    ? new URLSearchParams(query) 
+    : query;
+  
+  const page = Math.max(1, parseInt(params.get('page') || String(defaults.page || 1), 10));
+  const pageSize = Math.max(1, parseInt(params.get('pageSize') || String(defaults.pageSize || 20), 10));
+  
+  return { page, pageSize };
+};
+
+/**
+ * Generate pagination information for a URL-based API
+ * @param baseUrl Base URL for pagination links
+ * @param pagination Pagination parameters
+ * @returns Pagination links
+ */
+export const generatePaginationLinks = (
+  baseUrl: string,
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+  }
+): {
+  self: string;
+  first: string;
+  last: string;
+  next?: string;
+  prev?: string;
+} => {
+  const { currentPage, totalPages, pageSize } = pagination;
+  
+  const createUrl = (page: number) => {
+    const url = new URL(baseUrl);
+    url.searchParams.set('page', page.toString());
+    url.searchParams.set('pageSize', pageSize.toString());
+    return url.toString();
   };
+  
+  const links = {
+    self: createUrl(currentPage),
+    first: createUrl(1),
+    last: createUrl(totalPages)
+  };
+  
+  if (currentPage < totalPages) {
+    links['next'] = createUrl(currentPage + 1);
+  }
+  
+  if (currentPage > 1) {
+    links['prev'] = createUrl(currentPage - 1);
+  }
+  
+  return links;
+};
+
+/**
+ * Handle cursor-based pagination for Gadget APIs
+ * @param fetchFn Function to fetch a page of data
+ * @param options Pagination options
+ * @returns Promise resolving to all items
+ */
+export const fetchAllWithCursorPagination = async <T>(
+  fetchFn: (cursor?: string) => Promise<{
+    items: T[];
+    cursor?: string;
+    hasMore: boolean;
+  }>,
+  options: {
+    maxPages?: number;
+    onProgress?: (items: T[], hasMore: boolean) => void;
+  } = {}
+): Promise<T[]> => {
+  const { maxPages = 0, onProgress } = options;
+  
+  let cursor: string | undefined;
+  let hasMore = true;
+  let pageCount = 0;
+  const allItems: T[] = [];
+  
+  logInfo('Starting cursor-based pagination', {
+    maxPages: maxPages > 0 ? maxPages : 'unlimited'
+  }, 'pagination');
+  
+  while (hasMore && (maxPages === 0 || pageCount < maxPages)) {
+    pageCount++;
+    
+    logDebug(`Fetching page ${pageCount} with cursor: ${cursor || 'initial'}`, {}, 'pagination');
+    
+    const result = await fetchFn(cursor);
+    
+    allItems.push(...result.items);
+    cursor = result.cursor;
+    hasMore = result.hasMore && !!cursor;
+    
+    if (onProgress) {
+      onProgress(result.items, hasMore);
+    }
+    
+    logDebug(`Processed page ${pageCount}`, {
+      itemsInPage: result.items.length,
+      totalItemsProcessed: allItems.length,
+      hasMore
+    }, 'pagination');
+  }
+  
+  logInfo('Pagination complete', {
+    totalPages: pageCount,
+    totalItems: allItems.length
+  }, 'pagination');
+  
+  return allItems;
 };

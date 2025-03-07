@@ -1,24 +1,22 @@
 
+/**
+ * Data processing utilities for Gadget operations
+ * Includes PDF processing and data enhancement
+ */
 import { toast } from 'sonner';
 import type { PriceItem } from '@/types/price';
 import { initGadgetClient } from './client';
-import { reportError, trackUsage, startPerformanceTracking } from './telemetry';
-import { logInfo, logError, logDebug } from './logging';
-import { mockProcessPdf, mockEnrichData } from './mocks';
-import { fetchPaginatedData } from './pagination';
+import { logInfo, logError } from './logging';
+import { startPerformanceTracking } from './telemetry';
+import { mockProcessPdf } from './mocks';
 
 /**
- * Process PDF file through Gadget's document services with enhanced error handling
+ * Process a PDF file using Gadget's document processing capabilities
  * @param file PDF file to process
  * @returns Promise resolving to extracted price items
  */
 export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => {
   const client = initGadgetClient();
-  if (!client) {
-    const error = new Error("Gadget configuration required");
-    await reportError(error, { component: 'processPdfWithGadget', severity: 'high' });
-    throw error;
-  }
   
   // Start performance tracking
   const finishTracking = startPerformanceTracking('processPdfWithGadget', {
@@ -27,257 +25,146 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
   });
   
   try {
-    logInfo("Processing PDF via Gadget...", { 
-      fileName: file.name, 
-      fileSize: file.size 
-    }, 'processing');
+    logInfo(`Processing PDF file: ${file.name} (${file.size} bytes)`, {}, 'processing');
     
-    // Track feature usage
-    await trackUsage('pdf_processing', { fileSize: file.size });
+    // Read file as ArrayBuffer
+    const fileData = await file.arrayBuffer();
     
-    // In production: Use Gadget SDK
-    // const result = await client.mutate.processPDF({
-    //   file: file,
-    //   options: {
-    //     extractTables: true,
-    //     useOCR: true,
-    //     confidence: 0.85
-    //   }
-    // });
-    
-    // For demonstration: Use mock implementation
-    const result = await mockProcessPdf(file);
-    
-    logInfo("PDF processed successfully", { 
-      itemCount: result.length 
-    }, 'processing');
-    
-    // Finish performance tracking
-    await finishTracking();
-    
-    return result;
+    if (client) {
+      // In production: Use Gadget SDK for PDF processing
+      // const formData = new FormData();
+      // formData.append('file', new Blob([fileData]), file.name);
+      // 
+      // const result = await client.mutate.processPdfDocument({
+      //   file: formData
+      // });
+      // 
+      // return JSON.parse(result.items);
+      
+      // For development: Use mock implementation
+      const items = await mockProcessPdf(fileData);
+      
+      logInfo(`PDF processing complete: extracted ${items.length} items`, {
+        fileName: file.name
+      }, 'processing');
+      
+      toast.success('PDF Processing Complete', {
+        description: `Successfully extracted ${items.length} price items from PDF`
+      });
+      
+      // Complete performance tracking
+      await finishTracking();
+      
+      return items;
+    } else {
+      // No Gadget client, use mock implementation
+      const items = await mockProcessPdf(fileData);
+      
+      // Complete performance tracking
+      await finishTracking();
+      
+      return items;
+    }
   } catch (error) {
-    logError("Error processing PDF with Gadget", { error }, 'processing');
+    logError('Error processing PDF with Gadget', { error }, 'processing');
     
-    // Report error to telemetry system
-    await reportError(error instanceof Error ? error : String(error), {
-      component: 'processPdfWithGadget',
-      severity: 'high',
-      action: 'process_pdf'
+    toast.error('PDF Processing Failed', {
+      description: error instanceof Error ? error.message : 'Unknown error processing PDF'
     });
     
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    toast.error("PDF processing failed", {
-      description: `Failed to extract data from PDF: ${errorMessage}`
-    });
-    
-    // Finish performance tracking even on error
+    // Complete performance tracking even on error
     await finishTracking();
     
-    throw new Error(`Failed to process PDF file: ${errorMessage}`);
+    throw error;
   }
 };
 
 /**
- * Enrich product data with market information using Gadget's capabilities
- * @param items Price items to enrich with market data
- * @returns Promise resolving to enriched price items
+ * Enrich price data with market information via Gadget
+ * @param items Price items to enrich
+ * @returns Promise resolving to enriched items
  */
-export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
+export const enrichPriceData = async (items: PriceItem[]): Promise<PriceItem[]> => {
   const client = initGadgetClient();
   if (!client) {
-    const error = new Error("Gadget configuration required");
-    await reportError(error, { component: 'enrichDataWithSearch', severity: 'high' });
-    throw error;
+    return items;
   }
   
   // Start performance tracking
-  const finishTracking = startPerformanceTracking('enrichDataWithSearch', {
+  const finishTracking = startPerformanceTracking('enrichPriceData', {
     itemCount: items.length
   });
   
   try {
-    logInfo("Enriching data via Gadget...", { itemCount: items.length }, 'processing');
+    logInfo(`Enriching ${items.length} price items with market data`, {}, 'processing');
     
-    // Track feature usage
-    await trackUsage('data_enrichment', { itemCount: items.length });
-    
-    // For large datasets, process in batches to avoid memory issues
-    if (items.length > 100) {
-      logInfo("Large dataset detected, using paginated processing", { 
-        itemCount: items.length 
-      }, 'processing');
-      
-      // Process in batches of 100 items
-      const result = await fetchPaginatedData(async (page, pageSize) => {
-        const startIndex = (page - 1) * pageSize;
-        const endIndex = Math.min(startIndex + pageSize, items.length);
-        const batchItems = items.slice(startIndex, endIndex);
-        
-        logDebug(`Processing batch ${page}`, { 
-          startIndex, 
-          endIndex, 
-          itemCount: batchItems.length 
-        }, 'processing');
-        
-        // In production: Use Gadget SDK for each batch
-        // const enrichedBatch = await client.mutate.batchEnrichItems({
-        //   items: batchItems,
-        //   options: {
-        //     searchCompetitors: true,
-        //     includeMarketPositioning: true
-        //   }
-        // });
-        
-        // For demonstration: Use mock implementation
-        const enrichedBatch = await mockEnrichData(batchItems);
-        
-        return {
-          items: enrichedBatch,
-          totalItems: items.length,
-          hasMore: endIndex < items.length
-        };
-      }, { pageSize: 100 });
-      
-      // Finish performance tracking
-      await finishTracking();
-      
-      return result.items;
-    }
-    
-    // For smaller datasets, process all at once
-    // In production: Use Gadget SDK
-    // const result = await client.mutate.batchEnrichItems({
-    //   items: items,
-    //   options: {
-    //     searchCompetitors: true,
-    //     includeMarketPositioning: true,
-    //     competitorDomains: ['competitor1.com', 'competitor2.com'],
-    //     maxSearchResults: 5
-    //   }
+    // In production: Use Gadget SDK for data enrichment
+    // const result = await client.mutate.enrichMarketData({
+    //   items: JSON.stringify(items)
     // });
+    // 
+    // return JSON.parse(result.enrichedItems);
     
-    // For demonstration: Use mock implementation
-    const result = await mockEnrichData(items);
+    // For development: Simple mock enrichment
+    const enrichedItems = await mockEnrichItems(items);
     
-    logInfo("Data enrichment complete", { 
-      itemCount: result.length 
-    }, 'processing');
+    logInfo(`Data enrichment complete for ${items.length} items`, {}, 'processing');
     
-    // Finish performance tracking
+    // Complete performance tracking
     await finishTracking();
     
-    return result;
+    return enrichedItems;
   } catch (error) {
-    logError("Error enriching data via Gadget", { error }, 'processing');
+    logError('Error enriching data with Gadget', { error }, 'processing');
     
-    // Report error to telemetry system
-    await reportError(error instanceof Error ? error : String(error), {
-      component: 'enrichDataWithSearch',
-      severity: 'high',
-      action: 'enrich_data'
-    });
-    
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    toast.error("Data enrichment failed", {
-      description: `Failed to enrich product data: ${errorMessage}`
-    });
-    
-    // Finish performance tracking even on error
+    // Complete performance tracking even on error
     await finishTracking();
     
-    throw new Error(`Failed to enrich product data: ${errorMessage}`);
+    // Return original items on error
+    return items;
   }
 };
 
 /**
- * Analyze historical pricing data to identify trends
- * @param items Current price items
- * @param timeframe Timeframe for historical analysis
- * @returns Promise resolving to analyzed items with trend data
+ * Mock function to simulate data enrichment
+ * @param items Items to enrich
+ * @returns Enriched items
  */
-export const analyzeHistoricalPricing = async (
-  items: PriceItem[],
-  timeframe: 'month' | 'quarter' | 'year' = 'quarter'
-): Promise<PriceItem[]> => {
-  const client = initGadgetClient();
-  if (!client) {
-    const error = new Error("Gadget configuration required");
-    await reportError(error, { component: 'analyzeHistoricalPricing', severity: 'medium' });
-    throw error;
-  }
+const mockEnrichItems = async (items: PriceItem[]): Promise<PriceItem[]> => {
+  // Simulate processing time
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Start performance tracking
-  const finishTracking = startPerformanceTracking('analyzeHistoricalPricing', {
-    itemCount: items.length,
-    timeframe
+  return items.map(item => {
+    // Add mock market data for demonstration
+    const competitorPrices = [
+      item.newPrice * (0.9 + Math.random() * 0.2), // -10% to +10%
+      item.newPrice * (0.85 + Math.random() * 0.3), // -15% to +15%
+      item.newPrice * (0.95 + Math.random() * 0.1), // -5% to +5%
+    ];
+    
+    const averagePrice = competitorPrices.reduce((sum, price) => sum + price, 0) / competitorPrices.length;
+    const minPrice = Math.min(...competitorPrices);
+    const maxPrice = Math.max(...competitorPrices);
+    
+    // Determine price position
+    let pricePosition: 'low' | 'average' | 'high';
+    if (item.newPrice < averagePrice * 0.95) {
+      pricePosition = 'low';
+    } else if (item.newPrice > averagePrice * 1.05) {
+      pricePosition = 'high';
+    } else {
+      pricePosition = 'average';
+    }
+    
+    return {
+      ...item,
+      marketData: {
+        pricePosition,
+        competitorPrices,
+        averagePrice: parseFloat(averagePrice.toFixed(2)),
+        minPrice: parseFloat(minPrice.toFixed(2)),
+        maxPrice: parseFloat(maxPrice.toFixed(2))
+      }
+    };
   });
-  
-  try {
-    logInfo(`Analyzing historical pricing for ${timeframe}...`, {
-      itemCount: items.length,
-      timeframe
-    }, 'processing');
-    
-    // Track feature usage
-    await trackUsage('historical_analysis', { itemCount: items.length, timeframe });
-    
-    // For demonstration: use mock historical trend analysis
-    // In a real implementation, would call Gadget API
-    
-    const analyzedItems = items.map(item => {
-      // Generate realistic trend percentages based on current price movement
-      const trendDirection = item.status === 'increased' ? 1 : 
-                             item.status === 'decreased' ? -1 : 0;
-      
-      const industryTrend = (Math.random() * 5 + 1) * (Math.random() > 0.5 ? 1 : -1);
-      const categoryTrend = industryTrend + (Math.random() * 3 - 1.5);
-      const itemTrend = trendDirection * (Math.random() * 8 + 2);
-      
-      return {
-        ...item,
-        historicalData: {
-          itemTrendPercent: itemTrend,
-          categoryTrendPercent: categoryTrend,
-          industryTrendPercent: industryTrend,
-          volatility: Math.random() * 10,
-          timeframe: timeframe,
-          dataPoints: 12 * (timeframe === 'month' ? 1 : timeframe === 'quarter' ? 3 : 12)
-        }
-      };
-    });
-    
-    logInfo("Historical analysis complete", { 
-      itemCount: analyzedItems.length,
-      timeframe
-    }, 'processing');
-    
-    // Finish performance tracking
-    await finishTracking();
-    
-    return analyzedItems;
-  } catch (error) {
-    logError(`Error analyzing historical pricing data for ${timeframe}`, { error }, 'processing');
-    
-    // Report error to telemetry system
-    await reportError(error instanceof Error ? error : String(error), {
-      component: 'analyzeHistoricalPricing',
-      severity: 'medium',
-      action: 'historical_analysis',
-      metadata: { timeframe }
-    });
-    
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    toast.error("Historical analysis failed", {
-      description: `Failed to analyze historical pricing data: ${errorMessage}`
-    });
-    
-    // Finish performance tracking even on error
-    await finishTracking();
-    
-    throw new Error(`Failed to analyze historical pricing data: ${errorMessage}`);
-  }
 };

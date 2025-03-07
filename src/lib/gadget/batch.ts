@@ -1,4 +1,3 @@
-
 /**
  * Batch processing utilities for Gadget operations
  */
@@ -135,7 +134,7 @@ export const performBatchOperations = async <T, R>(
   
   // Report performance
   await trackPerformance('batchProcessing', {
-    totalItems: items.length,
+    totalItems: performanceData.itemCount,
     successfulItems: performanceData.successCount,
     failedItems: performanceData.errorCount,
     retryCount: performanceData.retryCount,

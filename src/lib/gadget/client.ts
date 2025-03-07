@@ -1,4 +1,3 @@
-
 /**
  * Gadget client initialization and management
  */
@@ -158,5 +157,42 @@ export const displayGadgetStatus = async (): Promise<void> => {
     toast.error("Gadget Status Check Failed", {
       description: "Could not determine Gadget service status."
     });
+  }
+};
+
+/**
+ * Test Gadget connection and configuration
+ * @param configOverride Optional config override for testing
+ * @returns Promise resolving to a boolean indicating connection success
+ */
+export const testGadgetConnection = async (configOverride?: any): Promise<boolean> => {
+  const config = configOverride || getGadgetConfig();
+  if (!config) {
+    logInfo('Gadget connection test skipped: No configuration found', {}, 'client');
+    return false;
+  }
+
+  try {
+    logInfo('Testing Gadget connection', {
+      appId: config.appId,
+      environment: config.environment
+    }, 'client');
+    
+    // For Gadget.dev migration:
+    // const url = `${getGadgetApiUrl(config)}status`;
+    // const response = await fetch(url, {
+    //   method: 'GET',
+    //   headers: createGadgetHeaders(config)
+    // });
+    
+    // const data = await response.json();
+    // return response.ok && data.ready === true;
+    
+    // For development: Use mock connection test
+    const { mockTestConnection } = await import('./mocks');
+    return await mockTestConnection();
+  } catch (error) {
+    logError('Error testing Gadget connection', { error }, 'client');
+    return false;
   }
 };

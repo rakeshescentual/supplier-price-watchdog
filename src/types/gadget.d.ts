@@ -1,67 +1,77 @@
 
 /**
- * Gadget environment type
+ * TypeScript declarations for Gadget.dev integration
+ * This helps with migrating to the official Gadget.dev SDK
  */
-export type GadgetEnvironment = 'development' | 'production';
 
-/**
- * Gadget connection status
- */
-export type GadgetConnectionStatus = 'none' | 'testing' | 'success' | 'error';
+declare module '@/types/gadget' {
+  import { PriceItem, ShopifyContext } from '@/types/price';
 
-/**
- * Gadget API response with pagination
- */
-export interface GadgetPaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-}
+  /**
+   * Configuration for Gadget client
+   */
+  interface GadgetClientConfig {
+    apiKey: string;
+    appId: string;
+    environment: 'development' | 'production';
+    enableNetworkLogs?: boolean;
+    featureFlags?: Record<string, boolean>;
+  }
 
-/**
- * Gadget error response shape
- */
-export interface GadgetErrorResponse {
-  message: string;
-  code?: string;
-  details?: Record<string, any>;
-  path?: string;
-}
+  /**
+   * Gadget client interface for migration to Gadget.dev
+   */
+  interface GadgetClient {
+    config: GadgetClientConfig;
+    ready: boolean;
+    query: Record<string, any>;  // Will be replaced with actual query methods
+    mutate: Record<string, any>; // Will be replaced with actual mutation methods
+  }
 
-/**
- * Gadget batch operation input
- */
-export interface GadgetBatchOperationInput<T> {
-  items: T[];
-  options?: {
-    continueOnError?: boolean;
-    runInTransaction?: boolean;
-  };
-}
+  /**
+   * Structured logging data
+   */
+  interface LogData {
+    level: 'debug' | 'info' | 'warn' | 'error';
+    message: string;
+    component: string;
+    data?: any;
+    timestamp: string;
+  }
 
-/**
- * Gadget batch operation result
- */
-export interface GadgetBatchOperationResult<T> {
-  results: (T | { error: GadgetErrorResponse })[];
-  success: boolean;
-  successCount: number;
-  failureCount: number;
-}
+  /**
+   * Performance tracking data
+   */
+  interface PerformanceData {
+    event: string;
+    startTime?: number | string;
+    endTime?: number | string;
+    durationMs?: number;
+    metadata?: Record<string, any>;
+    [key: string]: any;
+  }
 
-/**
- * Gadget file upload response
- */
-export interface GadgetFileUploadResponse {
-  fileId: string;
-  url: string;
-  contentType: string;
-  filename: string;
-  key: string;
-  byteSize: number;
+  /**
+   * Health check result
+   */
+  interface HealthCheckResult {
+    healthy: boolean;
+    statusCode?: number;
+    message?: string;
+    details?: Record<string, any>;
+    timestamp?: string;
+  }
+
+  /**
+   * Diagnostic test result
+   */
+  interface DiagnosticResult {
+    status: 'healthy' | 'degraded' | 'down';
+    results: Record<string, {
+      status: 'pass' | 'fail' | 'warn';
+      message: string;
+      details?: any;
+    }>;
+    timestamp: string;
+  }
 }

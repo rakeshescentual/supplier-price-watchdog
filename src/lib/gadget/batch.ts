@@ -114,6 +114,7 @@ export const performBatchOperations = async <T, R>(
     const batchResults = await Promise.all(batchPromises);
     
     // Filter out nulls (failed items) and add successful results
+    // Fixed type predicate to properly check nulls
     const successfulResults = batchResults.filter((r): r is R => r !== null);
     results.push(...successfulResults);
     

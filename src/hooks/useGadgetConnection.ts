@@ -25,7 +25,18 @@ export interface UseGadgetConnectionResult {
   testConnection: () => Promise<boolean>;
   checkHealth: () => Promise<void>;
   resetClient: () => void;
-  getStatus: () => Promise<ReturnType<typeof getGadgetStatus>>;
+  getStatus: () => Promise<{
+    isConnected: boolean;
+    environment: string;
+    latency?: number;
+    version?: string;
+    services: {
+      api: boolean;
+      database: boolean;
+      storage: boolean;
+      scheduler: boolean;
+    };
+  }>;
 }
 
 /**
@@ -128,9 +139,9 @@ export const useGadgetConnection = (): UseGadgetConnectionResult => {
     });
   }, []);
   
-  // Get detailed status
+  // Get detailed status - fixed the return type to avoid the Promise<Promise<...>> issue
   const getStatus = useCallback(async () => {
-    return await getGadgetStatus();
+    return getGadgetStatus();
   }, []);
   
   return {

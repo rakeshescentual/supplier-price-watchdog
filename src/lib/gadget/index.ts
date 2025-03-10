@@ -1,46 +1,58 @@
 
 /**
- * Main entry point for Gadget integration
- * Re-exports all Gadget-related functionality
+ * Gadget.dev Integration Module
+ * 
+ * This module provides a comprehensive integration with Gadget.dev
+ * for the Supplier Price Watch application. All Gadget-related
+ * functionality is exported through this single entry point.
+ * 
+ * The modular architecture allows for easy migration to Gadget.dev
+ * while maintaining backward compatibility for development.
  */
 
-// Core client and operations
+// Re-export all submodules for easy access
 export * from './client';
-export * from './operations';
-
-// Core utilities
-export * from './sync';
 export * from './batch';
-export * from './export';
-export * from './processing';
-
-// Infrastructure
 export * from './logging';
 export * from './telemetry';
+export * from './sync';
+export * from './export';
+export * from './processing';
 export * from './pagination';
-
-// Development utilities
+export * from './diagnostics';
+export * from './shopify-integration';
 export * from './mocks';
 
-// Type definitions
-export type { GadgetConfig } from '@/types/price';
+// Core constants for Gadget integration
+export const GADGET_API_VERSION = '2023-01';
+export const GADGET_SDK_VERSION = '0.15.41';
+
+// Client connection and status types for TypeScript
+export interface GadgetConnectionOptions {
+  enableNetworkLogs?: boolean;
+  maxRetries?: number;
+  timeout?: number;
+}
+
+export interface GadgetClientStatus {
+  isConnected: boolean;
+  environment: string;
+  latency?: number;
+  lastChecked?: Date;
+}
 
 /**
- * Gadget Module Documentation
+ * This module is designed to be compatible with Gadget.dev's architecture.
+ * When migrating to Gadget.dev:
  * 
- * This module provides a complete integration with Gadget.dev services,
- * with the following key components:
+ * 1. Install the Gadget.dev client SDK: npm install @gadget-client/your-app-id
+ * 2. Replace mock implementations with actual Gadget SDK calls
+ * 3. Update configuration to point to your Gadget app
  * 
- * 1. Client initialization and management (client.ts)
- * 2. Shopify integration and synchronization (sync.ts)
- * 3. Efficient batch processing (batch.ts)
- * 4. PDF processing and data enrichment (processing.ts)
- * 5. Data export capabilities (export.ts)
- * 6. Comprehensive logging system (logging.ts)
- * 7. Performance tracking and telemetry (telemetry.ts)
- * 8. Pagination utilities (pagination.ts)
- * 9. Development mocks for testing (mocks.ts)
+ * For more details on migration, see:
+ * - src/assets/docs/GadgetMigrationGuide.md
+ * - docs/GadgetMigration.md
  * 
- * For migration to Gadget.dev, refer to the documentation in
- * src/assets/docs/GadgetMigrationGuide.md
+ * The modular structure matches Gadget.dev's architecture, making
+ * the migration process seamless.
  */

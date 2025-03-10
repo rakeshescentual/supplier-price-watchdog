@@ -1,3 +1,4 @@
+
 /**
  * Gadget client initialization and management
  */
@@ -124,6 +125,84 @@ export const checkGadgetHealth = async (): Promise<{
       healthy: false,
       statusCode: 500,
       message: error instanceof Error ? error.message : "Unknown error checking Gadget health"
+    };
+  }
+};
+
+/**
+ * Get detailed Gadget status information
+ * @returns Object with detailed Gadget status
+ */
+export const getGadgetStatus = async (): Promise<{
+  isConnected: boolean;
+  environment: string;
+  latency?: number;
+  version?: string;
+  services: {
+    api: boolean;
+    database: boolean;
+    storage: boolean;
+    scheduler: boolean;
+  };
+}> => {
+  const config = getGadgetConfig();
+  
+  if (!config) {
+    return {
+      isConnected: false,
+      environment: 'unknown',
+      services: {
+        api: false,
+        database: false,
+        storage: false,
+        scheduler: false
+      }
+    };
+  }
+  
+  try {
+    // Start timing for latency measurement
+    const startTime = Date.now();
+    
+    // For Gadget.dev migration:
+    // const url = `${getGadgetApiUrl(config)}status/detailed`;
+    // const response = await fetch(url, {
+    //   method: 'GET',
+    //   headers: createGadgetHeaders(config)
+    // });
+    // 
+    // const data = await response.json();
+    // const latency = Date.now() - startTime;
+    
+    // For development: Simulate a status check
+    const isConnected = await testGadgetConnection();
+    const latency = Date.now() - startTime;
+    
+    // Mock response data
+    return {
+      isConnected,
+      environment: config.environment,
+      latency,
+      version: "1.0.0",
+      services: {
+        api: isConnected,
+        database: isConnected,
+        storage: isConnected,
+        scheduler: isConnected
+      }
+    };
+  } catch (error) {
+    logError('Error getting Gadget status', { error }, 'client');
+    
+    return {
+      isConnected: false,
+      environment: config.environment,
+      services: {
+        api: false,
+        database: false,
+        storage: false,
+        scheduler: false
+      }
     };
   }
 };

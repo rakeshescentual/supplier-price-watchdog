@@ -1,17 +1,10 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Mail, Plus, Send, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { QueryForm } from './QueryForm';
-import { QueryItemComponent, QueryItem } from './QueryItem';
-import { CorrespondenceItem, Correspondence } from './CorrespondenceItem';
+import { QueryItem } from './QueryItem';
+import { Correspondence } from './CorrespondenceItem';
+import { CorrespondencePanel } from './correspondence/CorrespondencePanel';
+import { DetailsPanel } from './correspondence/DetailsPanel';
 
 // Mock data for supplier correspondence
 const mockCorrespondence: Correspondence[] = [
@@ -126,17 +119,7 @@ export const SupplierCorrespondence = () => {
   const [correspondence, setCorrespondence] = useState<Correspondence[]>(mockCorrespondence);
   const [selectedCorrespondence, setSelectedCorrespondence] = useState<Correspondence | null>(null);
   const [selectedQueryItems, setSelectedQueryItems] = useState<QueryItem[]>([]);
-  const [newQuery, setNewQuery] = useState<Omit<QueryItem, 'id' | 'createdAt'>>({
-    text: '',
-    status: 'pending',
-    type: 'general'
-  });
-  const [newCorrespondence, setNewCorrespondence] = useState({
-    supplier: '',
-    subject: '',
-    emailContent: ''
-  });
-  const [activeTab, setActiveTab] = useState<string>('queries');
+  const [activeTab, setActiveTab] = useState<string>('correspondence');
 
   const handleSelectCorrespondence = (item: Correspondence) => {
     setSelectedCorrespondence(item);
@@ -168,7 +151,11 @@ export const SupplierCorrespondence = () => {
     });
   };
 
-  const handleAddCorrespondence = () => {
+  const handleAddCorrespondence = (newCorrespondence: {
+    supplier: string;
+    subject: string;
+    emailContent: string;
+  }) => {
     if (!newCorrespondence.supplier || !newCorrespondence.subject || !newCorrespondence.emailContent) {
       toast.error("Missing information", {
         description: "Please complete all fields to add a new correspondence.",
@@ -195,11 +182,6 @@ export const SupplierCorrespondence = () => {
     };
     
     setCorrespondence([newItem, ...correspondence]);
-    setNewCorrespondence({
-      supplier: '',
-      subject: '',
-      emailContent: ''
-    });
     setActiveTab('correspondence');
     
     toast.success("Correspondence added", {
@@ -231,196 +213,24 @@ export const SupplierCorrespondence = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="md:col-span-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Supplier Correspondence</CardTitle>
-            <CardDescription>
-              Track and manage supplier communications
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full">
-                <TabsTrigger value="correspondence" className="flex-1">Correspondence</TabsTrigger>
-                <TabsTrigger value="add" className="flex-1">Add New</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="correspondence">
-                <div className="p-4">
-                  <ScrollArea className="h-[50vh]">
-                    <div className="space-y-3">
-                      {correspondence.map(item => (
-                        <CorrespondenceItem
-                          key={item.id}
-                          correspondence={item}
-                          isSelected={selectedCorrespondence?.id === item.id}
-                          onClick={() => handleSelectCorrespondence(item)}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="add">
-                <div className="p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier">Supplier Name</Label>
-                    <Input
-                      id="supplier"
-                      placeholder="Enter supplier name"
-                      value={newCorrespondence.supplier}
-                      onChange={(e) => setNewCorrespondence({...newCorrespondence, supplier: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      placeholder="Enter email subject"
-                      value={newCorrespondence.subject}
-                      onChange={(e) => setNewCorrespondence({...newCorrespondence, subject: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="emailContent">Email Content</Label>
-                    <Textarea
-                      id="emailContent"
-                      placeholder="Paste the email content here"
-                      value={newCorrespondence.emailContent}
-                      onChange={(e) => setNewCorrespondence({...newCorrespondence, emailContent: e.target.value})}
-                      className="min-h-[200px]"
-                    />
-                  </div>
-                  
-                  <Button onClick={handleAddCorrespondence} className="w-full">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Add Correspondence
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <CorrespondencePanel
+          correspondence={correspondence}
+          selectedCorrespondence={selectedCorrespondence}
+          onSelectCorrespondence={handleSelectCorrespondence}
+          onAddCorrespondence={handleAddCorrespondence}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </div>
       
       <div className="md:col-span-2">
-        {selectedCorrespondence ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{selectedCorrespondence.subject}</CardTitle>
-              <CardDescription>
-                {selectedCorrespondence.supplier} · {selectedCorrespondence.timestamp.toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Tabs defaultValue="emails">
-                <TabsList className="w-full">
-                  <TabsTrigger value="emails" className="flex-1">Email Thread</TabsTrigger>
-                  <TabsTrigger value="queries" className="flex-1">
-                    Queries
-                    {selectedQueryItems.length > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-primary/20">
-                        {selectedQueryItems.length}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="emails">
-                  <div className="p-4">
-                    <ScrollArea className="h-[60vh]">
-                      <div className="space-y-6">
-                        {selectedCorrespondence.emails.map((email, index) => (
-                          <div key={email.id} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="font-medium">{email.from}</span>
-                                <span className="text-muted-foreground mx-2">→</span>
-                                <span>{email.to}</span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {email.timestamp.toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="bg-muted/30 p-4 rounded-md whitespace-pre-line">
-                              {email.content}
-                            </div>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => {
-                                navigator.clipboard.writeText(email.content);
-                                toast.success("Content copied to clipboard");
-                              }}
-                            >
-                              <Copy className="h-3 w-3 mr-1" />
-                              Copy content
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="queries">
-                  <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Add New Query</h3>
-                        <QueryForm onSave={handleSaveQuery} />
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Existing Queries</h3>
-                        {selectedQueryItems.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            No queries added yet
-                          </div>
-                        ) : (
-                          <ScrollArea className="h-[50vh]">
-                            <div className="space-y-3">
-                              {selectedQueryItems.map(query => (
-                                <QueryItemComponent 
-                                  key={query.id} 
-                                  query={query} 
-                                  onResolve={handleResolveQuery} 
-                                />
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button variant="outline" className="w-full" disabled={true}>
-                <Send className="mr-2 h-4 w-4" />
-                Send Reply (coming soon)
-              </Button>
-            </CardFooter>
-          </Card>
-        ) : (
-          <div className="flex items-center justify-center h-full p-8 border rounded-lg bg-muted/30">
-            <div className="text-center">
-              <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No correspondence selected</h3>
-              <p className="text-muted-foreground">
-                Select a supplier correspondence from the left panel or add a new one.
-              </p>
-            </div>
-          </div>
-        )}
+        <DetailsPanel
+          selectedCorrespondence={selectedCorrespondence}
+          selectedQueryItems={selectedQueryItems}
+          onSaveQuery={handleSaveQuery}
+          onResolveQuery={handleResolveQuery}
+        />
       </div>
     </div>
   );
 };
-

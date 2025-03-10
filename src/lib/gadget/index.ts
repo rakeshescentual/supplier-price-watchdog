@@ -37,11 +37,19 @@ export {
 export const GADGET_API_VERSION = '2023-01';
 export const GADGET_SDK_VERSION = '0.15.41';
 
-// Re-export the client connection and status types
-export type { 
-  GadgetConnectionOptions,
-  GadgetClientStatus 
-} from './client';
+// Define client connection and status types directly here to avoid import errors
+export interface GadgetConnectionOptions {
+  enableNetworkLogs?: boolean;
+  maxRetries?: number;
+  timeout?: number;
+}
+
+export interface GadgetClientStatus {
+  isConnected: boolean;
+  environment: string;
+  latency?: number;
+  lastChecked?: Date;
+}
 
 /**
  * This module is designed to be compatible with Gadget.dev's architecture.

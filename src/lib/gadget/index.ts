@@ -11,7 +11,6 @@
  */
 
 // Re-export all submodules for easy access
-export * from './client';
 export * from './batch';
 export * from './logging';
 export * from './telemetry';
@@ -22,6 +21,17 @@ export * from './pagination';
 export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
+
+// Explicitly re-export client functions to avoid ambiguity
+export {
+  initGadgetClient,
+  isGadgetInitialized,
+  checkGadgetHealth,
+  resetGadgetClient,
+  testGadgetConnection,
+  displayGadgetStatus,
+  getGadgetStatus
+} from './client';
 
 // Core constants for Gadget integration
 export const GADGET_API_VERSION = '2023-01';

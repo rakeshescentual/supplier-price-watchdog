@@ -126,11 +126,11 @@ export const exportPriceItemsToShopify = async (
 ): Promise<{ success: boolean; fileUrl?: string }> => {
   // Filter only the relevant fields for Shopify
   const shopifyData = items.map(item => ({
-    handle: item.shopifyHandle || item.sku,
+    handle: item.sku.toLowerCase().replace(/\s+/g, '-'), // Create handle from SKU
     sku: item.sku,
     title: item.name,
-    price: item.newPrice || item.price,
-    compare_at_price: item.price,
+    price: item.newPrice || item.oldPrice, // Use newPrice, fallback to oldPrice
+    compare_at_price: item.oldPrice, // Use oldPrice as the original price
     status: item.status === 'discontinued' ? 'draft' : 'active'
   }));
   

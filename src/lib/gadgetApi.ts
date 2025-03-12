@@ -48,6 +48,25 @@ export {
   testGadgetConnectionAccess
 } from './gadget/connections';
 
+// Export new storage optimization utilities
+export {
+  setCacheValue,
+  getCacheValue,
+  clearCacheValue,
+  withCache,
+  clearCacheByPrefix,
+  getCacheStats
+} from './gadget/storage';
+
+// Export enhanced authentication methods
+export {
+  initiateOAuthFlow,
+  handleOAuthCallback,
+  authenticateWithApiKey,
+  revokeAuthentication,
+  getAuthenticationMethods
+} from './gadget/connections/auth';
+
 // Export new types for better TypeScript support
 export type {
   ConnectionType,
@@ -55,6 +74,11 @@ export type {
   ConnectionResponse,
   AuthMethod
 } from './gadget/connections';
+
+export type {
+  OAuthConfig,
+  ApiKeyConfig
+} from './gadget/connections/auth';
 
 export type {
   ExportFormat,
@@ -67,5 +91,10 @@ export type {
   GadgetConnectionOptions,
   GadgetClientStatus,
   GadgetStorageLimits,
-  GadgetRateLimits
+  GadgetRateLimits,
+  GadgetActionResponse
 } from './gadget';
+
+export type {
+  CacheOptions
+} from './gadget/storage';

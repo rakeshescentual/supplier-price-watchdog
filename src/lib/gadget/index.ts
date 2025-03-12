@@ -21,7 +21,8 @@ export * from './pagination';
 export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
-export * from './connections'; // Add new connections module
+export * from './connections'; 
+export * from './storage'; // Add new storage optimization module
 
 // Explicitly re-export client functions to avoid ambiguity
 export {
@@ -35,8 +36,8 @@ export {
 } from './client';
 
 // Core constants for Gadget integration
-export const GADGET_API_VERSION = '2023-11'; // Updated to latest API version
-export const GADGET_SDK_VERSION = '0.18.0'; // Updated to latest SDK version
+export const GADGET_API_VERSION = '2024-03'; // Updated to latest API version
+export const GADGET_SDK_VERSION = '0.21.1'; // Updated to latest SDK version
 
 // Define client connection and status types directly here to avoid import errors
 export interface GadgetConnectionOptions {
@@ -44,9 +45,11 @@ export interface GadgetConnectionOptions {
   maxRetries?: number;
   timeout?: number;
   enhancedTelemetry?: boolean;
-  enableStreamingAPI?: boolean; // Added support for streaming API
-  disableBatching?: boolean;    // Option to disable automatic batching
-  defaultPageSize?: number;     // Default page size for queries
+  enableStreamingAPI?: boolean;
+  disableBatching?: boolean;
+  defaultPageSize?: number;
+  fastRefresh?: boolean; // Support for Fast Refresh in development
+  useIncrementalSync?: boolean; // Support for incremental data synchronization
 }
 
 export interface GadgetClientStatus {
@@ -56,12 +59,14 @@ export interface GadgetClientStatus {
   lastChecked?: Date;
   apiVersion?: string;
   features?: string[];
-  activeConnections?: number; // Added metrics about active connections
-  storageUsage?: {            // Added storage usage information
+  activeConnections?: number;
+  storageUsage?: {
     used: number;
     limit: number;
     percentage: number;
   };
+  gatewayStatus?: 'healthy' | 'degraded' | 'down'; // API gateway status
+  dataRegion?: string; // Data region information
 }
 
 // Add new exports for enhanced Gadget functionality
@@ -74,6 +79,10 @@ export interface GadgetStorageLimits {
     records: number;
     size: number;
   };
+  cache: { // Added cache storage limits
+    size: number;
+    entries: number;
+  };
 }
 
 export interface GadgetRateLimits {
@@ -82,6 +91,27 @@ export interface GadgetRateLimits {
     limit: number;
     remaining: number;
     resetAt: Date;
+  };
+  concurrentJobs?: number; // Limit for concurrent background jobs
+}
+
+// Add types for new action response format
+export interface GadgetActionResponse<T> {
+  data: T;
+  success: boolean;
+  errors?: Array<{
+    message: string;
+    code: string;
+    path?: string[];
+  }>;
+  warnings?: Array<{
+    message: string;
+    code: string;
+  }>;
+  performanceMetrics?: {
+    durationMs: number;
+    queryCount: number;
+    cacheHitRate: number;
   };
 }
 

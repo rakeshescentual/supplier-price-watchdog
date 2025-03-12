@@ -1,4 +1,3 @@
-
 /**
  * Export utilities for Gadget data
  */
@@ -11,12 +10,12 @@ import type { PriceItem } from '@/types/price';
 /**
  * Available export formats
  */
-export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'xml' | 'txt';
+export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'xml' | 'txt' | 'parquet' | 'avro';
 
 /**
  * Export compression options
  */
-export type CompressionType = 'gzip' | 'zip' | 'none';
+export type CompressionType = 'gzip' | 'zip' | 'brotli' | 'none';
 
 /**
  * Options for export operation
@@ -28,16 +27,23 @@ export interface ExportOptions {
   filterBy?: Record<string, any>;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
-  compression?: CompressionType; // Updated compression types
+  compression?: CompressionType;
   expiresIn?: number; // File expiration in seconds
   accessControl?: {
     public?: boolean;
     allowedEmails?: string[];
     password?: string;
+    requireSignin?: boolean;
   };
   transformFn?: (data: any) => any; // Function to transform data before export
   includeHeaders?: boolean; // For CSV exports
   templateId?: string; // For PDF exports
+  maxRowsPerFile?: number; // For splitting large exports
+  includeTimestamp?: boolean; // Add timestamp to filename
+  delimiter?: string; // For CSV format, default is comma
+  encryptOutput?: boolean; // Encrypt the exported data
+  useIncrementalExport?: boolean; // Use incremental export for large datasets
+  useCompression?: boolean; // Use compression for large files
 }
 
 /**
@@ -49,11 +55,14 @@ export interface ExportResult {
   expiresAt?: Date;
   fileSize?: number;
   downloadCount?: number;
+  fileParts?: number; // Number of files if split into multiple parts
   error?: {
     code: string;
     message: string;
     details?: Record<string, any>;
   };
+  jobId?: string; // For background export jobs
+  status?: 'completed' | 'processing' | 'failed';
 }
 
 /**
@@ -69,7 +78,8 @@ export const exportData = async <T extends Record<string, any>>(
   const finishTracking = startPerformanceTracking('exportData', { 
     format: options.format,
     itemCount: data.length,
-    compressionType: options.compression || 'none'
+    compressionType: options.compression || 'none',
+    includeMetadata: !!options.includeMetadata
   });
   
   try {
@@ -93,22 +103,25 @@ export const exportData = async <T extends Record<string, any>>(
     // const result = await fileManager.createFromData({
     //   data: typeof processedData === 'string' ? processedData : JSON.stringify(processedData),
     //   mimeType: getMimeType(options.format),
-    //   filename: options.filename || `export-${Date.now()}.${options.format}`,
+    //   filename: getExportFilename(options),
     //   compression: options.compression || 'none',
     //   expiresIn: options.expiresIn || 3600 * 24, // 24 hours default
     //   accessControl: options.accessControl || { public: true },
-    //   metadata: options.includeMetadata ? { exportDate: new Date().toISOString() } : undefined
+    //   metadata: options.includeMetadata ? { exportDate: new Date().toISOString() } : undefined,
+    //   encrypted: options.encryptOutput || false,
+    //   partSize: options.maxRowsPerFile // For splitting large files
     // });
     // 
     // return {
     //   success: true, 
     //   fileUrl: result.signedUrl,
     //   expiresAt: result.expiresAt ? new Date(result.expiresAt) : undefined,
-    //   fileSize: result.size
+    //   fileSize: result.size,
+    //   fileParts: result.parts?.length
     // };
     
     // For development, simulate file generation
-    const filename = options.filename || `export-${Date.now()}.${options.format}`;
+    const filename = getExportFilename(options);
     
     // Generate file content based on format
     let content: string | Blob;
@@ -129,6 +142,7 @@ export const exportData = async <T extends Record<string, any>>(
         
         const headers = Object.keys(processedData[0]);
         const includeHeaders = options.includeHeaders !== false; // Default to true
+        const delimiter = options.delimiter || ',';
         
         const csvRows = processedData.map(item => 
           headers.map(header => {
@@ -138,11 +152,11 @@ export const exportData = async <T extends Record<string, any>>(
               return `"${value.replace(/"/g, '""')}"`;
             }
             return value;
-          }).join(',')
+          }).join(delimiter)
         );
         
         content = includeHeaders 
-          ? [headers.join(','), ...csvRows].join('\n')
+          ? [headers.join(delimiter), ...csvRows].join('\n')
           : csvRows.join('\n');
         break;
       case 'xml':
@@ -158,6 +172,8 @@ export const exportData = async <T extends Record<string, any>>(
       case 'xlsx':
       case 'pdf':
       case 'txt':
+      case 'parquet':
+      case 'avro':
         // These formats require specialized libraries
         // For development, we'll just use JSON as a fallback
         content = JSON.stringify(processedData, null, 2);
@@ -188,7 +204,8 @@ export const exportData = async <T extends Record<string, any>>(
       fileSize: blob.size,
       expiresAt: options.expiresIn 
         ? new Date(Date.now() + (options.expiresIn * 1000)) 
-        : undefined
+        : undefined,
+      status: 'completed'
     };
   } catch (error) {
     logError('Error exporting data', { error, options }, 'export');
@@ -201,12 +218,30 @@ export const exportData = async <T extends Record<string, any>>(
     
     return { 
       success: false,
+      status: 'failed',
       error: {
         code: error instanceof Error ? 'EXPORT_ERROR' : 'UNKNOWN_ERROR',
         message: error instanceof Error ? error.message : "Unknown error occurred"
       }
     };
   }
+};
+
+/**
+ * Generate appropriate filename for export
+ * @param options Export options
+ * @returns Formatted filename
+ */
+const getExportFilename = (options: ExportOptions): string => {
+  if (options.filename) {
+    return options.filename;
+  }
+  
+  const timestamp = options.includeTimestamp 
+    ? `-${new Date().toISOString().replace(/[:.]/g, '-')}` 
+    : '';
+  
+  return `export${timestamp}.${options.format}`;
 };
 
 /**
@@ -250,6 +285,8 @@ const getMimeType = (format: ExportFormat): string => {
     case 'pdf': return 'application/pdf';
     case 'xml': return 'application/xml';
     case 'txt': return 'text/plain';
+    case 'parquet': return 'application/vnd.apache.parquet';
+    case 'avro': return 'application/avro';
     default: return 'text/plain';
   }
 };

@@ -22,7 +22,8 @@ export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
 export * from './connections'; 
-export * from './storage'; // Add new storage optimization module
+export * from './storage';
+export * from './actions'; // New module for custom Gadget actions
 
 // Explicitly re-export client functions to avoid ambiguity
 export {
@@ -36,8 +37,8 @@ export {
 } from './client';
 
 // Core constants for Gadget integration
-export const GADGET_API_VERSION = '2024-03'; // Updated to latest API version
-export const GADGET_SDK_VERSION = '0.21.1'; // Updated to latest SDK version
+export const GADGET_API_VERSION = '2024-07'; // Updated to latest API version
+export const GADGET_SDK_VERSION = '0.24.0'; // Updated to latest SDK version
 
 // Define client connection and status types directly here to avoid import errors
 export interface GadgetConnectionOptions {
@@ -48,8 +49,15 @@ export interface GadgetConnectionOptions {
   enableStreamingAPI?: boolean;
   disableBatching?: boolean;
   defaultPageSize?: number;
-  fastRefresh?: boolean; // Support for Fast Refresh in development
-  useIncrementalSync?: boolean; // Support for incremental data synchronization
+  fastRefresh?: boolean;
+  useIncrementalSync?: boolean;
+  enableRetry?: boolean; // New option for automatic retry handling
+  retryConfig?: {
+    maxRetries: number;
+    initialDelay: number;
+    backoffFactor: number;
+  };
+  customHeaders?: Record<string, string>; // Support for custom headers
 }
 
 export interface GadgetClientStatus {
@@ -65,8 +73,10 @@ export interface GadgetClientStatus {
     limit: number;
     percentage: number;
   };
-  gatewayStatus?: 'healthy' | 'degraded' | 'down'; // API gateway status
-  dataRegion?: string; // Data region information
+  gatewayStatus?: 'healthy' | 'degraded' | 'down';
+  dataRegion?: string;
+  currentPlan?: string; // Added to track plan information
+  featureFlags?: Record<string, boolean>; // For feature flags
 }
 
 // Add new exports for enhanced Gadget functionality
@@ -79,9 +89,13 @@ export interface GadgetStorageLimits {
     records: number;
     size: number;
   };
-  cache: { // Added cache storage limits
+  cache: {
     size: number;
     entries: number;
+  };
+  cdn?: { // Added CDN storage information
+    size: number;
+    requests: number;
   };
 }
 
@@ -92,10 +106,15 @@ export interface GadgetRateLimits {
     remaining: number;
     resetAt: Date;
   };
-  concurrentJobs?: number; // Limit for concurrent background jobs
+  concurrentJobs?: number;
+  perRoute?: Record<string, { // Enhanced per-route rate limiting
+    limit: number;
+    remaining: number;
+    resetAt: Date;
+  }>;
 }
 
-// Add types for new action response format
+// Updated action response format with enhanced metrics
 export interface GadgetActionResponse<T> {
   data: T;
   success: boolean;
@@ -112,7 +131,25 @@ export interface GadgetActionResponse<T> {
     durationMs: number;
     queryCount: number;
     cacheHitRate: number;
+    memoryUsage?: number; // Track memory usage
+    cpuTime?: number; // Track CPU time
   };
+  traceId?: string; // For improved error tracking
+  pagination?: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor?: string;
+    endCursor?: string;
+  };
+}
+
+// New interface for Gadget live query subscriptions
+export interface GadgetLiveQueryOptions {
+  key: string[];
+  onData: (data: any) => void;
+  onError?: (error: Error) => void;
+  variables?: Record<string, any>;
+  debounceTime?: number;
 }
 
 /**

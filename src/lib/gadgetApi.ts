@@ -55,7 +55,9 @@ export {
   clearCacheValue,
   withCache,
   clearCacheByPrefix,
-  getCacheStats
+  getCacheStats,
+  bulkSetCacheValues,
+  refreshCacheValue
 } from './gadget/storage';
 
 // Export enhanced authentication methods
@@ -66,6 +68,15 @@ export {
   revokeAuthentication,
   getAuthenticationMethods
 } from './gadget/connections/auth';
+
+// Export new custom action methods
+export {
+  runGadgetAction,
+  analyzePriceChanges,
+  scheduleCompetitorCheck,
+  syncPricesToPlatforms,
+  generatePriceRecommendations
+} from './gadget/actions';
 
 // Export new types for better TypeScript support
 export type {
@@ -92,7 +103,8 @@ export type {
   GadgetClientStatus,
   GadgetStorageLimits,
   GadgetRateLimits,
-  GadgetActionResponse
+  GadgetActionResponse,
+  GadgetLiveQueryOptions
 } from './gadget';
 
 export type {

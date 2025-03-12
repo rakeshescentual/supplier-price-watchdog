@@ -13,6 +13,7 @@ import { startPerformanceTracking } from './telemetry';
 interface CacheEntry<T> {
   value: T;
   expires: number | null; // Timestamp when entry expires, null means no expiration
+  version?: number; // For cache versioning
 }
 
 /**
@@ -22,6 +23,10 @@ export interface CacheOptions {
   ttl?: number; // Time to live in seconds, default is 5 minutes
   namespace?: string; // Optional namespace for cache keys
   staleWhileRevalidate?: boolean; // Return stale data while fetching fresh data
+  region?: 'memory' | 'persistent'; // Where to store cache (memory is faster but not persistent)
+  version?: number; // Cache version for invalidation
+  compressLarge?: boolean; // Whether to compress large values
+  priority?: 'high' | 'normal' | 'low'; // Cache priority
 }
 
 const DEFAULT_TTL = 5 * 60; // 5 minutes default TTL
@@ -47,7 +52,8 @@ export const setCacheValue = async <T>(
       const cacheKey = `${namespace}:${key}`;
       const entry: CacheEntry<T> = {
         value,
-        expires: ttl > 0 ? Date.now() + ttl * 1000 : null
+        expires: ttl > 0 ? Date.now() + ttl * 1000 : null,
+        version: options.version
       };
       localStorage.setItem(cacheKey, JSON.stringify(entry));
       return true;
@@ -62,7 +68,11 @@ export const setCacheValue = async <T>(
     // await client.mutate.setCache({
     //   key: options.namespace ? `${options.namespace}:${key}` : key,
     //   value: JSON.stringify(value),
-    //   ttl: options.ttl ?? DEFAULT_TTL
+    //   ttl: options.ttl ?? DEFAULT_TTL,
+    //   region: options.region || 'persistent',
+    //   compress: options.compressLarge,
+    //   version: options.version,
+    //   priority: options.priority || 'normal'
     // });
     
     logInfo(`Cache value set for key: ${key}`, { namespace: options.namespace }, 'cache');
@@ -97,6 +107,21 @@ export const getCacheValue = async <T>(
       
       // Check if entry has expired
       if (entry.expires && entry.expires < Date.now()) {
+        // If using staleWhileRevalidate, return the stale value but trigger a refresh
+        if (options.staleWhileRevalidate) {
+          // Trigger a refresh in the background
+          refreshCacheValue<T>(key, options).catch(err => 
+            console.error('Error refreshing stale cache:', err)
+          );
+          return entry.value;
+        }
+        
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      
+      // Check version if specified
+      if (options.version !== undefined && entry.version !== options.version) {
         localStorage.removeItem(cacheKey);
         return null;
       }
@@ -111,10 +136,22 @@ export const getCacheValue = async <T>(
   try {
     // In production with Gadget SDK:
     // const result = await client.query.getCache({
-    //   key: options.namespace ? `${options.namespace}:${key}` : key
+    //   key: options.namespace ? `${options.namespace}:${key}` : key,
+    //   region: options.region || 'persistent',
+    //   version: options.version
     // });
     // 
-    // if (!result.value) return null;
+    // if (!result.value) {
+    //   if (options.staleWhileRevalidate && result.staleValue) {
+    //     // Trigger a refresh in the background
+    //     refreshCacheValue<T>(key, options).catch(err => 
+    //       console.error('Error refreshing stale cache:', err)
+    //     );
+    //     return JSON.parse(result.staleValue) as T;
+    //   }
+    //   return null;
+    // }
+    // 
     // return JSON.parse(result.value) as T;
     
     // For development, simulate cache miss
@@ -122,6 +159,34 @@ export const getCacheValue = async <T>(
   } catch (error) {
     logError('Error getting cache value', { error, key }, 'cache');
     return null;
+  }
+};
+
+/**
+ * Refresh a cached value by re-computing it
+ * @param key Cache key
+ * @param options Cache options
+ * @param computeFn Optional function to compute the new value
+ */
+export const refreshCacheValue = async <T>(
+  key: string,
+  options: CacheOptions = {},
+  computeFn?: () => Promise<T>
+): Promise<boolean> => {
+  if (!computeFn) {
+    // If no compute function is provided, we just invalidate the cache
+    return clearCacheValue(key, options);
+  }
+  
+  try {
+    // Compute new value
+    const newValue = await computeFn();
+    
+    // Store in cache
+    return setCacheValue(key, newValue, options);
+  } catch (error) {
+    logError('Error refreshing cache value', { error, key }, 'cache');
+    return false;
   }
 };
 
@@ -150,7 +215,8 @@ export const clearCacheValue = async (
   try {
     // In production with Gadget SDK:
     // await client.mutate.deleteCache({
-    //   key: options.namespace ? `${options.namespace}:${key}` : key
+    //   key: options.namespace ? `${options.namespace}:${key}` : key,
+    //   region: options.region || 'persistent'
     // });
     
     logInfo(`Cache cleared for key: ${key}`, { namespace: options.namespace }, 'cache');
@@ -242,7 +308,8 @@ export const clearCacheByPrefix = async (
   try {
     // In production with Gadget SDK:
     // await client.mutate.clearCacheByPrefix({
-    //   prefix: options.namespace ? `${options.namespace}:${keyPrefix}` : keyPrefix
+    //   prefix: options.namespace ? `${options.namespace}:${keyPrefix}` : keyPrefix,
+    //   region: options.region || 'persistent'
     // });
     
     logInfo(`Cache cleared for prefix: ${keyPrefix}`, { namespace: options.namespace }, 'cache');
@@ -257,11 +324,14 @@ export const clearCacheByPrefix = async (
  * Get cache statistics from Gadget
  * @returns Cache statistics or null if not available
  */
-export const getCacheStats = async (): Promise<{
+export const getCacheStats = async (
+  region: 'memory' | 'persistent' = 'persistent'
+): Promise<{
   entries: number;
   sizeBytes: number;
   hitRate: number;
   avgAccessTime: number;
+  memoryUsage?: number;
 } | null> => {
   const client = initGadgetClient();
   if (!client) {
@@ -270,12 +340,13 @@ export const getCacheStats = async (): Promise<{
 
   try {
     // In production with Gadget SDK:
-    // const stats = await client.query.getCacheStats();
+    // const stats = await client.query.getCacheStats({ region });
     // return {
     //   entries: stats.entries,
     //   sizeBytes: stats.sizeBytes,
     //   hitRate: stats.hitRate,
-    //   avgAccessTime: stats.avgAccessTime
+    //   avgAccessTime: stats.avgAccessTime,
+    //   memoryUsage: stats.memoryUsage
     // };
     
     // For development, return mock stats
@@ -283,10 +354,66 @@ export const getCacheStats = async (): Promise<{
       entries: 128,
       sizeBytes: 56320,
       hitRate: 0.78,
-      avgAccessTime: 3.2
+      avgAccessTime: 3.2,
+      memoryUsage: 0.02 // percentage of total available memory
     };
   } catch (error) {
     logError('Error getting cache stats', { error }, 'cache');
     return null;
+  }
+};
+
+/**
+ * Update or create multiple cache entries in a single operation
+ * @param entries Array of entries to set
+ * @param options Cache options
+ */
+export const bulkSetCacheValues = async <T>(
+  entries: Array<{ key: string; value: T }>,
+  options: CacheOptions = {}
+): Promise<boolean> => {
+  const client = initGadgetClient();
+  if (!client) {
+    console.warn('Gadget client not initialized, using localStorage fallback');
+    try {
+      const ttl = options.ttl ?? DEFAULT_TTL;
+      const namespace = options.namespace ?? DEFAULT_NAMESPACE;
+      
+      entries.forEach(entry => {
+        const cacheKey = `${namespace}:${entry.key}`;
+        const cacheEntry: CacheEntry<T> = {
+          value: entry.value,
+          expires: ttl > 0 ? Date.now() + ttl * 1000 : null,
+          version: options.version
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error bulk setting cache in localStorage:', error);
+      return false;
+    }
+  }
+
+  try {
+    // In production with Gadget SDK:
+    // await client.mutate.bulkSetCache({
+    //   entries: entries.map(entry => ({
+    //     key: options.namespace ? `${options.namespace}:${entry.key}` : entry.key,
+    //     value: JSON.stringify(entry.value)
+    //   })),
+    //   ttl: options.ttl ?? DEFAULT_TTL,
+    //   region: options.region || 'persistent',
+    //   compress: options.compressLarge,
+    //   version: options.version,
+    //   priority: options.priority || 'normal'
+    // });
+    
+    logInfo(`Bulk cache set for ${entries.length} entries`, { namespace: options.namespace }, 'cache');
+    return true;
+  } catch (error) {
+    logError('Error bulk setting cache values', { error, entryCount: entries.length }, 'cache');
+    return false;
   }
 };

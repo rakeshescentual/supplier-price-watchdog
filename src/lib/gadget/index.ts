@@ -35,15 +35,18 @@ export {
 } from './client';
 
 // Core constants for Gadget integration
-export const GADGET_API_VERSION = '2023-05'; // Updated to latest API version
-export const GADGET_SDK_VERSION = '0.17.0'; // Updated to latest SDK version
+export const GADGET_API_VERSION = '2023-11'; // Updated to latest API version
+export const GADGET_SDK_VERSION = '0.18.0'; // Updated to latest SDK version
 
 // Define client connection and status types directly here to avoid import errors
 export interface GadgetConnectionOptions {
   enableNetworkLogs?: boolean;
   maxRetries?: number;
   timeout?: number;
-  enhancedTelemetry?: boolean; // Added support for enhanced telemetry
+  enhancedTelemetry?: boolean;
+  enableStreamingAPI?: boolean; // Added support for streaming API
+  disableBatching?: boolean;    // Option to disable automatic batching
+  defaultPageSize?: number;     // Default page size for queries
 }
 
 export interface GadgetClientStatus {
@@ -51,8 +54,35 @@ export interface GadgetClientStatus {
   environment: string;
   latency?: number;
   lastChecked?: Date;
-  apiVersion?: string; // Added API version information
-  features?: string[]; // Added feature detection
+  apiVersion?: string;
+  features?: string[];
+  activeConnections?: number; // Added metrics about active connections
+  storageUsage?: {            // Added storage usage information
+    used: number;
+    limit: number;
+    percentage: number;
+  };
+}
+
+// Add new exports for enhanced Gadget functionality
+export interface GadgetStorageLimits {
+  files: {
+    count: number;
+    size: number;
+  };
+  database: {
+    records: number;
+    size: number;
+  };
+}
+
+export interface GadgetRateLimits {
+  tier: string;
+  requests: {
+    limit: number;
+    remaining: number;
+    resetAt: Date;
+  };
 }
 
 /**

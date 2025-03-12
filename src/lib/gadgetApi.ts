@@ -30,14 +30,42 @@ export {
   processPaginatedData
 } from './gadget/batch';
 
-// Export new streaming functionality
+// Export enhanced export functionality
 export {
-  streamExportData
+  exportData,
+  streamExportData,
+  exportPriceItemsToShopify,
+  scheduleExportJob
 } from './gadget/export';
 
-// Export connection utilities
+// Export enhanced connection utilities
 export {
   createGadgetConnection,
   listGadgetConnections,
-  deleteGadgetConnection
+  deleteGadgetConnection,
+  getGadgetConnectionStatus,
+  refreshGadgetConnection,
+  testGadgetConnectionAccess
 } from './gadget/connections';
+
+// Export new types for better TypeScript support
+export type {
+  ConnectionType,
+  ConnectionConfig,
+  ConnectionResponse,
+  AuthMethod
+} from './gadget/connections';
+
+export type {
+  ExportFormat,
+  ExportOptions,
+  ExportResult,
+  CompressionType
+} from './gadget/export';
+
+export type {
+  GadgetConnectionOptions,
+  GadgetClientStatus,
+  GadgetStorageLimits,
+  GadgetRateLimits
+} from './gadget';

@@ -29,3 +29,15 @@ export {
   performBatchOperations,
   processPaginatedData
 } from './gadget/batch';
+
+// Export new streaming functionality
+export {
+  streamExportData
+} from './gadget/export';
+
+// Export connection utilities
+export {
+  createGadgetConnection,
+  listGadgetConnections,
+  deleteGadgetConnection
+} from './gadget/connections';

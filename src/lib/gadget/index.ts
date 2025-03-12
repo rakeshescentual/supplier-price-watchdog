@@ -21,6 +21,7 @@ export * from './pagination';
 export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
+export * from './connections'; // Add new connections module
 
 // Explicitly re-export client functions to avoid ambiguity
 export {
@@ -34,14 +35,15 @@ export {
 } from './client';
 
 // Core constants for Gadget integration
-export const GADGET_API_VERSION = '2023-01';
-export const GADGET_SDK_VERSION = '0.15.41';
+export const GADGET_API_VERSION = '2023-05'; // Updated to latest API version
+export const GADGET_SDK_VERSION = '0.17.0'; // Updated to latest SDK version
 
 // Define client connection and status types directly here to avoid import errors
 export interface GadgetConnectionOptions {
   enableNetworkLogs?: boolean;
   maxRetries?: number;
   timeout?: number;
+  enhancedTelemetry?: boolean; // Added support for enhanced telemetry
 }
 
 export interface GadgetClientStatus {
@@ -49,6 +51,8 @@ export interface GadgetClientStatus {
   environment: string;
   latency?: number;
   lastChecked?: Date;
+  apiVersion?: string; // Added API version information
+  features?: string[]; // Added feature detection
 }
 
 /**

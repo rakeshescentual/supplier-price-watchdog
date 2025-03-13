@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useShopify } from "@/contexts/ShopifyContext";
+import { useShopify } from "@/contexts/shopify";
 import { AlertCircle, LogIn, ShoppingBag, LogOut } from "lucide-react";
 import { initGoogleWorkspace, isGoogleSignedIn, signInToGoogle, signOutFromGoogle } from "@/lib/googleWorkspaceApi";
 

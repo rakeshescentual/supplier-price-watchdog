@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { AnalysisSummary } from "@/components/AnalysisSummary";
@@ -9,7 +10,7 @@ import { SupplierCorrespondence } from "@/components/supplier/SupplierCorrespond
 import { PriceIncreaseNotification } from "@/components/PriceIncreaseNotification";
 import { EscentualIntegration } from "@/components/EscentualIntegration";
 import { exportToShopifyFormat } from "@/lib/excel";
-import { ShopifyProvider, useShopify } from "@/contexts/ShopifyContext";
+import { ShopifyProvider, useShopify } from "@/contexts/shopify";
 import { FileAnalysisProvider, useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

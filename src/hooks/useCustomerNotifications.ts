@@ -1,8 +1,7 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { PriceItem } from '@/types/price';
-import { useShopify } from '@/contexts/ShopifyContext';
+import { useShopify } from '@/contexts/shopify';
 
 export const useCustomerNotifications = () => {
   const [isSendingNotifications, setIsSendingNotifications] = useState(false);

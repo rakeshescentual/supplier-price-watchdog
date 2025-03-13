@@ -1,3 +1,4 @@
+
 // This file is used to re-export all the necessary functions and types from the gadget folder
 export * from './auth';
 export * from './auth/useGadgetAuth';
@@ -653,4 +654,6 @@ export * from './auth/useLastMillenniumPermission';
 export * from './auth/useLastMillenniumPermissions';
 export * from './auth/useAllLastMillenniumPermissions';
 export * from './auth/useHasNextMillenniumPermission';
-export * from './auth/useNextMillenniumPermission
+export * from './auth/useNextMillenniumPermission';
+export * from './auth/useNextMillenniumPermissions';
+export * from './auth/useAllNextMillenniumPermissions';

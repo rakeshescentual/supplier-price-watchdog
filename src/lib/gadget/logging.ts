@@ -1,109 +1,54 @@
 
 /**
- * Logging utilities for Gadget operations
+ * Logging utilities for Gadget integration
  */
 
-// Define log levels
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-// Create a structured logger
-const logger = {
-  debug: (message: string, data: any = {}, component: string = 'gadget') => {
-    console.debug(`[${component}] ${message}`, data);
-  },
+/**
+ * Log an informational message
+ * @param message The message to log
+ * @param data Additional data to log
+ * @param component The component generating the log
+ */
+export const logInfo = (message: string, data: Record<string, any> = {}, component: string = 'general') => {
+  console.info(`[Gadget:${component}] ${message}`, data);
   
-  info: (message: string, data: any = {}, component: string = 'gadget') => {
-    console.info(`[${component}] ${message}`, data);
-  },
-  
-  warn: (message: string, data: any = {}, component: string = 'gadget') => {
-    console.warn(`[${component}] ${message}`, data);
-  },
-  
-  error: (message: string, data: any = {}, component: string = 'gadget') => {
-    console.error(`[${component}] ${message}`, data);
-  }
+  // In production, we might log to a central logging system
 };
 
-// Export individual logging methods
-export const logDebug = logger.debug;
-export const logInfo = logger.info;
-export const logWarn = logger.warn;
-export const logError = logger.error;
-
-// For more complex applications, add functionality to send logs to Gadget
-export const sendLogsToGadget = async (
-  logs: Array<{
-    level: LogLevel;
-    message: string;
-    data?: any;
-    timestamp: string;
-    component: string;
-  }>
-): Promise<boolean> => {
-  // In production: Use Gadget SDK to send logs
-  // const client = initGadgetClient();
-  // if (!client) return false;
-  // 
-  // await client.mutate.storeLogs({
-  //   logs: JSON.stringify(logs)
-  // });
-  // 
-  // return true;
+/**
+ * Log an error message
+ * @param message The error message to log
+ * @param data Additional data to log
+ * @param component The component generating the log
+ */
+export const logError = (message: string, data: Record<string, any> = {}, component: string = 'general') => {
+  console.error(`[Gadget:${component}] ${message}`, data);
   
-  // For development: Just log to console
-  logs.forEach(log => {
-    logger[log.level](
-      `[${log.component}] (${log.timestamp}) ${log.message}`, 
-      log.data || {}
-    );
-  });
-  
-  return true;
+  // In production, we might log to a central logging system and alert on errors
 };
 
-// Create a log buffer for batching logs to send to Gadget
-let logBuffer: Array<{
-  level: LogLevel;
-  message: string;
-  data?: any;
-  timestamp: string;
-  component: string;
-}> = [];
-
-// Add a log to the buffer
-export const bufferLog = (
-  level: LogLevel,
-  message: string,
-  data: any = {},
-  component: string = 'gadget'
-): void => {
-  // Also log to console immediately
-  logger[level](`[${component}] ${message}`, data);
+/**
+ * Log a warning message
+ * @param message The warning message to log
+ * @param data Additional data to log
+ * @param component The component generating the log
+ */
+export const logWarning = (message: string, data: Record<string, any> = {}, component: string = 'general') => {
+  console.warn(`[Gadget:${component}] ${message}`, data);
   
-  // Add to buffer for later sending to Gadget
-  logBuffer.push({
-    level,
-    message,
-    data,
-    timestamp: new Date().toISOString(),
-    component
-  });
-  
-  // If buffer gets too large, flush it
-  if (logBuffer.length >= 100) {
-    flushLogBuffer();
-  }
+  // In production, we might log to a central logging system
 };
 
-// Flush the log buffer to Gadget
-export const flushLogBuffer = async (): Promise<boolean> => {
-  if (logBuffer.length === 0) {
-    return true;
+/**
+ * Log a debug message (only in development)
+ * @param message The debug message to log
+ * @param data Additional data to log
+ * @param component The component generating the log
+ */
+export const logDebug = (message: string, data: Record<string, any> = {}, component: string = 'general') => {
+  if (process.env.NODE_ENV === 'development') {
+    console.debug(`[Gadget:${component}] ${message}`, data);
   }
   
-  const logsToSend = [...logBuffer];
-  logBuffer = [];
-  
-  return await sendLogsToGadget(logsToSend);
+  // Debug logs are not sent to central logging in production
 };

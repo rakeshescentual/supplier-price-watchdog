@@ -30,6 +30,11 @@ export {
   processPaginatedData
 } from './gadget/batch';
 
+// Export PDF processing functionality
+export {
+  processPdfWithGadget
+} from './gadget/pdf';
+
 // Export enhanced export functionality
 export {
   exportData,
@@ -118,4 +123,3 @@ export type {
 export type {
   CacheOptions
 } from './gadget/storage';
-

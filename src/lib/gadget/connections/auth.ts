@@ -1,281 +1,141 @@
 
 /**
- * Authentication helpers for Gadget.dev connections
+ * Authentication utilities for Gadget connections
  */
 import { logInfo, logError } from '../logging';
-import { initGadgetClient } from '../client';
-import { toast } from 'sonner';
 
-/**
- * OAuth configuration for different services
- */
 export interface OAuthConfig {
+  provider: string;
   clientId: string;
+  scope: string;
   redirectUri: string;
-  scope: string[];
-  state?: string;
-  extraParams?: Record<string, string>;
 }
 
-/**
- * API Key configuration
- */
 export interface ApiKeyConfig {
-  key: string;
-  secret?: string;
-  additionalHeaders?: Record<string, string>;
+  provider: string;
+  apiKey: string;
+  apiSecret?: string;
 }
 
 /**
- * Initialize OAuth flow for a connection
- * @param service Service name (shopify, klaviyo, etc.)
- * @param config OAuth configuration
- * @returns URL to redirect user to for authorization
+ * Initiate OAuth flow
  */
-export const initiateOAuthFlow = async (
-  service: string,
-  config: OAuthConfig
-): Promise<string | null> => {
-  const client = initGadgetClient();
-  if (!client) {
-    logError('Cannot initiate OAuth flow: Gadget client not initialized', {}, 'auth');
-    return null;
-  }
-  
+export const initiateOAuthFlow = (config: OAuthConfig): string => {
   try {
-    logInfo(`Initiating OAuth flow for ${service}`, { config }, 'auth');
+    logInfo('Initiating OAuth flow', { provider: config.provider }, 'auth');
     
-    // Generate state if not provided
-    const state = config.state || generateRandomState();
+    // Generate mock authorization URL
+    const authUrl = `https://mock-oauth.example.com/authorize?client_id=${config.clientId}&scope=${encodeURIComponent(config.scope)}&redirect_uri=${encodeURIComponent(config.redirectUri)}`;
     
-    // In production with Gadget SDK:
-    // const result = await client.mutate.initiateOAuth({
-    //   service,
-    //   clientId: config.clientId,
-    //   redirectUri: config.redirectUri,
-    //   scope: config.scope.join(' '),
-    //   state,
-    //   extraParams: config.extraParams
-    // });
-    // 
-    // return result.authorizationUrl;
-    
-    // For development, return mock URL
-    const scopeString = encodeURIComponent(config.scope.join(' '));
-    const mockUrl = `https://example.com/oauth/authorize?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(config.redirectUri)}&scope=${scopeString}&state=${state}`;
-    
-    // Store state in localStorage for validation
-    localStorage.setItem(`oauth-state-${service}`, state);
-    
-    return mockUrl;
+    return authUrl;
   } catch (error) {
-    logError(`Error initiating OAuth flow for ${service}`, { error, config }, 'auth');
-    return null;
+    logError('Failed to initiate OAuth flow', { error }, 'auth');
+    throw error;
   }
 };
 
 /**
- * Handle OAuth callback and exchange code for tokens
- * @param service Service name
- * @param code Authorization code
- * @param state State parameter for verification
- * @returns Success status and connection ID if successful
+ * Handle OAuth callback
  */
 export const handleOAuthCallback = async (
-  service: string,
   code: string,
-  state: string
-): Promise<{ success: boolean; connectionId?: string; error?: string }> => {
-  // Verify state parameter
-  const savedState = localStorage.getItem(`oauth-state-${service}`);
-  if (!savedState || savedState !== state) {
-    const error = 'Invalid state parameter, possible CSRF attack';
-    logError(error, { service, state }, 'auth');
-    return { success: false, error };
-  }
-  
-  // Clean up state from localStorage
-  localStorage.removeItem(`oauth-state-${service}`);
-  
-  const client = initGadgetClient();
-  if (!client) {
-    const error = 'Gadget client not initialized';
-    logError(error, { service }, 'auth');
-    return { success: false, error };
-  }
-  
+  state?: string
+): Promise<{
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}> => {
   try {
-    logInfo(`Handling OAuth callback for ${service}`, { code }, 'auth');
+    logInfo('Handling OAuth callback', { codeLength: code.length }, 'auth');
     
-    // In production with Gadget SDK:
-    // const result = await client.mutate.completeOAuth({
-    //   service,
-    //   code,
-    //   state
-    // });
-    // 
-    // return { 
-    //   success: true, 
-    //   connectionId: result.connection.id 
-    // };
-    
-    // For development, return mock success
-    toast.success(`${service} connected successfully`, {
-      description: "OAuth authentication completed"
-    });
-    
-    return { 
-      success: true, 
-      connectionId: `${service}_${Date.now()}` 
+    // Mock successful authentication
+    return {
+      accessToken: `mock-access-token-${Date.now()}`,
+      refreshToken: `mock-refresh-token-${Date.now()}`,
+      expiresAt: Date.now() + 3600 * 1000 // 1 hour
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logError(`Error completing OAuth flow for ${service}`, { error, code }, 'auth');
-    
-    toast.error(`${service} connection failed`, {
-      description: errorMessage
-    });
-    
-    return { 
-      success: false, 
-      error: errorMessage 
-    };
+    logError('Failed to handle OAuth callback', { error }, 'auth');
+    throw error;
   }
 };
 
 /**
  * Authenticate with API key
- * @param service Service name
- * @param config API key configuration
- * @returns Success status and connection ID if successful
  */
 export const authenticateWithApiKey = async (
-  service: string,
   config: ApiKeyConfig
-): Promise<{ success: boolean; connectionId?: string; error?: string }> => {
-  const client = initGadgetClient();
-  if (!client) {
-    const error = 'Gadget client not initialized';
-    logError(error, { service }, 'auth');
-    return { success: false, error };
-  }
-  
+): Promise<{
+  authenticated: boolean;
+  message?: string;
+}> => {
   try {
-    logInfo(`Authenticating ${service} with API key`, { service }, 'auth');
+    logInfo('Authenticating with API key', { provider: config.provider }, 'auth');
     
-    // In production with Gadget SDK:
-    // const result = await client.mutate.createApiKeyConnection({
-    //   service,
-    //   apiKey: config.key,
-    //   apiSecret: config.secret,
-    //   additionalHeaders: config.additionalHeaders
-    // });
-    // 
-    // return { 
-    //   success: true, 
-    //   connectionId: result.connection.id 
-    // };
-    
-    // For development, return mock success
-    toast.success(`${service} connected successfully`, {
-      description: "API key authentication completed"
-    });
-    
-    return { 
-      success: true, 
-      connectionId: `${service}_${Date.now()}` 
+    // Mock successful authentication
+    return {
+      authenticated: true
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logError(`Error authenticating ${service} with API key`, { error, service }, 'auth');
-    
-    toast.error(`${service} connection failed`, {
-      description: errorMessage
-    });
-    
-    return { 
-      success: false, 
-      error: errorMessage 
+    logError('Failed to authenticate with API key', { error }, 'auth');
+    return {
+      authenticated: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 };
 
 /**
- * Generate random state for OAuth flow
- * @returns Random state string
- */
-const generateRandomState = (): string => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
-};
-
-/**
- * Revoke authentication tokens for a connection
- * @param connectionId Connection ID
- * @returns Success status
+ * Revoke authentication
  */
 export const revokeAuthentication = async (
   connectionId: string
 ): Promise<boolean> => {
-  const client = initGadgetClient();
-  if (!client) {
-    logError('Cannot revoke authentication: Gadget client not initialized', { connectionId }, 'auth');
-    return false;
-  }
-  
   try {
-    logInfo(`Revoking authentication for connection ${connectionId}`, {}, 'auth');
+    logInfo('Revoking authentication', { connectionId }, 'auth');
     
-    // In production with Gadget SDK:
-    // await client.mutate.revokeConnection({
-    //   connectionId
-    // });
-    
-    toast.success("Connection revoked successfully");
+    // Mock successful revocation
     return true;
   } catch (error) {
-    logError('Error revoking authentication', { error, connectionId }, 'auth');
-    
-    toast.error("Failed to revoke connection", {
-      description: error instanceof Error ? error.message : "Unknown error"
-    });
-    
+    logError('Failed to revoke authentication', { error }, 'auth');
     return false;
   }
 };
 
 /**
- * Get available authentication methods for a service
- * @param service Service name
- * @returns Available authentication methods
+ * Get available authentication methods for a provider
  */
 export const getAuthenticationMethods = async (
-  service: string
-): Promise<Array<'oauth' | 'apiKey' | 'password'>> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return [];
-  }
-  
+  provider: string
+): Promise<AuthMethod[]> => {
   try {
-    // In production with Gadget SDK:
-    // const result = await client.query.getAuthMethods({
-    //   service
-    // });
-    // 
-    // return result.methods;
+    logInfo('Getting authentication methods', { provider }, 'auth');
     
-    // For development, return mock data
-    switch (service) {
-      case 'shopify':
-        return ['oauth'];
-      case 'klaviyo':
-        return ['apiKey'];
-      default:
-        return ['oauth', 'apiKey'];
+    // Mock authentication methods
+    if (provider === 'shopify') {
+      return [
+        {
+          type: 'oauth',
+          label: 'OAuth 2.0',
+          description: 'Connect via Shopify OAuth'
+        },
+        {
+          type: 'api_key',
+          label: 'API Key',
+          description: 'Use Shopify Admin API key'
+        }
+      ];
     }
+    
+    return [
+      {
+        type: 'api_key',
+        label: 'API Key',
+        description: 'Use API key authentication'
+      }
+    ];
   } catch (error) {
-    logError(`Error getting authentication methods for ${service}`, { error }, 'auth');
+    logError('Failed to get authentication methods', { error }, 'auth');
     return [];
   }
 };

@@ -1,65 +1,42 @@
 
 /**
- * Gadget health check functionality
+ * Health checking utilities for Gadget client
  */
 import { logInfo, logError } from '../logging';
-import { getGadgetConfig, getGadgetApiUrl, createGadgetHeaders } from '@/utils/gadget-helpers';
-import { reportHealthCheck } from '../telemetry';
-import { testGadgetConnection } from './status';
+import { initGadgetClient } from './initialization';
 
 /**
- * Check Gadget connection health
- * @returns Promise resolving to health status
+ * Check health of Gadget client and API
  */
 export const checkGadgetHealth = async (): Promise<{
-  healthy: boolean;
-  statusCode?: number;
+  status: 'healthy' | 'degraded' | 'unhealthy';
   message?: string;
+  details?: Record<string, any>;
 }> => {
-  const config = getGadgetConfig();
-  if (!config) {
-    return { healthy: false, message: "No Gadget configuration found" };
+  const client = initGadgetClient();
+  
+  if (!client) {
+    return {
+      status: 'unhealthy',
+      message: 'Gadget client is not initialized'
+    };
   }
   
   try {
-    logInfo('Checking Gadget connection health', {
-      appId: config.appId,
-      environment: config.environment
-    }, 'client');
-    
-    // For Gadget.dev migration:
-    // Check Gadget API health
-    // const url = `${getGadgetApiUrl(config)}health`;
-    // const response = await fetch(url, {
-    //   method: 'GET',
-    //   headers: createGadgetHeaders(config)
-    // });
-    
-    // const data = await response.json();
-    // const healthy = response.ok && data.status === 'healthy';
-    
-    // Simulate a health check
-    const healthy = Math.random() > 0.1; // 90% chance of being healthy
-    
-    // Report health status to telemetry
-    await reportHealthCheck(
-      healthy ? 'healthy' : 'degraded',
-      { appId: config.appId, environment: config.environment }
-    );
-    
+    // For development, return a mock healthy response
     return {
-      healthy,
-      statusCode: healthy ? 200 : 503,
-      message: healthy ? "Gadget services operational" : "Gadget services degraded"
+      status: 'healthy',
+      details: {
+        apiLatency: 42,
+        timestamp: new Date().toISOString()
+      }
     };
   } catch (error) {
-    logError('Error checking Gadget health', { error }, 'client');
+    logError('Error checking Gadget health', { error }, 'health');
     
     return {
-      healthy: false,
-      statusCode: 500,
-      message: error instanceof Error ? error.message : "Unknown error checking Gadget health"
+      status: 'unhealthy',
+      message: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 };
-

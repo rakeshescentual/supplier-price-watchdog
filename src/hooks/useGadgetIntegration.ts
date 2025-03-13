@@ -1,203 +1,75 @@
 
-/**
- * Hook for working with Gadget integration in components
- */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { GadgetConfig } from '@/types/price';
 import { 
-  getGadgetConfig,
-  saveGadgetConfig, 
-  testGadgetConnection 
-} from '@/utils/gadget-helpers';
-import { 
-  checkGadgetReadiness,
-  validateAndSaveGadgetConfig,
-  isGadgetFeatureEnabled
-} from '@/utils/gadget-integration';
-import {
-  initGadgetClient,
-  resetGadgetClient,
+  initGadgetClient, 
+  resetGadgetClient, 
   isGadgetInitialized,
   checkGadgetHealth
-} from '@/lib/gadget';
-import { logError } from '@/lib/gadget/logging';
+} from '@/lib/gadgetApi';
+import { getGadgetConfig } from '@/utils/gadget-helpers';
 
-/**
- * Hook for working with Gadget integration
- * @returns Object with Gadget integration state and functions
- */
 export function useGadgetIntegration() {
-  const [config, setConfig] = useState<GadgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
-  const [isOperational, setIsOperational] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [isTesting, setIsTesting] = useState(false);
-  const [lastTestResult, setLastTestResult] = useState<boolean | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
-  // Load configuration and check status on mount
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadConfig = async () => {
-      setIsLoading(true);
-      
-      try {
-        // Load config
-        const savedConfig = getGadgetConfig();
-        if (mounted) setConfig(savedConfig);
-        
-        // Check operational status
-        const status = await checkGadgetReadiness();
-        
-        if (mounted) {
-          setIsConfigured(status.configured);
-          setIsOperational(status.operational);
-          setStatusMessage(status.message);
-        }
-      } catch (error) {
-        if (mounted) {
-          setIsConfigured(false);
-          setIsOperational(false);
-          setStatusMessage(error instanceof Error ? error.message : "Unknown error");
-        }
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-    
-    loadConfig();
-    
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Test connection to Gadget
-  const testConnection = useCallback(async () => {
-    if (!config) return false;
-    
-    setIsTesting(true);
-    
+  const checkConnection = async () => {
+    setIsLoading(true);
     try {
-      const result = await testGadgetConnection(config);
-      setLastTestResult(result);
-      
-      if (result) {
-        toast.success("Connection successful", {
-          description: "Successfully connected to Gadget.dev"
-        });
-      } else {
-        toast.error("Connection failed", {
-          description: "Could not connect to Gadget.dev with the provided credentials."
-        });
+      const config = getGadgetConfig();
+      setIsConfigured(!!config);
+
+      if (config) {
+        // Initialize Gadget client
+        initGadgetClient();
+        
+        // Check if initialized properly
+        const initialized = isGadgetInitialized();
+        setIsConnected(initialized);
+        
+        // If initialized, check the health
+        if (initialized) {
+          const health = await checkGadgetHealth();
+          setIsConnected(health.status === 'healthy');
+        }
       }
-      
-      return result;
     } catch (error) {
-      logError("Error testing Gadget connection", { error }, 'integration');
-      setLastTestResult(false);
-      
-      toast.error("Connection error", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      console.error('Gadget connection error:', error);
+      setIsConnected(false);
+      toast.error('Gadget connection error', {
+        description: 'Could not connect to Gadget service.'
       });
-      
-      return false;
     } finally {
-      setIsTesting(false);
+      setIsLoading(false);
+      setLastChecked(new Date());
     }
-  }, [config]);
+  };
 
-  // Update configuration
-  const updateConfig = useCallback(async (newConfig: GadgetConfig) => {
-    const success = await validateAndSaveGadgetConfig(newConfig, () => {
-      setConfig(newConfig);
-      setIsConfigured(true);
-      
-      // Recheck operational status
-      checkGadgetReadiness().then(status => {
-        setIsOperational(status.operational);
-        setStatusMessage(status.message);
-      });
-    });
-    
-    return success;
-  }, []);
-
-  // Reset Gadget client and configuration
-  const resetIntegration = useCallback(() => {
+  const resetConnection = () => {
     resetGadgetClient();
+    toast.info('Gadget connection reset', {
+      description: 'The connection has been reset.'
+    });
+    checkConnection();
+  };
+
+  useEffect(() => {
+    checkConnection();
     
-    const status = isGadgetInitialized();
-    setIsOperational(status);
-    setStatusMessage(status ? "Gadget client reinitialized" : "Gadget client reset");
+    // Check connection every 15 minutes
+    const interval = setInterval(checkConnection, 15 * 60 * 1000);
     
-    return status;
-  }, []);
-
-  // Check if a specific feature is enabled
-  const isFeatureEnabled = useCallback((featureName: string, defaultValue: boolean = false) => {
-    return isGadgetFeatureEnabled(featureName, defaultValue);
-  }, []);
-
-  // Check current health status
-  const checkHealth = useCallback(async () => {
-    if (!isInitialized()) {
-      return {
-        healthy: false,
-        message: "Gadget client not initialized"
-      };
-    }
-    
-    try {
-      const health = await checkGadgetHealth();
-      setIsOperational(health.healthy);
-      setStatusMessage(health.message || (health.healthy ? "Operational" : "Service degraded"));
-      
-      return health;
-    } catch (error) {
-      logError("Error checking Gadget health", { error }, 'integration');
-      
-      setIsOperational(false);
-      setStatusMessage(error instanceof Error ? error.message : "Health check failed");
-      
-      return {
-        healthy: false,
-        message: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  }, []);
-
-  // Check if Gadget client is initialized
-  const isInitialized = useCallback(() => {
-    return isGadgetInitialized();
-  }, []);
-
-  // Get Gadget client
-  const getClient = useCallback(() => {
-    return initGadgetClient();
+    return () => clearInterval(interval);
   }, []);
 
   return {
-    // State
-    config,
     isLoading,
     isConfigured,
-    isOperational,
-    statusMessage,
-    isTesting,
-    lastTestResult,
-    
-    // Methods
-    testConnection,
-    updateConfig,
-    resetIntegration,
-    isFeatureEnabled,
-    checkHealth,
-    isInitialized,
-    getClient
+    isConnected,
+    lastChecked,
+    checkConnection,
+    resetConnection
   };
 }
-
-export default useGadgetIntegration;

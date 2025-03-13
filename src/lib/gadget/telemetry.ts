@@ -32,6 +32,14 @@ export const startPerformanceTracking = (operation: string, metadata: Record<str
 };
 
 /**
+ * Track performance of an operation
+ * @param operation Name of the operation
+ * @param metadata Additional metadata
+ * @returns Function to complete tracking
+ */
+export const trackPerformance = startPerformanceTracking;
+
+/**
  * Report an error to the telemetry system
  * @param error The error to report
  * @param metadata Additional metadata to log with the error
@@ -51,4 +59,18 @@ export const reportError = async (error: Error | string, metadata: Record<string
     reported: true,
     timestamp: new Date().toISOString()
   };
+};
+
+/**
+ * Report health check results to telemetry system
+ * @param status Health status
+ * @param details Additional details
+ */
+export const reportHealthCheck = async (
+  status: 'healthy' | 'degraded' | 'down',
+  details: Record<string, any> = {}
+): Promise<void> => {
+  logInfo(`Health check: ${status}`, details, 'telemetry');
+  
+  // In production, we would send this to a monitoring system
 };

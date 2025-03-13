@@ -3,8 +3,9 @@
  * Diagnostic utilities for Gadget integration
  */
 import { logInfo, logError } from './logging';
-import { initGadgetClient, checkGadgetHealth, testGadgetConnection } from './client';
+import { initGadgetClient, checkGadgetHealth } from './client';
 import { reportHealthCheck } from './telemetry';
+import { testGadgetConnection } from './client/connection';
 
 /**
  * Run diagnostic checks on Gadget integration
@@ -98,19 +99,20 @@ export const runGadgetDiagnostics = async (
   if (options.checkHealth) {
     try {
       const health = await checkGadgetHealth();
+      const isHealthy = health.status === 'healthy';
       
       results.health = {
-        status: health.healthy ? 'pass' : 'warn',
-        message: health.message || (health.healthy 
+        status: isHealthy ? 'pass' : 'warn',
+        message: health.message || (isHealthy 
           ? 'Gadget services are healthy'
           : 'Gadget services may be degraded'),
         details: {
-          statusCode: health.statusCode,
+          status: health.status,
           timestamp: new Date().toISOString()
         }
       };
       
-      if (!health.healthy && overallStatus === 'healthy') {
+      if (!isHealthy && overallStatus === 'healthy') {
         overallStatus = 'degraded';
       }
     } catch (error) {

@@ -11,3 +11,5 @@ export * from './status';
 export * from './health';
 export * from './display';
 
+// Export test connection and status utilities
+export { testGadgetConnection, getGadgetStatus } from './connection';

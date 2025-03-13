@@ -99,13 +99,14 @@ export const useGadgetConnection = (): UseGadgetConnectionResult => {
   const checkHealth = useCallback(async (): Promise<void> => {
     try {
       const health = await checkGadgetHealth();
-      setIsHealthy(health.healthy);
+      const isHealthStatus = health.status === 'healthy';
+      setIsHealthy(isHealthStatus);
       setHealthCheckMessage(health.message || null);
       setLastHealthCheck(new Date());
       
-      if (isConnected && !health.healthy) {
+      if (isConnected && !isHealthStatus) {
         setConnectionStatus('degraded');
-      } else if (isConnected && health.healthy) {
+      } else if (isConnected && isHealthStatus) {
         setConnectionStatus('connected');
       }
     } catch (error) {
@@ -139,7 +140,7 @@ export const useGadgetConnection = (): UseGadgetConnectionResult => {
     });
   }, []);
   
-  // Get detailed status - fixed the return type to avoid the Promise<Promise<...>> issue
+  // Get detailed status
   const getStatus = useCallback(async () => {
     return getGadgetStatus();
   }, []);

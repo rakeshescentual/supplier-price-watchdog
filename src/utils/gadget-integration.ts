@@ -115,7 +115,7 @@ export const checkGadgetReadiness = async (): Promise<{
     // Check API health
     const health = await checkGadgetHealth();
     
-    if (!health.healthy) {
+    if (health.status !== 'healthy') {
       return {
         configured: true,
         operational: false,

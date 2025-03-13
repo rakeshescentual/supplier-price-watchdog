@@ -1,4 +1,3 @@
-
 /**
  * Main entry point for Gadget.dev API integration
  * Re-exports all Gadget functions from the modular structure
@@ -14,9 +13,11 @@ export {
   isGadgetInitialized, 
   checkGadgetHealth, 
   resetGadgetClient,
-  testGadgetConnection,
   displayGadgetStatus
 } from './gadget/client';
+
+// Import and re-export testGadgetConnection from the correct location
+export { testGadgetConnection } from './gadget/client/connection';
 
 export {
   authenticateShopify,

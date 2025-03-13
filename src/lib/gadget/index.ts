@@ -1,3 +1,4 @@
+
 /**
  * Gadget.dev Integration Module
  * 
@@ -17,7 +18,15 @@ export * from './sync';
 export * from './export';
 export * from './processing';
 export * from './pagination';
-export * from './diagnostics';
+// Re-export diagnostics but exclude getGadgetStatus to avoid conflict
+export { 
+  logDiagnosticInfo,
+  collectDiagnosticData,
+  reportDiagnosticError,
+  createDiagnosticReport,
+  DiagnosticSeverity,
+  DiagnosticCategory
+} from './diagnostics';
 export * from './shopify-integration'; // This will change to export from the folder
 export * from './mocks';
 export * from './connections'; 

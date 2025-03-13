@@ -4,7 +4,7 @@ import { processFile, getAnomalyStats, mergeWithShopifyData, exportToShopifyForm
 import { generateAIAnalysis } from "@/lib/aiAnalysis";
 import { toast } from "sonner";
 import type { PriceItem, PriceAnalysis } from "@/types/price";
-import { useShopify } from "./ShopifyContext";
+import { useShopify } from "./shopify"; // Updated import path
 import { useMarketData } from "@/hooks/useMarketData";
 
 interface FileAnalysisProviderProps {

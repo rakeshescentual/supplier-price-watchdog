@@ -1,4 +1,3 @@
-
 /**
  * Gadget.dev Integration Module
  * 
@@ -19,7 +18,7 @@ export * from './export';
 export * from './processing';
 export * from './pagination';
 export * from './diagnostics';
-export * from './shopify-integration';
+export * from './shopify-integration'; // This will change to export from the folder
 export * from './mocks';
 export * from './connections'; 
 export * from './storage'; 
@@ -157,4 +156,3 @@ export interface GadgetLiveQueryOptions {
  * The modular structure matches Gadget.dev's architecture, making
  * the migration process seamless.
  */
-

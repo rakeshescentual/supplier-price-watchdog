@@ -78,6 +78,14 @@ export {
   generatePriceRecommendations
 } from './gadget/actions';
 
+// Export Shopify Plus specific functionality from the new modular structure
+export {
+  deployShopifyScript,
+  createShopifyFlow,
+  syncB2BPrices,
+  scheduleShopifyPriceChanges
+} from './gadget/shopify-integration';
+
 // Export new types for better TypeScript support
 export type {
   ConnectionType,

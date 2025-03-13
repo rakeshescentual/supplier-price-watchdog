@@ -7,9 +7,11 @@ import { PriceChangeTimeline } from "@/components/PriceChangeTimeline";
 import { PriceSuggestions } from "@/components/PriceSuggestions";
 import { PriceTable } from "@/components/PriceTable";
 import { Info } from "lucide-react";
+import { useShopify } from "@/contexts/shopify";
 
 export const AnalysisTabContent = () => {
-  const { analysis, isAnalyzing, items, summary, isShopifyConnected } = useFileAnalysis();
+  const { analysis, isAnalyzing, items, summary } = useFileAnalysis();
+  const { isShopifyConnected } = useShopify();
 
   return (
     <>

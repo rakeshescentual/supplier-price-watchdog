@@ -17,6 +17,13 @@ export interface ApiKeyConfig {
   apiSecret?: string;
 }
 
+// Define the AuthMethod type that was missing
+export interface AuthMethod {
+  type: 'oauth' | 'api_key' | 'basic';
+  label: string;
+  description: string;
+}
+
 /**
  * Initiate OAuth flow
  */

@@ -1,0 +1,48 @@
+
+import { ShareDialog } from "@/components/ShareDialog";
+import { useShopify } from "@/contexts/shopify";
+import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
+
+export const Header = () => {
+  const { isShopifyConnected, isGadgetInitialized } = useShopify();
+  const { file, items, summary } = useFileAnalysis();
+  
+  const fileStats = items.length > 0 ? {
+    totalItems: items.length,
+    increasedItems: summary.increasedItems,
+    decreasedItems: summary.decreasedItems
+  } : undefined;
+  
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-center mb-8 animate-fade-up">
+      <div className="text-center md:text-left space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight">Price Management System</h1>
+        <p className="text-lg text-muted-foreground">
+          Upload your supplier price list to analyze changes and impacts
+        </p>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 md:mt-0">
+        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+          {isShopifyConnected && (
+            <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
+              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+              Shopify Connected
+            </div>
+          )}
+          {isGadgetInitialized && (
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+              <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+              Gadget Enabled
+            </div>
+          )}
+        </div>
+        
+        <ShareDialog 
+          fileStats={fileStats} 
+          onExport={items.length > 0 ? () => {} : undefined} 
+        />
+      </div>
+    </div>
+  );
+};

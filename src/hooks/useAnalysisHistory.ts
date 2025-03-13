@@ -1,31 +1,26 @@
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
-export interface AnalysisHistoryItem {
-  id: string;
-  date: string;
-  fileName: string;
-  itemCount: number;
-  summary: { 
-    increasedItems: number; 
-    decreasedItems: number;
-  };
+interface AnalysisSummary {
+  increasedItems: number;
+  decreasedItems: number;
 }
 
-export interface NewAnalysis {
+interface Analysis {
   fileName: string;
   itemCount: number;
-  summary: { 
-    increasedItems: number; 
-    decreasedItems: number;
-  };
+  summary: AnalysisSummary;
+}
+
+interface SavedAnalysis extends Analysis {
+  id: string;
+  date: string;
 }
 
 export const useAnalysisHistory = () => {
-  const [savedAnalyses, setSavedAnalyses] = useState<AnalysisHistoryItem[]>([]);
+  const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
 
-  // Load saved analyses from localStorage on component mount
   useEffect(() => {
     try {
       const savedData = localStorage.getItem('analysisHistory');
@@ -37,14 +32,14 @@ export const useAnalysisHistory = () => {
     }
   }, []);
 
-  const saveAnalysis = (analysis: NewAnalysis) => {
+  const saveAnalysis = (analysis: Analysis) => {
     const newAnalysis = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       ...analysis
     };
     
-    const updatedAnalyses = [newAnalysis, ...savedAnalyses].slice(0, 10); // Keep last 10 analyses
+    const updatedAnalyses = [newAnalysis, ...savedAnalyses].slice(0, 10);
     setSavedAnalyses(updatedAnalyses);
     
     try {
@@ -57,15 +52,5 @@ export const useAnalysisHistory = () => {
     }
   };
 
-  const clearHistory = () => {
-    setSavedAnalyses([]);
-    localStorage.removeItem('analysisHistory');
-    toast.success('Analysis history cleared');
-  };
-
-  return { 
-    savedAnalyses, 
-    saveAnalysis,
-    clearHistory
-  };
+  return { savedAnalyses, saveAnalysis };
 };

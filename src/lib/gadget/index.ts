@@ -22,8 +22,8 @@ export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
 export * from './connections'; 
-export * from './storage'; // Now points to the folder instead of a file
-export * from './actions'; // New module for custom Gadget actions
+export * from './storage'; 
+export * from './actions'; // Now points to the folder instead of a file
 
 // Explicitly re-export client functions to avoid ambiguity
 export {

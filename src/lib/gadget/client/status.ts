@@ -1,12 +1,10 @@
 
 /**
- * Gadget client status and health check utilities
+ * Gadget client status management
  */
-import { toast } from 'sonner';
-import { getGadgetConfig, getGadgetApiUrl } from '@/utils/gadget-helpers';
 import { logInfo, logError } from '../logging';
-import { reportHealthCheck } from '../telemetry';
 import { initGadgetClient } from './initialization';
+import { getGadgetConfig, createGadgetHeaders, getGadgetApiUrl } from '@/utils/gadget-helpers';
 
 /**
  * Get detailed Gadget status information
@@ -87,62 +85,6 @@ export const getGadgetStatus = async (): Promise<{
 };
 
 /**
- * Check Gadget connection health
- * @returns Promise resolving to health status
- */
-export const checkGadgetHealth = async (): Promise<{
-  healthy: boolean;
-  statusCode?: number;
-  message?: string;
-}> => {
-  const config = getGadgetConfig();
-  if (!config) {
-    return { healthy: false, message: "No Gadget configuration found" };
-  }
-  
-  try {
-    logInfo('Checking Gadget connection health', {
-      appId: config.appId,
-      environment: config.environment
-    }, 'client');
-    
-    // For Gadget.dev migration:
-    // Check Gadget API health
-    // const url = `${getGadgetApiUrl(config)}health`;
-    // const response = await fetch(url, {
-    //   method: 'GET',
-    //   headers: createGadgetHeaders(config)
-    // });
-    
-    // const data = await response.json();
-    // const healthy = response.ok && data.status === 'healthy';
-    
-    // Simulate a health check
-    const healthy = Math.random() > 0.1; // 90% chance of being healthy
-    
-    // Report health status to telemetry
-    await reportHealthCheck(
-      healthy ? 'healthy' : 'degraded',
-      { appId: config.appId, environment: config.environment }
-    );
-    
-    return {
-      healthy,
-      statusCode: healthy ? 200 : 503,
-      message: healthy ? "Gadget services operational" : "Gadget services degraded"
-    };
-  } catch (error) {
-    logError('Error checking Gadget health', { error }, 'client');
-    
-    return {
-      healthy: false,
-      statusCode: 500,
-      message: error instanceof Error ? error.message : "Unknown error checking Gadget health"
-    };
-  }
-};
-
-/**
  * Test Gadget connection and configuration
  * @param configOverride Optional config override for testing
  * @returns Promise resolving to a boolean indicating connection success
@@ -179,25 +121,3 @@ export const testGadgetConnection = async (configOverride?: any): Promise<boolea
   }
 };
 
-/**
- * Display Gadget service status to user
- */
-export const displayGadgetStatus = async (): Promise<void> => {
-  try {
-    const health = await checkGadgetHealth();
-    
-    if (health.healthy) {
-      toast.success("Gadget Services", {
-        description: "All Gadget services are operational."
-      });
-    } else {
-      toast.warning("Gadget Services", {
-        description: health.message || "Some Gadget services may be degraded."
-      });
-    }
-  } catch (error) {
-    toast.error("Gadget Status Check Failed", {
-      description: "Could not determine Gadget service status."
-    });
-  }
-};

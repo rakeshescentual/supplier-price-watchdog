@@ -1,33 +1,13 @@
 
 /**
- * Gadget client module - entry point
+ * Gadget client initialization and management - Main Entry Point
+ *
+ * This module provides functionality for initializing and managing the Gadget client.
  */
 
-// Export client initialization functions
-export {
-  initGadgetClient,
-  isGadgetInitialized,
-  resetGadgetClient
-} from './initialization';
+// Re-export all client-related functions and types
+export * from './initialization';
+export * from './status';
+export * from './health';
+export * from './display';
 
-// Export client status functions
-export {
-  getGadgetStatus,
-  checkGadgetHealth,
-  testGadgetConnection,
-  displayGadgetStatus
-} from './status';
-
-// Export client connection types
-export interface GadgetConnectionOptions {
-  enableNetworkLogs?: boolean;
-  maxRetries?: number;
-  timeout?: number;
-}
-
-export interface GadgetClientStatus {
-  isConnected: boolean;
-  environment: string;
-  latency?: number;
-  lastChecked?: Date;
-}

@@ -23,18 +23,8 @@ export * from './shopify-integration';
 export * from './mocks';
 export * from './connections'; 
 export * from './storage'; 
-export * from './actions'; // Now points to the folder instead of a file
-
-// Explicitly re-export client functions to avoid ambiguity
-export {
-  initGadgetClient,
-  isGadgetInitialized,
-  checkGadgetHealth,
-  resetGadgetClient,
-  testGadgetConnection,
-  displayGadgetStatus,
-  getGadgetStatus
-} from './client';
+export * from './actions';
+export * from './client'; // Now points to the folder instead of a file
 
 // Core constants for Gadget integration
 export const GADGET_API_VERSION = '2024-07'; // Updated to latest API version
@@ -167,3 +157,4 @@ export interface GadgetLiveQueryOptions {
  * The modular structure matches Gadget.dev's architecture, making
  * the migration process seamless.
  */
+

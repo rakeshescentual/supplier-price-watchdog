@@ -79,3 +79,4 @@ export const resetGadgetClient = (): void => {
   lastConfigHash = '';
   logInfo('Gadget client cache reset', {}, 'client');
 };
+

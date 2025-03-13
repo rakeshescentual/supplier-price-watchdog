@@ -1,36 +1,10 @@
 
 /**
- * Storage optimization utilities for Gadget.dev
- * Leverages Gadget's caching and storage capabilities for improved performance
+ * Core cache operations for Gadget.dev storage
  */
-import { logInfo, logError } from './logging';
-import { initGadgetClient } from './client';
-import { startPerformanceTracking } from './telemetry';
-
-/**
- * Cache entry with TTL support
- */
-interface CacheEntry<T> {
-  value: T;
-  expires: number | null; // Timestamp when entry expires, null means no expiration
-  version?: number; // For cache versioning
-}
-
-/**
- * Cache storage options
- */
-export interface CacheOptions {
-  ttl?: number; // Time to live in seconds, default is 5 minutes
-  namespace?: string; // Optional namespace for cache keys
-  staleWhileRevalidate?: boolean; // Return stale data while fetching fresh data
-  region?: 'memory' | 'persistent'; // Where to store cache (memory is faster but not persistent)
-  version?: number; // Cache version for invalidation
-  compressLarge?: boolean; // Whether to compress large values
-  priority?: 'high' | 'normal' | 'low'; // Cache priority
-}
-
-const DEFAULT_TTL = 5 * 60; // 5 minutes default TTL
-const DEFAULT_NAMESPACE = 'app-cache';
+import { logInfo, logError } from '../logging';
+import { initGadgetClient } from '../client';
+import { CacheEntry, CacheOptions, DEFAULT_TTL, DEFAULT_NAMESPACE } from './types';
 
 /**
  * Set a value in Gadget's cache
@@ -228,55 +202,6 @@ export const clearCacheValue = async (
 };
 
 /**
- * Cache wrapper for async functions with automatic caching
- * @param keyPrefix Prefix for cache key
- * @param fn Function to cache results from
- * @param options Cache options
- * @returns Function with cached results
- */
-export function withCache<T, Args extends any[]>(
-  keyPrefix: string,
-  fn: (...args: Args) => Promise<T>,
-  options: CacheOptions = {}
-): (...args: Args) => Promise<T> {
-  return async (...args: Args): Promise<T> => {
-    const finishTracking = startPerformanceTracking('withCache', { 
-      keyPrefix, 
-      functionName: fn.name,
-      hasCacheOptions: !!options
-    });
-
-    // Create cache key from function arguments
-    const argsKey = JSON.stringify(args);
-    const cacheKey = `${keyPrefix}:${argsKey}`;
-    
-    // Try to get cached value
-    const cachedValue = await getCacheValue<T>(cacheKey, options);
-    if (cachedValue !== null) {
-      logInfo('Cache hit', { keyPrefix, cacheKey }, 'cache');
-      finishTracking();
-      return cachedValue;
-    }
-    
-    // Cache miss, execute function
-    try {
-      logInfo('Cache miss', { keyPrefix, cacheKey }, 'cache');
-      const result = await fn(...args);
-      
-      // Store result in cache
-      await setCacheValue(cacheKey, result, options);
-      
-      finishTracking();
-      return result;
-    } catch (error) {
-      logError('Error in cached function', { error, keyPrefix, args }, 'cache');
-      finishTracking();
-      throw error;
-    }
-  };
-}
-
-/**
  * Clear all cache entries with a specific prefix
  * @param keyPrefix Prefix for cache keys to clear
  * @param options Cache options
@@ -316,104 +241,6 @@ export const clearCacheByPrefix = async (
     return true;
   } catch (error) {
     logError('Error clearing cache by prefix', { error, keyPrefix }, 'cache');
-    return false;
-  }
-};
-
-/**
- * Get cache statistics from Gadget
- * @returns Cache statistics or null if not available
- */
-export const getCacheStats = async (
-  region: 'memory' | 'persistent' = 'persistent'
-): Promise<{
-  entries: number;
-  sizeBytes: number;
-  hitRate: number;
-  avgAccessTime: number;
-  memoryUsage?: number;
-} | null> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return null;
-  }
-
-  try {
-    // In production with Gadget SDK:
-    // const stats = await client.query.getCacheStats({ region });
-    // return {
-    //   entries: stats.entries,
-    //   sizeBytes: stats.sizeBytes,
-    //   hitRate: stats.hitRate,
-    //   avgAccessTime: stats.avgAccessTime,
-    //   memoryUsage: stats.memoryUsage
-    // };
-    
-    // For development, return mock stats
-    return {
-      entries: 128,
-      sizeBytes: 56320,
-      hitRate: 0.78,
-      avgAccessTime: 3.2,
-      memoryUsage: 0.02 // percentage of total available memory
-    };
-  } catch (error) {
-    logError('Error getting cache stats', { error }, 'cache');
-    return null;
-  }
-};
-
-/**
- * Update or create multiple cache entries in a single operation
- * @param entries Array of entries to set
- * @param options Cache options
- */
-export const bulkSetCacheValues = async <T>(
-  entries: Array<{ key: string; value: T }>,
-  options: CacheOptions = {}
-): Promise<boolean> => {
-  const client = initGadgetClient();
-  if (!client) {
-    console.warn('Gadget client not initialized, using localStorage fallback');
-    try {
-      const ttl = options.ttl ?? DEFAULT_TTL;
-      const namespace = options.namespace ?? DEFAULT_NAMESPACE;
-      
-      entries.forEach(entry => {
-        const cacheKey = `${namespace}:${entry.key}`;
-        const cacheEntry: CacheEntry<T> = {
-          value: entry.value,
-          expires: ttl > 0 ? Date.now() + ttl * 1000 : null,
-          version: options.version
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error bulk setting cache in localStorage:', error);
-      return false;
-    }
-  }
-
-  try {
-    // In production with Gadget SDK:
-    // await client.mutate.bulkSetCache({
-    //   entries: entries.map(entry => ({
-    //     key: options.namespace ? `${options.namespace}:${entry.key}` : entry.key,
-    //     value: JSON.stringify(entry.value)
-    //   })),
-    //   ttl: options.ttl ?? DEFAULT_TTL,
-    //   region: options.region || 'persistent',
-    //   compress: options.compressLarge,
-    //   version: options.version,
-    //   priority: options.priority || 'normal'
-    // });
-    
-    logInfo(`Bulk cache set for ${entries.length} entries`, { namespace: options.namespace }, 'cache');
-    return true;
-  } catch (error) {
-    logError('Error bulk setting cache values', { error, entryCount: entries.length }, 'cache');
     return false;
   }
 };

@@ -22,7 +22,7 @@ export * from './diagnostics';
 export * from './shopify-integration';
 export * from './mocks';
 export * from './connections'; 
-export * from './storage';
+export * from './storage'; // Now points to the folder instead of a file
 export * from './actions'; // New module for custom Gadget actions
 
 // Explicitly re-export client functions to avoid ambiguity

@@ -11,3 +11,4 @@ export * from './gadget/validation';
 export * from './gadget/status';
 export * from './gadget/initialization';
 export * from './gadget/features';
+export * from './gadget/index';

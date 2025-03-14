@@ -18,3 +18,12 @@ export { createGadgetHeaders, prepareGadgetRequest } from './auth';
 
 // Connection testing
 export { testGadgetConnection } from './connection';
+
+// Initialization
+export { initializeGadgetIntegration } from './initialization';
+
+// Feature flags
+export { isGadgetFeatureEnabled } from './features';
+
+// Status checks
+export { checkGadgetReadiness, checkGadgetConnectionHealth } from './status';

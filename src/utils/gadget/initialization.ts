@@ -3,9 +3,9 @@
  * Gadget.dev initialization utilities
  */
 import { GadgetConfig } from '@/types/price';
-import { getGadgetConfig } from '../gadget-helpers';
+import { getGadgetConfig, saveGadgetConfig } from './config';
+import { validateGadgetConfig } from './validation';
 import { logInfo, logError } from '@/lib/gadget/logging';
-import { validateAndSaveGadgetConfig } from './validation';
 
 /**
  * Initialize Gadget integration with default configuration if needed
@@ -43,8 +43,17 @@ export const initializeGadgetIntegration = async (
       }
     };
     
-    // Save new configuration
-    return await validateAndSaveGadgetConfig(newConfig);
+    // Validate and save the new configuration
+    const { isValid, errors } = validateGadgetConfig(newConfig);
+    
+    if (!isValid) {
+      logError("Invalid Gadget configuration", { errors }, 'integration');
+      return false;
+    }
+    
+    // Save configuration if valid
+    const saved = saveGadgetConfig(newConfig);
+    return saved;
   } catch (error) {
     logError("Error initializing Gadget integration", { error }, 'integration');
     return false;

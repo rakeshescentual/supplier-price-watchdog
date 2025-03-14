@@ -3,6 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import technicalDocumentation from '../assets/docs/TechnicalDocumentation.md?raw';
+import systemCoreComponents from '../assets/docs/SystemCoreComponents.md?raw';
+import fileAnalysisProcessing from '../assets/docs/FileAnalysisProcessing.md?raw';
+import gadgetIntegrationDetails from '../assets/docs/GadgetIntegrationDetails.md?raw';
+import googleWorkspaceIntegration from '../assets/docs/GoogleWorkspaceIntegration.md?raw';
+import applicationWorkflows from '../assets/docs/ApplicationWorkflows.md?raw';
+import errorHandlingStrategy from '../assets/docs/ErrorHandlingStrategy.md?raw';
 import gadgetIntegrationGuide from '../assets/docs/Gadget_Integration_Guide.md?raw';
 import { DocumentationHeader } from "@/components/documentation/DocumentationHeader";
 import { DocumentationTabContent } from "@/components/documentation/DocumentationTabContent";
@@ -11,44 +17,121 @@ const Documentation = () => {
   const [activeTab, setActiveTab] = useState<string>("technical");
   const [bookmarks, setBookmarks] = useState<{[key: string]: string[]}>({
     technical: [],
-    gadget: []
+    gadget: [],
+    systemCore: [],
+    fileAnalysis: [],
+    gadgetDetails: [],
+    googleWorkspace: [],
+    applicationWorkflows: [],
+    errorHandling: []
   });
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<{
     technical: number;
     gadget: number;
-  }>({ technical: 0, gadget: 0 });
+    systemCore: number;
+    fileAnalysis: number;
+    gadgetDetails: number;
+    googleWorkspace: number;
+    applicationWorkflows: number;
+    errorHandling: number;
+  }>({ 
+    technical: 0, 
+    gadget: 0,
+    systemCore: 0,
+    fileAnalysis: 0,
+    gadgetDetails: 0,
+    googleWorkspace: 0,
+    applicationWorkflows: 0,
+    errorHandling: 0
+  });
   const [quickRefOpen, setQuickRefOpen] = useState<boolean>(false);
 
   // Filter docs based on search term
   useEffect(() => {
     if (!searchTerm) {
-      setSearchResults({ technical: 0, gadget: 0 });
+      setSearchResults({ 
+        technical: 0, 
+        gadget: 0,
+        systemCore: 0,
+        fileAnalysis: 0,
+        gadgetDetails: 0,
+        googleWorkspace: 0,
+        applicationWorkflows: 0,
+        errorHandling: 0
+      });
       return;
     }
     
     // Count how many matches in each doc
     const technicalMatches = (technicalDocumentation.match(new RegExp(searchTerm, 'gi')) || []).length;
     const gadgetMatches = (gadgetIntegrationGuide.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const systemCoreMatches = (systemCoreComponents.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const fileAnalysisMatches = (fileAnalysisProcessing.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const gadgetDetailsMatches = (gadgetIntegrationDetails.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const googleWorkspaceMatches = (googleWorkspaceIntegration.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const applicationWorkflowsMatches = (applicationWorkflows.match(new RegExp(searchTerm, 'gi')) || []).length;
+    const errorHandlingMatches = (errorHandlingStrategy.match(new RegExp(searchTerm, 'gi')) || []).length;
     
     setSearchResults({
       technical: technicalMatches,
-      gadget: gadgetMatches
+      gadget: gadgetMatches,
+      systemCore: systemCoreMatches,
+      fileAnalysis: fileAnalysisMatches,
+      gadgetDetails: gadgetDetailsMatches,
+      googleWorkspace: googleWorkspaceMatches,
+      applicationWorkflows: applicationWorkflowsMatches,
+      errorHandling: errorHandlingMatches
     });
     
-    // If current tab has no results but other tab does, suggest switching
-    if (searchResults[activeTab as 'technical' | 'gadget'] === 0 && 
-        searchResults[activeTab === 'technical' ? 'gadget' : 'technical'] > 0) {
-      toast.info("No results in current tab", {
-        description: `Try the ${activeTab === 'technical' ? 'Gadget.dev Integration' : 'Technical Documentation'} tab`,
-        action: {
-          label: "Switch",
-          onClick: () => setActiveTab(activeTab === 'technical' ? 'gadget' : 'technical')
-        }
-      });
+    // If current tab has no results but other tabs do, suggest switching
+    if (searchResults[activeTab as keyof typeof searchResults] === 0) {
+      // Find tabs with results
+      const tabsWithResults = Object.entries(searchResults)
+        .filter(([tab, count]) => tab !== activeTab && count > 0)
+        .sort(([, countA], [, countB]) => countB - countA);
+      
+      if (tabsWithResults.length > 0) {
+        const [bestTab, resultCount] = tabsWithResults[0];
+        toast.info("No results in current tab", {
+          description: `Try the ${getTabDisplayName(bestTab)} tab (${resultCount} results)`,
+          action: {
+            label: "Switch",
+            onClick: () => setActiveTab(bestTab)
+          }
+        });
+      }
     }
   }, [searchTerm, activeTab]);
+
+  const getTabDisplayName = (tabKey: string): string => {
+    const displayNames: Record<string, string> = {
+      technical: "Technical Documentation",
+      gadget: "Gadget.dev Integration Guide",
+      systemCore: "System Core Components",
+      fileAnalysis: "File Analysis Processing",
+      gadgetDetails: "Gadget Integration Details",
+      googleWorkspace: "Google Workspace Integration",
+      applicationWorkflows: "Application Workflows",
+      errorHandling: "Error Handling Strategy"
+    };
+    return displayNames[tabKey] || tabKey;
+  };
+
+  const getDocumentationContent = (tabKey: string): string => {
+    const contents: Record<string, string> = {
+      technical: technicalDocumentation,
+      gadget: gadgetIntegrationGuide,
+      systemCore: systemCoreComponents,
+      fileAnalysis: fileAnalysisProcessing,
+      gadgetDetails: gadgetIntegrationDetails,
+      googleWorkspace: googleWorkspaceIntegration,
+      applicationWorkflows: applicationWorkflows,
+      errorHandling: errorHandlingStrategy
+    };
+    return contents[tabKey] || "";
+  };
 
   const handleDownload = (content: string, filename: string) => {
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -261,17 +344,33 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id
       />
       
       <Tabs defaultValue="technical" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="technical">
-            Technical Documentation
+            Overview
             {searchTerm && searchResults.technical > 0 && (
               <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
                 {searchResults.technical}
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="systemCore">
+            Core Components
+            {searchTerm && searchResults.systemCore > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.systemCore}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="fileAnalysis">
+            File Analysis
+            {searchTerm && searchResults.fileAnalysis > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.fileAnalysis}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="gadget">
-            Gadget.dev Integration
+            Gadget.dev Guide
             {searchTerm && searchResults.gadget > 0 && (
               <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
                 {searchResults.gadget}
@@ -280,48 +379,80 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="technical" className="mt-6">
-          <DocumentationTabContent 
-            activeTab="technical"
-            title="Technical Documentation"
-            description="Complete technical overview of the Supplier Price Watch application"
-            content={technicalDocumentation}
-            bookmarks={bookmarks.technical}
-            showSearch={showSearch}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchResults={searchResults}
-            quickRefOpen={quickRefOpen}
-            onQuickRefClose={() => setQuickRefOpen(false)}
-            onBookmark={toggleBookmark}
-            onDownload={handleDownload}
-            additionalContent={technicalAdditionalContent}
-            otherDocumentation={gadgetIntegrationGuide}
-          />
-        </TabsContent>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="gadgetDetails">
+            Gadget Details
+            {searchTerm && searchResults.gadgetDetails > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.gadgetDetails}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="googleWorkspace">
+            Google Workspace
+            {searchTerm && searchResults.googleWorkspace > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.googleWorkspace}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="applicationWorkflows">
+            Workflows
+            {searchTerm && searchResults.applicationWorkflows > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.applicationWorkflows}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="errorHandling">
+            Error Handling
+            {searchTerm && searchResults.errorHandling > 0 && (
+              <span className="ml-2 text-xs bg-primary/20 text-primary rounded-full px-1.5">
+                {searchResults.errorHandling}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
         
-        <TabsContent value="gadget" className="mt-6">
-          <DocumentationTabContent 
-            activeTab="gadget"
-            title="Gadget.dev Integration Guide"
-            description="Detailed guide on how Gadget.dev is integrated into the application"
-            content={gadgetIntegrationGuide}
-            bookmarks={bookmarks.gadget}
-            showSearch={showSearch}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchResults={searchResults}
-            quickRefOpen={quickRefOpen}
-            onQuickRefClose={() => setQuickRefOpen(false)}
-            onBookmark={toggleBookmark}
-            onDownload={handleDownload}
-            additionalContent={gadgetAdditionalContent}
-            otherDocumentation={technicalDocumentation}
-          />
-        </TabsContent>
+        {Object.keys(bookmarks).map(tabKey => (
+          <TabsContent key={tabKey} value={tabKey} className="mt-6">
+            <DocumentationTabContent 
+              activeTab={tabKey}
+              title={getTabDisplayName(tabKey)}
+              description={getTabDescription(tabKey)}
+              content={getDocumentationContent(tabKey)}
+              bookmarks={bookmarks[tabKey]}
+              showSearch={showSearch}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchResults={searchResults}
+              quickRefOpen={quickRefOpen}
+              onQuickRefClose={() => setQuickRefOpen(false)}
+              onBookmark={toggleBookmark}
+              onDownload={handleDownload}
+              additionalContent={tabKey === "technical" ? technicalAdditionalContent : 
+                                tabKey === "gadget" ? gadgetAdditionalContent : undefined}
+              otherDocumentation={technicalDocumentation}
+            />
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
+};
+
+const getTabDescription = (tabKey: string): string => {
+  const descriptions: Record<string, string> = {
+    technical: "Complete technical overview of the Supplier Price Watch application",
+    gadget: "Detailed guide on how Gadget.dev is integrated into the application",
+    systemCore: "Core components and architecture of the application",
+    fileAnalysis: "File processing and price analysis capabilities",
+    gadgetDetails: "Detailed implementation of Gadget.dev integration",
+    googleWorkspace: "Integration with Google Workspace services",
+    applicationWorkflows: "Key application workflows and user journeys",
+    errorHandling: "Comprehensive error handling strategy"
+  };
+  return descriptions[tabKey] || "";
 };
 
 export default Documentation;

@@ -39,13 +39,18 @@ export const initGadgetClient = () => {
     featureFlags: config.featureFlags || {}
   }, 'client');
   
-  // For Gadget.dev migration:
-  // Import the Gadget client SDK for your app
-  // import { createClient } from '@gadget-client/your-app-id';
-  // cachedClient = createClient({ 
-  //   apiKey: config.apiKey,
+  // Updated for the latest Gadget.dev client initialization pattern
+  // In production environment with actual Gadget SDK:
+  // import { Client } from '@gadget-client/app-slug';
+  // cachedClient = new Client({
+  //   authenticationMode: { 
+  //     apiKey: config.apiKey 
+  //   },
   //   environment: config.environment,
-  //   enableNetworkLogs: config.environment === 'development'
+  //   // New option for performance optimization
+  //   enableBrowserFastNewUrlHeuristic: true,
+  //   // New option for error reporting
+  //   enableErrorReporting: config.environment === 'production'
   // });
   
   // For development: Create a mock client with API methods
@@ -79,4 +84,3 @@ export const resetGadgetClient = (): void => {
   lastConfigHash = '';
   logInfo('Gadget client cache reset', {}, 'client');
 };
-

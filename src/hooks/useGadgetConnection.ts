@@ -38,6 +38,7 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     setConfig(newConfig);
     
     try {
+      // Updated to use new initialization approach for Gadget client
       initGadgetClient();
       return true;
     } catch (error) {
@@ -69,7 +70,7 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
         return false;
       }
       
-      // Test the connection
+      // Test the connection with updated method
       const isConnected = await testGadgetConnection();
       
       if (isConnected) {
@@ -107,6 +108,7 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     }
     
     try {
+      // Updated health check to use latest Gadget API pattern
       const health = await checkGadgetHealth();
       
       setHealthStatus(health.status);

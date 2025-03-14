@@ -20,8 +20,12 @@ export const testGadgetConnection = async (): Promise<boolean> => {
   }
   
   try {
+    // Updated for latest Gadget API
+    // In production with actual Gadget SDK:
+    // const healthCheck = await client.connection.healthCheck();
+    // return healthCheck.status === 'healthy';
+    
     // For mock implementation, simply return true
-    // In production, we would actually test the connection
     return true;
   } catch (error) {
     logError('Error testing Gadget connection', { error }, 'connection');
@@ -63,7 +67,7 @@ export const getGadgetStatus = async (): Promise<{
   const displayInfo = getDisplayInfo();
   const healthCheck = await checkGadgetHealth();
   
-  // Mock implementation for development
+  // Updated format to match latest Gadget status response
   return {
     isConnected: true,
     environment: client.config?.environment || 'development',

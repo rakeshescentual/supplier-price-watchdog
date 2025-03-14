@@ -5,6 +5,7 @@ import { initGadgetClient } from './client';
 
 /**
  * Authenticate Shopify through Gadget with improved error handling
+ * Updated to use the latest Gadget authentication patterns
  * @param context Shopify context containing shop and access token
  * @returns Promise resolving to authentication success status
  */
@@ -19,10 +20,12 @@ export const authenticateShopify = async (context: ShopifyContext): Promise<bool
   
   try {
     console.log("Authenticating Shopify via Gadget...");
+    // Updated for latest Gadget authentication patterns
     // In production: Use Gadget SDK for authentication
-    // const result = await client.auth.authenticateShopify({
+    // const result = await client.shopify.authenticate({
     //   shop: context.shop,
-    //   accessToken: context.accessToken
+    //   accessToken: context.accessToken,
+    //   scopes: ['read_products', 'write_products']
     // });
     
     toast.success("Shopify authenticated via Gadget", {

@@ -17,7 +17,7 @@ const createConfigHash = (config: GadgetConfig): string => {
 };
 
 /**
- * Initialize the Gadget client
+ * Initialize the Gadget client with modern patterns
  * @returns Initialized Gadget client
  */
 export const initGadgetClient = (): any => {
@@ -26,6 +26,19 @@ export const initGadgetClient = (): any => {
   if (cachedClient) {
     return cachedClient;
   }
+  
+  // In a production implementation:
+  // import { createClient } from '@gadgetinc/api-client-core';
+  // or import the generated TypeScript SDK:
+  // import { Client } from '@gadgetinc/{appId}-js';
+  //
+  // const client = new Client({
+  //   authenticationMode: { 
+  //     apiKey: config.apiKey
+  //   },
+  //   environment: config.environment,
+  //   requestLogging: config.environment === 'development'
+  // });
   
   // Mock client for testing
   cachedClient = {

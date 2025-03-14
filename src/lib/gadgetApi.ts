@@ -55,7 +55,13 @@ export {
   testGadgetConnectionAccess
 } from './gadget/connections';
 
-// Export new storage optimization utilities
+// Export new Live Query functionality
+export {
+  createLiveQuery,
+  cleanupAllLiveQueries
+} from './gadget/liveQuery';
+
+// Export storage optimization utilities
 export {
   setCacheValue,
   getCacheValue,
@@ -73,7 +79,10 @@ export {
   handleOAuthCallback,
   authenticateWithApiKey,
   revokeAuthentication,
-  getAuthenticationMethods
+  getAuthenticationMethods,
+  initiateGadgetOAuth,
+  handleGadgetOAuthCallback,
+  createGadgetAuthHeaders
 } from './gadget/connections/auth';
 
 // Export new custom action methods
@@ -92,6 +101,13 @@ export {
   syncB2BPrices,
   scheduleShopifyPriceChanges
 } from './gadget/shopify-integration';
+
+// Export new background job utilities
+export {
+  executeBatchOperationWithBackgroundJob,
+  executeGadgetOperation,
+  processGadgetError
+} from './gadget/operations';
 
 // Export new types for better TypeScript support
 export type {
@@ -132,3 +148,9 @@ export type {
 
 // Export health check result type
 export type { HealthCheckResult } from './gadget/client/health';
+
+// Export new Live Query types
+export type {
+  LiveQueryOptions,
+  LiveQuerySubscription
+} from './gadget/liveQuery';

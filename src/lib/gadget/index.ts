@@ -14,6 +14,7 @@ export * from './telemetry';
 export * from './logging';
 export * from './types';
 export * from './mocks';
+export * from './liveQuery';
 
 // Export a single function for initializing all Gadget functionality
 export const initializeGadgetIntegration = async () => {

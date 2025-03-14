@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { PriceItem } from "@/types/price";
 import { useShopify } from "@/contexts/shopify";
 import type { FileProcessingState } from "../types";
+import { mergeWithShopifyData as mergeDataWithShopify } from "@/lib/excel";
 
 export const useFileProcessing = (): FileProcessingState => {
   const [file, setFile] = useState<File | null>(null);
@@ -23,7 +24,7 @@ export const useFileProcessing = (): FileProcessingState => {
       if (isShopifyConnected) {
         try {
           const shopifyProducts = await loadShopifyData();
-          const mergedItems = mergeWithShopifyData(processedItems, shopifyProducts);
+          const mergedItems = mergeDataWithShopify(processedItems, shopifyProducts);
           setItems(mergedItems);
           
           const fileType = acceptedFile.type === 'application/pdf' ? 'PDF' : 'Excel';
@@ -53,13 +54,6 @@ export const useFileProcessing = (): FileProcessingState => {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  // Helper function to merge processed items with Shopify data
-  const mergeWithShopifyData = (processedItems: PriceItem[], shopifyProducts: any[]): PriceItem[] => {
-    // Import here to avoid circular dependencies
-    const { mergeWithShopifyData } = require("@/lib/excel");
-    return mergeWithShopifyData(processedItems, shopifyProducts);
   };
 
   return {

@@ -1,8 +1,5 @@
 
-// This file re-exports all the necessary hooks and context from the shopify folder
-export * from './ShopifyProvider';
-export * from './hooks/useShopifyConnection';
-export * from './hooks/useShopifyData';
-export * from './hooks/useShopifySync';
-export * from './hooks/useShopifyBatch';
-
+// Export shopify hooks and context
+export { ShopifyProvider } from './ShopifyProvider';
+export { useShopify } from './hooks/useShopifyConnection';
+export type { ShopifyContextValue } from './hooks/useShopifyConnection';

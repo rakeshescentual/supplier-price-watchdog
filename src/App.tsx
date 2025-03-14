@@ -7,10 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { ShopifyProvider } from "./contexts/ShopifyContext";
+import { ShopifyProvider } from "./contexts/shopify";
 import { FileAnalysisProvider } from "./contexts/FileAnalysisContext";
 import { Navigation } from "./components/layout/Navigation";
 import { shopifyCache, gadgetCache } from "./lib/api-cache";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Lazy-loaded routes for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -27,9 +28,9 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
-      refetchOnWindowFocus: false, // Disable refetching on window focus for better performance
-      refetchOnReconnect: true,    // Only refetch on reconnect
-      gcTime: 1000 * 60 * 10,     // Keep unused data in cache for 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      gcTime: 1000 * 60 * 10,
     },
   },
 });
@@ -56,31 +57,33 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ShopifyProvider>
-        <FileAnalysisProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Navigation />
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/documentation" element={<Documentation />} />
-                  <Route path="/integrations" element={<Integrations />} />
-                  <Route path="/competitor-analysis" element={<CompetitorAnalysis />} />
-                  <Route path="/gadget-settings" element={<div className="container mx-auto py-8 px-4"><div className="max-w-lg mx-auto"><GadgetConfigForm /></div></div>} />
-                  <Route path="/gadget-documentation" element={<GadgetDocumentation />} />
-                  <Route path="/gadget-migration" element={<GadgetMigration />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </TooltipProvider>
-        </FileAnalysisProvider>
-      </ShopifyProvider>
+      <ErrorBoundary>
+        <ShopifyProvider>
+          <FileAnalysisProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Navigation />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/documentation" element={<Documentation />} />
+                    <Route path="/integrations" element={<Integrations />} />
+                    <Route path="/competitor-analysis" element={<CompetitorAnalysis />} />
+                    <Route path="/gadget-settings" element={<div className="container mx-auto py-8 px-4"><div className="max-w-lg mx-auto"><GadgetConfigForm /></div></div>} />
+                    <Route path="/gadget-documentation" element={<GadgetDocumentation />} />
+                    <Route path="/gadget-migration" element={<GadgetMigration />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </TooltipProvider>
+          </FileAnalysisProvider>
+        </ShopifyProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 };

@@ -15,7 +15,7 @@ import {
   clearGadgetConfig, 
   validateGadgetConfig, 
   testGadgetConnection 
-} from '@/utils/gadget-helpers';
+} from '@/utils/gadget';
 
 const GadgetConfigForm = () => {
   const [config, setConfig] = useState<GadgetConfig>({

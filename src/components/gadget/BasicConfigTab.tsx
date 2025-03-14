@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { testGadgetConnection } from '@/utils/gadget-helpers';
+import { testGadgetConnection } from '@/utils/gadget';
 
 interface BasicConfigTabProps {
   config: GadgetConfig;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { 
@@ -8,7 +7,7 @@ import {
   checkGadgetHealth,
   isHealthy
 } from '@/lib/gadgetApi';
-import { getGadgetConfig } from '@/utils/gadget-helpers';
+import { getGadgetConfig } from '@/utils/gadget';
 import { GadgetConfig } from '@/types/price';
 
 export function useGadgetIntegration() {

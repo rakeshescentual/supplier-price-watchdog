@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
@@ -9,7 +8,7 @@ import {
 } from '@/lib/gadget/client';
 import { testGadgetConnection } from '@/lib/gadget/client/connection';
 import { GadgetConfig } from '@/types/price';
-import { getGadgetConfig } from '@/utils/gadget-helpers';
+import { getGadgetConfig } from '@/utils/gadget';
 
 export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');
@@ -18,13 +17,11 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
   const [detailedStatus, setDetailedStatus] = useState<any>(null);
   const [config, setConfig] = useState<GadgetConfig | null>(null);
   
-  // Computed properties to match expected API
   const isConfigured = connectionStatus !== 'none';
   const isConnected = connectionStatus === 'success';
   const isInitialized = connectionStatus === 'success' || connectionStatus === 'testing';
   const lastConnectionTest = lastChecked;
 
-  // Load or update config
   useEffect(() => {
     if (providedConfig) {
       setConfig(providedConfig);
@@ -38,7 +35,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     setConfig(newConfig);
     
     try {
-      // Updated to use new initialization approach for Gadget client
       initGadgetClient();
       return true;
     } catch (error) {
@@ -59,7 +55,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     try {
       setConnectionStatus('testing');
       
-      // Initialize the Gadget client with the provided config
       initializeGadget(config);
       
       if (!isGadgetInitialized()) {
@@ -70,7 +65,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
         return false;
       }
       
-      // Test the connection with updated method
       const isConnected = await testGadgetConnection();
       
       if (isConnected) {
@@ -79,7 +73,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
           description: 'Successfully connected to Gadget.'
         });
         
-        // After successful connection, fetch detailed status
         await fetchHealthStatus();
         
         return true;
@@ -108,7 +101,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     }
     
     try {
-      // Updated health check to use latest Gadget API pattern
       const health = await checkGadgetHealth();
       
       setHealthStatus(health.status);
@@ -133,22 +125,17 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     }
   }, []);
 
-  // Effect to periodically check health status if connected
   useEffect(() => {
     if (connectionStatus === 'success') {
-      // Initial check
       fetchHealthStatus();
       
-      // Set up periodic health checks (every 5 minutes)
       const intervalId = setInterval(fetchHealthStatus, 5 * 60 * 1000);
       
-      // Clean up on unmount
       return () => clearInterval(intervalId);
     }
   }, [connectionStatus, fetchHealthStatus]);
 
   return {
-    // Original properties
     connectionStatus,
     healthStatus,
     lastChecked,
@@ -156,7 +143,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     testConnection,
     fetchHealthStatus,
     
-    // Additional properties needed by components
     isConfigured,
     isConnected,
     isInitialized,

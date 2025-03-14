@@ -1,8 +1,20 @@
 
 /**
- * Main exports for Gadget.dev integration utilities
+ * Gadget utility functions index
+ * Re-exports all gadget utility functions from their respective modules
  */
-export * from './validation';
-export * from './status';
-export * from './initialization';
-export * from './features';
+
+// Configuration management
+export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './config';
+
+// Validation utilities
+export { validateGadgetConfig } from './validation';
+
+// URL generation
+export { getGadgetApiUrl } from './urls';
+
+// Authentication
+export { createGadgetHeaders, prepareGadgetRequest } from './auth';
+
+// Connection testing
+export { testGadgetConnection } from './connection';

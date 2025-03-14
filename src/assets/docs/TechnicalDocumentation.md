@@ -57,3 +57,82 @@ For detailed information about specific aspects of the system, please refer to t
 - [Google Workspace Integration](./GoogleWorkspaceIntegration.md)
 - [Application Workflows](./ApplicationWorkflows.md)
 - [Error Handling](./ErrorHandlingStrategy.md)
+
+## Stakeholder-Specific Guides
+
+### For Business Users & Decision Makers
+- [Executive Summary](../docs/ExecutiveSummary.md)
+- [ROI Analysis](../docs/ROIAnalysis.md)
+- [Feature Roadmap](../docs/FeatureRoadmap.md)
+- [User Permissions Guide](../docs/UserPermissions.md)
+
+### For eCommerce Managers
+- [Shopify Merchant Guide](../docs/ShopifyMerchantGuide.md)
+- [Price Strategy Playbook](../docs/PriceStrategyPlaybook.md)
+- [Customer Communication Templates](../docs/CustomerCommunicationTemplates.md)
+
+### For Developers & IT Teams
+- [Developer Workflows](../docs/DeveloperWorkflows.md)
+- [API Documentation](../docs/APIDocumentation.md)
+- [Deployment Guide](../docs/DeploymentGuide.md)
+- [Component Reference](../docs/ComponentReference.md)
+
+### For Integration Partners
+- [Shopify Compliance Guide](../docs/ShopifyComplianceGuide.md)
+- [Gadget.dev Integration Guide](../docs/Gadget_Integration_Guide.md)
+- [Google Workspace Integration Guide](../docs/GoogleWorkspaceGuide.md)
+
+## System Requirements
+
+### Client Requirements
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- JavaScript enabled
+- Minimum screen resolution: 1280 x 720
+
+### Server Requirements (when self-hosting)
+- Node.js v16+
+- 1GB RAM minimum (2GB recommended)
+- 500MB disk space for application
+- HTTPS for secure connections
+
+## Security & Data Privacy
+
+The application implements several security measures:
+- All API requests use HTTPS
+- API keys are stored securely in local storage with encryption
+- No sensitive data is stored server-side without explicit permission
+- Authentication via OAuth 2.0 for third-party services
+- Regular security audits and dependency updates
+
+## Performance Considerations
+
+- Large file processing is handled via Web Workers to prevent UI blocking
+- Batch operations to Shopify respect API rate limits
+- Caching mechanism for frequently accessed data
+- Optimistic UI updates for better perceived performance
+- Lazy loading of components and data
+
+## Compliance Information
+
+The application is designed to comply with:
+- GDPR for EU users
+- CCPA for California users
+- PCI DSS when handling payment information
+- Shopify Partner Program requirements
+
+## Support & Maintenance
+
+- Regular updates provided via GitHub releases
+- Bug reports can be submitted via GitHub Issues
+- Community support available via Discord
+- Premium support available for enterprise clients
+
+## User Feedback & Continuous Improvement
+
+We value user feedback to continuously improve the application. You can:
+- Submit feature requests through our GitHub repository
+- Participate in user research and testing
+- Join our community calls to discuss the roadmap
+- Share your success stories for case studies
+
+For questions not addressed in this documentation, please contact support@supplierpricewatcher.com

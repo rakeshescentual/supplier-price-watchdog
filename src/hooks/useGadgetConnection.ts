@@ -3,163 +3,121 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
   initGadgetClient, 
-  isGadgetInitialized, 
+  isGadgetInitialized,
   checkGadgetHealth,
-  resetGadgetClient,
-  testGadgetConnection,
-  getGadgetStatus
+  isHealthy
 } from '@/lib/gadget/client';
-import { getGadgetConfig } from '@/utils/gadget-helpers';
+import { testGadgetConnection, getGadgetStatus } from '@/lib/gadget/client/connection';
 import { GadgetConfig } from '@/types/price';
+import { useGadgetIntegration } from './useGadgetIntegration';
 
-export interface UseGadgetConnectionResult {
-  isInitialized: boolean;
-  isConnected: boolean;
-  isConfigured: boolean;
-  isHealthy: boolean;
-  lastHealthCheck: Date | null;
-  lastConnectionTest: Date | null;
-  connectionStatus: 'connected' | 'disconnected' | 'degraded' | 'unknown';
-  healthCheckMessage: string | null;
-  config: GadgetConfig | null;
-  testConnection: () => Promise<boolean>;
-  checkHealth: () => Promise<void>;
-  resetClient: () => void;
-  getStatus: () => Promise<{
-    isConnected: boolean;
-    environment: string;
-    latency?: number;
-    version?: string;
-    services: {
-      api: boolean;
-      database: boolean;
-      storage: boolean;
-      scheduler: boolean;
-    };
-  }>;
-}
+export const useGadgetConnection = (config?: GadgetConfig) => {
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');
+  const [healthStatus, setHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | 'unknown'>('unknown');
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [detailedStatus, setDetailedStatus] = useState<any>(null);
+  const { initializeGadget } = useGadgetIntegration();
 
-/**
- * Hook for managing Gadget connection and health checks
- */
-export const useGadgetConnection = (): UseGadgetConnectionResult => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [isHealthy, setIsHealthy] = useState<boolean>(false);
-  const [lastHealthCheck, setLastHealthCheck] = useState<Date | null>(null);
-  const [lastConnectionTest, setLastConnectionTest] = useState<Date | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'degraded' | 'unknown'>('unknown');
-  const [healthCheckMessage, setHealthCheckMessage] = useState<string | null>(null);
-  const [config, setConfig] = useState<GadgetConfig | null>(null);
-  
-  // Check if Gadget is initialized and configured
-  const isInitialized = isGadgetInitialized();
-  const isConfigured = !!getGadgetConfig();
-  
-  // Initialize on mount
-  useEffect(() => {
-    // Get the current config
-    const currentConfig = getGadgetConfig();
-    setConfig(currentConfig);
-    
-    // If configured, check connection
-    if (currentConfig) {
-      testConnection();
-    }
-  }, []);
-  
-  // Test connection
-  const testConnection = useCallback(async (): Promise<boolean> => {
-    try {
-      const connected = await testGadgetConnection();
-      setIsConnected(connected);
-      setLastConnectionTest(new Date());
-      setConnectionStatus(connected ? 'connected' : 'disconnected');
-      
-      // If connected, also check health
-      if (connected) {
-        checkHealth();
-      }
-      
-      return connected;
-    } catch (error) {
-      console.error('Error testing Gadget connection:', error);
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
-      setLastConnectionTest(new Date());
-      
-      toast.error('Connection Error', {
-        description: 'Failed to test Gadget connection.'
+  const testConnection = useCallback(async () => {
+    if (!config) {
+      setConnectionStatus('error');
+      toast.error('Missing configuration', {
+        description: 'Gadget configuration is required to test the connection.'
       });
-      
       return false;
     }
-  }, []);
-  
-  // Check health
-  const checkHealth = useCallback(async (): Promise<void> => {
+
     try {
-      const health = await checkGadgetHealth();
-      const isHealthStatus = health.status === 'healthy';
-      setIsHealthy(isHealthStatus);
-      setHealthCheckMessage(health.message || null);
-      setLastHealthCheck(new Date());
+      setConnectionStatus('testing');
       
-      if (isConnected && !isHealthStatus) {
-        setConnectionStatus('degraded');
-      } else if (isConnected && isHealthStatus) {
-        setConnectionStatus('connected');
+      // Initialize the Gadget client with the provided config
+      initializeGadget(config);
+      
+      if (!isGadgetInitialized()) {
+        setConnectionStatus('error');
+        toast.error('Connection failed', {
+          description: 'Failed to initialize Gadget client.'
+        });
+        return false;
       }
-    } catch (error) {
-      console.error('Error checking Gadget health:', error);
-      setIsHealthy(false);
-      setHealthCheckMessage('Error checking health status');
-      setLastHealthCheck(new Date());
+      
+      // Test the connection
+      const isConnected = await testGadgetConnection();
       
       if (isConnected) {
-        setConnectionStatus('degraded');
+        setConnectionStatus('success');
+        toast.success('Connection successful', {
+          description: 'Successfully connected to Gadget.'
+        });
+        
+        // After successful connection, fetch detailed status
+        await fetchHealthStatus();
+        
+        return true;
+      } else {
+        setConnectionStatus('error');
+        toast.error('Connection failed', {
+          description: 'Could not connect to Gadget. Please check your credentials.'
+        });
+        return false;
       }
-      
-      toast.error('Health Check Error', {
-        description: 'Failed to check Gadget health status.'
+    } catch (error) {
+      setConnectionStatus('error');
+      toast.error('Connection error', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
       });
+      console.error('Gadget connection error:', error);
+      return false;
     }
-  }, [isConnected]);
-  
-  // Reset client
-  const resetClient = useCallback((): void => {
-    resetGadgetClient();
-    setIsConnected(false);
-    setIsHealthy(false);
-    setConnectionStatus('unknown');
-    setLastConnectionTest(null);
-    setLastHealthCheck(null);
-    setHealthCheckMessage(null);
+  }, [config, initializeGadget]);
+
+  const fetchHealthStatus = useCallback(async () => {
+    if (!isGadgetInitialized()) {
+      setHealthStatus('unhealthy');
+      setDetailedStatus(null);
+      return;
+    }
     
-    toast.info('Gadget Client Reset', {
-      description: 'Gadget client has been reset. You may need to reconnect.'
-    });
+    try {
+      const health = await checkGadgetHealth();
+      const status = await getGadgetStatus();
+      
+      setHealthStatus(health.status);
+      setDetailedStatus(status);
+      setLastChecked(new Date());
+      
+      if (isHealthy(health)) {
+        console.info('Gadget health check passed:', health);
+      } else {
+        console.warn('Gadget health check indicates issues:', health);
+      }
+    } catch (error) {
+      setHealthStatus('unhealthy');
+      console.error('Failed to check Gadget health:', error);
+    }
   }, []);
-  
-  // Get detailed status
-  const getStatus = useCallback(async () => {
-    return getGadgetStatus();
-  }, []);
-  
+
+  // Effect to periodically check health status if connected
+  useEffect(() => {
+    if (connectionStatus === 'success') {
+      // Initial check
+      fetchHealthStatus();
+      
+      // Set up periodic health checks (every 5 minutes)
+      const intervalId = setInterval(fetchHealthStatus, 5 * 60 * 1000);
+      
+      // Clean up on unmount
+      return () => clearInterval(intervalId);
+    }
+  }, [connectionStatus, fetchHealthStatus]);
+
   return {
-    isInitialized,
-    isConnected,
-    isConfigured,
-    isHealthy,
-    lastHealthCheck,
-    lastConnectionTest,
     connectionStatus,
-    healthCheckMessage,
-    config,
+    healthStatus,
+    lastChecked,
+    detailedStatus,
     testConnection,
-    checkHealth,
-    resetClient,
-    getStatus
+    fetchHealthStatus
   };
 };
 
-export default useGadgetConnection;

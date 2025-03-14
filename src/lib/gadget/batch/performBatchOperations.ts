@@ -1,8 +1,8 @@
-
 /**
- * Batch operation utilities for processing large sets of data
+ * Batch operation functionality for Gadget
  */
 import { logInfo, logError } from '../logging';
+import { initGadgetClient } from '../client';
 import { trackPerformance } from '../telemetry';
 
 /**

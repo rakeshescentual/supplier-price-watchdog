@@ -1,175 +1,151 @@
 
 /**
- * Diagnostic utilities for Gadget integration
+ * Diagnostics utilities for Gadget integration
  */
 import { logInfo, logError } from './logging';
-import { initGadgetClient, checkGadgetHealth } from './client';
-import { reportHealthCheck } from './telemetry';
+import { 
+  initGadgetClient, 
+  isGadgetInitialized,
+  checkGadgetHealth,
+  isHealthy
+} from './client';
 import { testGadgetConnection } from './client/connection';
+import { reportHealthCheck } from './telemetry';
 
 /**
- * Run diagnostic checks on Gadget integration
- * @param options Diagnostic options
- * @returns Promise resolving to diagnostic results
+ * Run diagnostics on Gadget integration
+ * @param full Whether to run a full diagnostics suite (more time-consuming)
  */
 export const runGadgetDiagnostics = async (
-  options: {
-    checkConnection?: boolean;
-    checkHealth?: boolean;
-    checkPermissions?: boolean;
-    checkFeatureFlags?: boolean;
-  } = {
-    checkConnection: true,
-    checkHealth: true,
-    checkPermissions: false,
-    checkFeatureFlags: true,
-  }
+  full: boolean = false
 ): Promise<{
-  status: 'healthy' | 'degraded' | 'down';
-  results: Record<string, {
-    status: 'pass' | 'fail' | 'warn';
-    message: string;
-    details?: any;
-  }>;
-  timestamp: string;
+  diagnosticTime: string;
+  initialized: boolean;
+  connected: boolean;
+  health: {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    details?: Record<string, any>;
+  };
+  issues: string[];
+  recommendations: string[];
 }> => {
-  const client = initGadgetClient();
-  const results: Record<string, any> = {};
-  let overallStatus: 'healthy' | 'degraded' | 'down' = 'healthy';
-  
-  logInfo('Running Gadget diagnostics', options, 'diagnostics');
+  const diagnosticTime = new Date().toISOString();
+  const issues: string[] = [];
+  const recommendations: string[] = [];
   
   // Check if client is initialized
-  results.initialization = {
-    status: client ? 'pass' : 'fail',
-    message: client 
-      ? 'Gadget client successfully initialized'
-      : 'Failed to initialize Gadget client',
-    details: {
-      clientReady: !!client?.ready,
-      appId: client?.config?.appId,
-      environment: client?.config?.environment
+  const initialized = isGadgetInitialized();
+  if (!initialized) {
+    issues.push('Gadget client is not initialized');
+    recommendations.push('Initialize the Gadget client before using it');
+  }
+  
+  // Connection test
+  let connected = false;
+  try {
+    if (initialized) {
+      connected = await testGadgetConnection();
+      if (!connected) {
+        issues.push('Failed to connect to Gadget API');
+        recommendations.push('Check your API key and network connection');
+      }
     }
+  } catch (error) {
+    logError('Diagnostics connection test failed', { error }, 'diagnostics');
+    connected = false;
+    issues.push('Connection test threw an exception');
+    recommendations.push('Check for network issues or API key validity');
+  }
+  
+  // Health check
+  let health = {
+    status: 'unhealthy' as 'healthy' | 'degraded' | 'unhealthy',
+    details: {} as Record<string, any>
   };
   
-  if (!client) {
-    overallStatus = 'down';
-    
-    return {
-      status: overallStatus,
-      results,
-      timestamp: new Date().toISOString()
-    };
+  try {
+    if (initialized && connected) {
+      const healthResult = await checkGadgetHealth();
+      health.status = healthResult.status;
+      health.details = healthResult.details || {};
+      
+      // Report health check to telemetry
+      await reportHealthCheck(healthResult.status, healthResult.details);
+      
+      if (!isHealthy(healthResult)) {
+        issues.push(`Health check failed: ${healthResult.message || 'No details provided'}`);
+        recommendations.push('Check Gadget service status and your API limits');
+      }
+    }
+  } catch (error) {
+    logError('Diagnostics health check failed', { error }, 'diagnostics');
+    health.status = 'unhealthy';
+    health.details = { error: error instanceof Error ? error.message : String(error) };
+    issues.push('Health check threw an exception');
+    recommendations.push('Verify your Gadget integration is properly configured');
   }
   
-  // Check connection if requested
-  if (options.checkConnection) {
-    try {
-      const connectionSuccess = await testGadgetConnection();
-      
-      results.connection = {
-        status: connectionSuccess ? 'pass' : 'fail',
-        message: connectionSuccess
-          ? 'Successfully connected to Gadget API'
-          : 'Failed to connect to Gadget API',
-        details: {
-          timestamp: new Date().toISOString()
+  // Additional diagnostics for full mode
+  if (full && initialized && connected) {
+    // In a real implementation, we would add more extensive tests here
+    logInfo('Running full diagnostic suite', {}, 'diagnostics');
+    
+    // Example additional check
+    if (health.status === 'healthy') {
+      try {
+        // Mock test for API rate limits
+        const mockRateLimitCheck = true; // In production, this would be a real check
+        
+        if (!mockRateLimitCheck) {
+          issues.push('You are approaching API rate limits');
+          recommendations.push('Consider implementing rate limiting in your application');
         }
-      };
-      
-      if (!connectionSuccess && overallStatus === 'healthy') {
-        overallStatus = 'down';
-      }
-    } catch (error) {
-      results.connection = {
-        status: 'fail',
-        message: 'Error testing Gadget connection',
-        details: {
-          error: error instanceof Error ? error.message : String(error)
-        }
-      };
-      
-      if (overallStatus === 'healthy') {
-        overallStatus = 'down';
+      } catch (error) {
+        logError('Additional diagnostics failed', { error }, 'diagnostics');
       }
     }
   }
-  
-  // Check health if requested
-  if (options.checkHealth) {
-    try {
-      const health = await checkGadgetHealth();
-      const isHealthy = health.status === 'healthy';
-      
-      results.health = {
-        status: isHealthy ? 'pass' : 'warn',
-        message: health.message || (isHealthy 
-          ? 'Gadget services are healthy'
-          : 'Gadget services may be degraded'),
-        details: {
-          status: health.status,
-          timestamp: new Date().toISOString()
-        }
-      };
-      
-      if (!isHealthy && overallStatus === 'healthy') {
-        overallStatus = 'degraded';
-      }
-    } catch (error) {
-      results.health = {
-        status: 'warn',
-        message: 'Error checking Gadget health',
-        details: {
-          error: error instanceof Error ? error.message : String(error)
-        }
-      };
-      
-      if (overallStatus === 'healthy') {
-        overallStatus = 'degraded';
-      }
-    }
-  }
-  
-  // Check feature flags if requested
-  if (options.checkFeatureFlags) {
-    const featureFlags = client.config?.featureFlags || {};
-    
-    results.featureFlags = {
-      status: 'pass',
-      message: 'Feature flags retrieved',
-      details: featureFlags
-    };
-  }
-  
-  // Report health status to telemetry
-  await reportHealthCheck(overallStatus, {
-    diagnosticResults: results,
-    timestamp: new Date().toISOString()
-  });
   
   return {
-    status: overallStatus,
-    results,
-    timestamp: new Date().toISOString()
+    diagnosticTime,
+    initialized,
+    connected,
+    health,
+    issues,
+    recommendations
   };
 };
 
 /**
- * Get current Gadget integration status
- * @returns Status information
+ * Get a human-readable summary of Gadget diagnostics results
  */
-export const getGadgetStatus = (): {
-  initialized: boolean;
-  environment: string;
-  appId?: string;
-  featureFlags: Record<string, boolean>;
-} => {
-  const client = initGadgetClient();
+export const getGadgetDiagnosticsSummary = async (): Promise<string> => {
+  const diagnostics = await runGadgetDiagnostics(false);
   
-  return {
-    initialized: !!client?.ready,
-    environment: client?.config?.environment || 'development',
-    appId: client?.config?.appId,
-    featureFlags: client?.config?.featureFlags || {}
-  };
+  const statusEmoji = isHealthy({ status: diagnostics.health.status }) ? '✅' : 
+                      diagnostics.health.status === 'degraded' ? '⚠️' : '❌';
+  
+  let summary = [
+    `Gadget Diagnostics Summary (${new Date().toLocaleString()})`,
+    `Status: ${statusEmoji} ${diagnostics.health.status.toUpperCase()}`,
+    `Initialized: ${diagnostics.initialized ? '✅' : '❌'}`,
+    `Connected: ${diagnostics.connected ? '✅' : '❌'}`
+  ];
+  
+  if (diagnostics.issues.length > 0) {
+    summary.push('\nIssues:');
+    diagnostics.issues.forEach(issue => {
+      summary.push(`- ${issue}`);
+    });
+  }
+  
+  if (diagnostics.recommendations.length > 0) {
+    summary.push('\nRecommendations:');
+    diagnostics.recommendations.forEach(rec => {
+      summary.push(`- ${rec}`);
+    });
+  }
+  
+  return summary.join('\n');
 };
+

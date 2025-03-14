@@ -1,6 +1,5 @@
-
 /**
- * Gadget operations and core utilities
+ * Core operation utilities for Gadget
  */
 import { logInfo, logError } from './logging';
 import { initGadgetClient } from './client';

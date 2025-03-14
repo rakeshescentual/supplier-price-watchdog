@@ -1,3 +1,4 @@
+
 /**
  * Main entry point for Gadget.dev API integration
  * Re-exports all Gadget functions from the modular structure
@@ -124,3 +125,7 @@ export type {
 export type {
   CacheOptions
 } from './gadget/storage';
+
+// Export health check result type
+export type { HealthCheckResult } from './gadget/client/health';
+

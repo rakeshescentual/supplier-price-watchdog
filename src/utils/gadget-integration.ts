@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for Gadget.dev integration
  */
@@ -13,7 +12,8 @@ import {
 import {
   initGadgetClient,
   resetGadgetClient,
-  checkGadgetHealth
+  checkGadgetHealth,
+  isHealthy
 } from '@/lib/gadget/client';
 import { logInfo, logError } from '@/lib/gadget/logging';
 
@@ -202,3 +202,16 @@ export const isGadgetFeatureEnabled = (
   
   return config.featureFlags[flag as keyof typeof config.featureFlags] ?? defaultValue;
 };
+
+/**
+ * Verify Gadget connection health
+ */
+export async function checkGadgetConnectionHealth(): Promise<boolean> {
+  try {
+    const health = await checkGadgetHealth();
+    return isHealthy(health);
+  } catch (error) {
+    console.error("Failed to check Gadget connection health:", error);
+    return false;
+  }
+}

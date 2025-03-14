@@ -67,10 +67,11 @@ export const reportError = async (error: Error | string, metadata: Record<string
  * @param details Additional details
  */
 export const reportHealthCheck = async (
-  status: 'healthy' | 'degraded' | 'down',
+  status: 'healthy' | 'degraded' | 'unhealthy',
   details: Record<string, any> = {}
 ): Promise<void> => {
   logInfo(`Health check: ${status}`, details, 'telemetry');
   
   // In production, we would send this to a monitoring system
 };
+

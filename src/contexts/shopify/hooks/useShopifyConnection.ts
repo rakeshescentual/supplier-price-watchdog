@@ -4,6 +4,20 @@ import { toast } from 'sonner';
 import type { ShopifyContext as ShopifyContextType } from '@/types/price';
 import { checkShopifyConnection } from '@/lib/shopifyApi';
 
+export interface ShopifyContextType {
+  shopifyContext: ShopifyContextType | null;
+  isShopifyConnected: boolean;
+  isShopifyHealthy: boolean;
+  lastConnectionCheck: Date | null;
+  isGadgetInitialized: boolean;
+  isSyncing: boolean;
+  connectToShopify: (shop: string, accessToken: string) => Promise<boolean>;
+  disconnectShopify: () => void;
+  syncToShopify: (items: any[]) => Promise<boolean>;
+  loadShopifyData: () => Promise<any[]>;
+  batchProcessShopifyItems: <T, R>(items: T[], processFn: (item: T) => Promise<R>, options?: { batchSize: number, concurrency: number }) => Promise<R[]>;
+}
+
 export const useShopifyConnection = (
   shopifyContext: ShopifyContextType | null,
   setShopifyContext: React.Dispatch<React.SetStateAction<ShopifyContextType | null>>
@@ -128,12 +142,44 @@ export const useShopifyConnection = (
     });
   }, [connectionCheckInterval, setShopifyContext]);
   
+  // Stub implementations for required methods to match the interface
+  const syncToShopify = useCallback(async (items: any[]): Promise<boolean> => {
+    console.warn("syncToShopify stub implementation called");
+    return false;
+  }, []);
+  
+  const loadShopifyData = useCallback(async (): Promise<any[]> => {
+    console.warn("loadShopifyData stub implementation called");
+    return [];
+  }, []);
+  
+  const batchProcessShopifyItems = useCallback(async <T, R>(
+    items: T[],
+    processFn: (item: T) => Promise<R>,
+    options = { batchSize: 10, concurrency: 1 }
+  ): Promise<R[]> => {
+    console.warn("batchProcessShopifyItems stub implementation called");
+    return [];
+  }, []);
+  
   return {
     isShopifyConnected,
     isShopifyHealthy,
     lastConnectionCheck,
     connectionCheckInterval,
+    isGadgetInitialized: false, // Default value
+    isSyncing: false, // Default value
+    shopifyContext,
     connectToShopify,
-    disconnectShopify
+    disconnectShopify,
+    syncToShopify,
+    loadShopifyData,
+    batchProcessShopifyItems
   };
+};
+
+// Create and export a dummy hook for testing or development
+export const useShopifyContext = (): ShopifyContextType => {
+  const [shopifyContext, setShopifyContext] = useState<ShopifyContextType | null>(null);
+  return useShopifyConnection(shopifyContext, setShopifyContext);
 };

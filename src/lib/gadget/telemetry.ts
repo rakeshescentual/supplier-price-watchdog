@@ -53,6 +53,39 @@ export const startPerformanceTracking = (
 };
 
 /**
+ * Track performance of an operation
+ * @param operation The name of the operation to track
+ * @param properties Additional properties to include with the tracking
+ * @returns Function to call when the operation is complete
+ */
+export const trackPerformance = (
+  operation: string,
+  properties?: Record<string, any>
+): (() => Promise<void>) => {
+  return startPerformanceTracking(operation, properties);
+};
+
+/**
+ * Report health check results to telemetry system
+ * @param status The health status
+ * @param details Additional details about the health check
+ */
+export const reportHealthCheck = async (
+  status: 'healthy' | 'degraded' | 'unhealthy', 
+  details?: Record<string, any>
+): Promise<void> => {
+  logInfo(`Health check reported: ${status}`, { ...details }, 'telemetry');
+  
+  // In a production environment, this would send health check data to a monitoring service
+  // For now, just log the health check
+  
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  return;
+};
+
+/**
  * Report an error to the telemetry system
  * @param error The error to report
  * @param context Additional context for the error

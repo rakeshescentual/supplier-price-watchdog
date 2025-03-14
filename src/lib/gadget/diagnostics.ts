@@ -11,6 +11,7 @@ import {
 } from './client';
 import { testGadgetConnection } from './client/connection';
 import { reportHealthCheck } from './telemetry';
+import { GadgetHealthStatus } from './types';
 
 /**
  * Run diagnostics on Gadget integration
@@ -73,7 +74,7 @@ export const runGadgetDiagnostics = async (
       await reportHealthCheck(healthResult.status, healthResult.details);
       
       if (!isHealthy(healthResult)) {
-        issues.push(`Health check failed: ${healthResult.message || 'No details provided'}`);
+        issues.push(`Health check failed: ${healthResult.status || 'No details provided'}`);
         recommendations.push('Check Gadget service status and your API limits');
       }
     }
@@ -148,4 +149,3 @@ export const getGadgetDiagnosticsSummary = async (): Promise<string> => {
   
   return summary.join('\n');
 };
-

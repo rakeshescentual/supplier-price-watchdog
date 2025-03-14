@@ -1,76 +1,86 @@
 
 /**
- * Price-related Gadget actions
+ * Price-related actions for Gadget
  */
+import { logInfo } from '../logging';
 import { runGadgetAction } from './core';
-import { GadgetActionResponse } from './types';
-import type { PriceItem } from '@/types/price';
+import { PriceItem } from '@/types/price';
+import { GadgetActionOptions, GadgetActionResponse } from './types';
 
 /**
- * Analyze price changes with advanced AI via Gadget
+ * Analyze price changes using Gadget
+ * @param items Price items to analyze
+ * @param options Options for the action
+ * @returns Promise resolving to analysis results
  */
-export async function analyzePriceChanges(
-  items: PriceItem[]
+export const analyzePriceChanges = async (
+  items: PriceItem[],
+  options: GadgetActionOptions = {}
 ): Promise<GadgetActionResponse<{
-  analysis: {
-    summary: string;
-    impactScore: number;
-    recommendations: string[];
-    categories: {
-      name: string;
-      count: number;
-      averageIncrease: number;
-    }[];
-  }
-}>> {
+  recommendations: Array<{
+    sku: string;
+    recommendedPrice: number;
+    reasoning: string;
+    confidence: number;
+  }>;
+  marketInsights: {
+    averagePriceChange: number;
+    priceChangeDistribution: Record<string, number>;
+    competitivenessScore: number;
+  };
+}>> => {
+  logInfo(`Analyzing ${items.length} price changes with Gadget`, {
+    itemCount: items.length
+  }, 'price-actions');
+  
   return runGadgetAction(
     'analyzePriceChanges',
     { items },
     {
-      showToast: true,
+      ...options,
       toastMessages: {
-        loading: "Analyzing price changes...",
-        success: "Price analysis complete",
-        error: "Price analysis failed"
+        loading: 'Analyzing price changes...',
+        success: 'Price analysis complete',
+        error: 'Error analyzing prices',
+        ...options.toastMessages
       }
     }
   );
-}
+};
 
 /**
- * Generate optimized price recommendations via Gadget's AI service
+ * Generate price recommendations
+ * @param items Price items to generate recommendations for
+ * @param options Options for the action
+ * @returns Promise resolving to price recommendations
  */
-export async function generatePriceRecommendations(
+export const generatePriceRecommendations = async (
   items: PriceItem[],
-  options: {
-    strategy: 'competitive' | 'margin' | 'volume';
-    targetMargin?: number;
-    minPrice?: number;
-    maxPrice?: number;
-  }
+  options: GadgetActionOptions = {}
 ): Promise<GadgetActionResponse<{
   recommendations: Array<{
     sku: string;
     currentPrice: number;
     recommendedPrice: number;
+    percentChange: number;
     reasoning: string;
-    potentialImpact: {
-      margin: number;
-      volume: number;
-      revenue: number;
-    }
-  }>
-}>> {
+  }>;
+}>> => {
+  logInfo(`Generating price recommendations for ${items.length} items with Gadget`, {
+    itemCount: items.length
+  }, 'price-actions');
+  
   return runGadgetAction(
     'generatePriceRecommendations',
-    { items, options },
+    { items },
     {
-      showToast: true,
+      ...options,
       toastMessages: {
-        loading: "Generating price recommendations...",
-        success: "Price recommendations ready",
-        error: "Failed to generate recommendations"
+        loading: 'Generating price recommendations...',
+        success: 'Price recommendations ready',
+        error: 'Error generating recommendations',
+        ...options.toastMessages
       }
     }
   );
-}
+};

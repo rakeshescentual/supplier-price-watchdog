@@ -1,33 +1,51 @@
 
 /**
- * Platform synchronization Gadget actions
+ * Platform-related actions for Gadget
  */
+import { logInfo } from '../logging';
 import { runGadgetAction } from './core';
-import { GadgetActionResponse } from './types';
-import type { PriceItem } from '@/types/price';
+import { GadgetActionOptions, GadgetActionResponse } from './types';
+import { PriceItem } from '@/types/price';
 
 /**
- * Synchronize price changes to multiple platforms via Gadget
+ * Sync prices to multiple platforms
+ * @param items Price items to sync
+ * @param platforms Platforms to sync to
+ * @param options Options for the action
+ * @returns Promise resolving to sync results
  */
-export async function syncPricesToPlatforms(
+export const syncPricesToPlatforms = async (
   items: PriceItem[],
-  platforms: ('shopify' | 'klaviyo' | 'erp')[]
+  platforms: Array<{
+    platform: 'shopify' | 'amazon' | 'ebay' | 'walmart';
+    connectionId: string;
+  }>,
+  options: GadgetActionOptions = {}
 ): Promise<GadgetActionResponse<{
-  successful: number;
-  failed: number;
-  platforms: Record<string, { success: boolean; message?: string }>
-}>> {
+  results: Array<{
+    platform: string;
+    success: boolean;
+    syncedCount: number;
+    errorCount: number;
+    details?: string;
+  }>;
+}>> => {
+  logInfo(`Syncing ${items.length} prices to ${platforms.length} platforms with Gadget`, {
+    itemCount: items.length,
+    platforms: platforms.map(p => p.platform)
+  }, 'platform-actions');
+  
   return runGadgetAction(
     'syncPricesToPlatforms',
     { items, platforms },
     {
-      showToast: true,
+      ...options,
       toastMessages: {
-        loading: "Syncing prices to platforms...",
-        success: "Prices synced successfully",
-        error: "Price sync failed"
-      },
-      retries: 2
+        loading: 'Syncing prices to platforms...',
+        success: 'Prices synced to platforms',
+        error: 'Error syncing prices',
+        ...options.toastMessages
+      }
     }
   );
-}
+};

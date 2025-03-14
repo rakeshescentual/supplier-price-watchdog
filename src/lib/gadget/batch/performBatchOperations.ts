@@ -1,9 +1,10 @@
+
 /**
  * Batch operation functionality for Gadget
  */
 import { logInfo, logError } from '../logging';
 import { initGadgetClient } from '../client';
-import { trackPerformance } from '../telemetry';
+import { startPerformanceTracking } from '../telemetry';
 
 /**
  * Perform batch operations on a large set of items
@@ -31,7 +32,7 @@ export const performBatchOperations = async <T, R>(
   }, 'batch');
   
   // Track performance
-  const completeTracking = trackPerformance('batchOperations', {
+  const completeTracking = startPerformanceTracking('batchOperations', {
     totalItems: items.length,
     batchCount: batches.length,
     batchSize

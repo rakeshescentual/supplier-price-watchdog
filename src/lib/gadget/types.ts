@@ -17,9 +17,48 @@ export interface GadgetConfig {
   };
 }
 
+// Connection options
+export interface GadgetConnectionOptions {
+  timeout?: number;
+  retries?: number;
+  headers?: Record<string, string>;
+  cacheResults?: boolean;
+}
+
+// Client status
+export interface GadgetClientStatus {
+  initialized: boolean;
+  authenticated: boolean;
+  healthy: boolean;
+  environment: 'development' | 'production';
+  lastChecked?: Date;
+}
+
+// Rate limits
+export interface GadgetRateLimits {
+  requestsPerMinute: number;
+  remaining: number;
+  resetAt: Date;
+}
+
+// Storage limits
+export interface GadgetStorageLimits {
+  totalBytes: number;
+  usedBytes: number;
+  remainingBytes: number;
+  percentUsed: number;
+}
+
+// Live query options
+export interface GadgetLiveQueryOptions {
+  pollInterval?: number;
+  skipInitialQuery?: boolean;
+  onError?: (error: Error) => void;
+}
+
 // Health status
 export interface GadgetHealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  status: 'healthy' | 'degraded' | 'unhealthy';
   details?: {
     services: {
       api: boolean;
@@ -41,6 +80,22 @@ export interface GadgetClientResponse<T> {
     extensions?: Record<string, any>;
   }>;
   status: number;
+}
+
+// Action response
+export interface GadgetActionResponse<T = any> {
+  success: boolean;
+  data: T;
+  errors?: Array<{
+    message: string;
+    code: string;
+    path?: string[];
+  }>;
+  performanceMetrics?: {
+    durationMs: number;
+    queryCount: number;
+    cacheHitRate: number;
+  };
 }
 
 // Sync response types

@@ -1,48 +1,80 @@
 
 /**
- * Shopify authentication via Gadget
+ * Authentication utilities for Gadget sync
  */
-import type { ShopifyContext } from '@/types/price';
-import { initGadgetClient } from '../client';
 import { logInfo, logError } from '../logging';
+import { ShopifyContext } from '@/types/price';
+import { mockAuthenticateShopify } from '../mocks';
 
 /**
  * Authenticate with Shopify via Gadget
- * @param context Shopify context with shop and accessToken
- * @returns Promise resolving to a boolean indicating authentication success
+ * @param context Shopify context
+ * @returns Promise resolving to authentication result
  */
-export const authenticateShopify = async (context: ShopifyContext): Promise<boolean> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return false;
-  }
-  
+export const authenticateShopify = async (
+  context: ShopifyContext
+): Promise<{
+  success: boolean;
+  message?: string;
+}> => {
   try {
-    logInfo(`Authenticating Shopify for ${context.shop} via Gadget`, {
-      shop: context.shop
-    }, 'sync');
+    logInfo(`Authenticating with Shopify via Gadget for shop ${context.shop}`, {}, 'sync');
     
-    // When using actual Gadget.dev SDK:
-    // const result = await client.mutate.authenticateShopify({
-    //   shop: context.shop,
-    //   accessToken: context.accessToken
-    // });
-    // return !!result?.success;
-    
-    // For development, use mock implementation
-    const { mockAuthenticateShopify } = await import('../mocks');
-    const result = await mockAuthenticateShopify(context);
-    
-    if (result) {
-      logInfo(`Successfully authenticated Shopify for ${context.shop}`, {}, 'sync');
-    } else {
-      logInfo(`Failed to authenticate Shopify for ${context.shop}`, {}, 'sync');
+    if (!context.shop || !context.accessToken) {
+      return {
+        success: false,
+        message: "Shop and access token are required"
+      };
     }
     
-    return result;
+    // In production, this would use the Gadget client to authenticate
+    // For now, use the mock implementation
+    return await mockAuthenticateShopify(context.shop, context.accessToken);
+    
   } catch (error) {
     logError("Error authenticating with Shopify via Gadget", { error }, 'sync');
     
-    return false;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error during authentication"
+    };
+  }
+};
+
+/**
+ * Validate Shopify credentials
+ * @param shop Shopify shop domain
+ * @param accessToken Shopify access token
+ * @returns Promise resolving to validation result
+ */
+export const validateShopifyCredentials = async (
+  shop: string,
+  accessToken: string
+): Promise<{
+  valid: boolean;
+  message?: string;
+}> => {
+  try {
+    if (!shop) {
+      return { valid: false, message: "Shop domain is required" };
+    }
+    
+    if (!accessToken) {
+      return { valid: false, message: "Access token is required" };
+    }
+    
+    const result = await mockAuthenticateShopify(shop, accessToken);
+    
+    return {
+      valid: result.success,
+      message: result.message
+    };
+  } catch (error) {
+    logError("Error validating Shopify credentials", { error }, 'sync');
+    
+    return {
+      valid: false,
+      message: error instanceof Error ? error.message : "Unknown error during validation"
+    };
   }
 };

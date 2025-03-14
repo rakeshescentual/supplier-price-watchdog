@@ -1,86 +1,57 @@
 
 /**
- * Gadget client initialization utilities
+ * Client initialization functionality for Gadget
  */
-import { getGadgetConfig } from '@/utils/gadget-helpers';
-import { logInfo } from '../logging';
+import { logInfo, logError } from '../logging';
+import { GadgetConfig } from '@/types/price';
 
-// Cache for client instance to avoid recreating on every call
+// Client storage
 let cachedClient: any = null;
-let lastConfigHash: string = '';
+let lastConfigHash: string | null = null;
 
 /**
- * Create a hash from config to detect changes
+ * Helper function to create a hash of the configuration
  */
-const createConfigHash = (config: any): string => {
-  return `${config.appId}:${config.apiKey}:${config.environment}`;
+const createConfigHash = (config: GadgetConfig): string => {
+  return `${config.appId}-${config.environment}-${config.apiKey.substring(0, 8)}`;
 };
 
 /**
- * Initialize Gadget client
- * @returns Initialized Gadget client or null if configuration is missing
+ * Initialize the Gadget client
+ * @returns Initialized Gadget client
  */
-export const initGadgetClient = () => {
-  const config = getGadgetConfig();
-  if (!config) {
-    logInfo('Gadget client initialization skipped: No configuration found', {}, 'client');
-    return null;
-  }
-
-  // Create a hash of the current config
-  const configHash = createConfigHash(config);
-  
-  // Return cached client if configuration hasn't changed
-  if (cachedClient && configHash === lastConfigHash) {
+export const initGadgetClient = (): any => {
+  // In a production environment, this would use the Gadget SDK
+  // For now, mock the client for testing
+  if (cachedClient) {
     return cachedClient;
   }
   
-  logInfo(`Initializing Gadget client for ${config.appId} (${config.environment})`, {
-    featureFlags: config.featureFlags || {}
-  }, 'client');
-  
-  // Updated for the latest Gadget.dev client initialization pattern
-  // In production environment with actual Gadget SDK:
-  // import { Client } from '@gadget-client/app-slug';
-  // cachedClient = new Client({
-  //   authenticationMode: { 
-  //     apiKey: config.apiKey 
-  //   },
-  //   environment: config.environment,
-  //   // New option for performance optimization
-  //   enableBrowserFastNewUrlHeuristic: true,
-  //   // New option for error reporting
-  //   enableErrorReporting: config.environment === 'production'
-  // });
-  
-  // For development: Create a mock client with API methods
-  cachedClient = { 
-    config, 
+  // Mock client for testing
+  cachedClient = {
     ready: true,
     query: {},
     mutate: {}
   };
   
-  // Update last config hash
-  lastConfigHash = configHash;
+  logInfo('Initialized mock Gadget client', {}, 'client');
   
   return cachedClient;
 };
 
 /**
- * Check if Gadget client is initialized
- * @returns Boolean indicating if Gadget is initialized
- */
-export const isGadgetInitialized = (): boolean => {
-  const client = initGadgetClient();
-  return !!client?.ready;
-};
-
-/**
- * Reset client cache to force reinitialization
+ * Reset the Gadget client
  */
 export const resetGadgetClient = (): void => {
   cachedClient = null;
-  lastConfigHash = '';
-  logInfo('Gadget client cache reset', {}, 'client');
+  lastConfigHash = null;
+  logInfo('Reset Gadget client', {}, 'client');
+};
+
+/**
+ * Check if the Gadget client is initialized
+ * @returns True if the client is initialized, false otherwise
+ */
+export const isGadgetInitialized = (): boolean => {
+  return cachedClient !== null && cachedClient.ready === true;
 };

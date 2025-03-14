@@ -1,79 +1,74 @@
 
 /**
- * Core functionality for Gadget actions
+ * Core action functionality for Gadget
  */
 import { logInfo, logError } from '../logging';
-import { initGadgetClient } from '../client';
-import { startPerformanceTracking } from '../telemetry';
-import { toast } from 'sonner';
 import { GadgetActionOptions, GadgetActionResponse } from './types';
+import { toast } from 'sonner';
 
 /**
- * Run a custom Gadget action with performance tracking and error handling
+ * Run a Gadget action
+ * @param actionName Name of the action to run
+ * @param params Parameters for the action
+ * @param options Options for the action
+ * @returns Promise resolving to action response
  */
-export async function runGadgetAction<T, P = Record<string, any>>(
+export const runGadgetAction = async <T = any>(
   actionName: string,
-  params: P,
+  params: Record<string, any>,
   options: GadgetActionOptions = {}
-): Promise<GadgetActionResponse<T>> {
-  const client = initGadgetClient();
-  if (!client) {
-    const error = new Error("Gadget client not initialized");
-    if (options.showToast) {
-      toast.error(options.toastMessages?.error || "Action failed", {
-        description: error.message
-      });
-    }
-    throw error;
-  }
-  
-  const finishTracking = startPerformanceTracking(`action:${actionName}`, { params });
+): Promise<GadgetActionResponse<T>> => {
+  // Show loading toast if enabled
+  const loadingToastId = options.showToast
+    ? toast.loading(options.toastMessages?.loading || `Running ${actionName}...`)
+    : undefined;
   
   try {
     logInfo(`Running Gadget action: ${actionName}`, { params }, 'actions');
     
-    if (options.showToast && options.toastMessages?.loading) {
-      toast.loading(options.toastMessages.loading);
-    }
+    // In production, this would call the Gadget API
+    // For now, simulate a delay and return mock data
+    await new Promise(resolve => setTimeout(resolve, 800));
     
-    // In production with actual Gadget client:
-    // const result = await client.mutate[actionName](params);
-    
-    // For development, simulate a successful response
-    const mockResult: GadgetActionResponse<T> = {
+    // Simulate success response
+    const response: GadgetActionResponse<T> = {
       success: true,
-      data: {} as T,
+      data: { result: 'success' } as unknown as T,
       performanceMetrics: {
-        durationMs: 250,
+        durationMs: 756,
         queryCount: 3,
-        cacheHitRate: 0.65
+        cacheHitRate: 0.33
       }
     };
     
-    finishTracking();
-    
-    if (options.showToast && options.toastMessages?.success) {
-      toast.success(options.toastMessages.success);
+    if (options.showToast) {
+      toast.success(
+        options.toastMessages?.success || `${actionName} completed successfully`,
+        { id: loadingToastId }
+      );
     }
     
-    return mockResult;
+    return response;
   } catch (error) {
     logError(`Error running Gadget action: ${actionName}`, { error, params }, 'actions');
-    finishTracking();
     
-    if (options.showToast) {
-      toast.error(options.toastMessages?.error || "Action failed", {
-        description: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-    
-    return {
+    // Create error response
+    const errorResponse: GadgetActionResponse<T> = {
       success: false,
       data: {} as T,
       errors: [{
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: "ACTION_EXECUTION_ERROR"
+        message: error instanceof Error ? error.message : String(error),
+        code: 'ACTION_EXECUTION_ERROR',
       }]
     };
+    
+    if (options.showToast) {
+      toast.error(
+        options.toastMessages?.error || `Error running ${actionName}`,
+        { id: loadingToastId }
+      );
+    }
+    
+    return errorResponse;
   }
-}
+};

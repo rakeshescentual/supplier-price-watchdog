@@ -113,18 +113,22 @@ export type {
   CompressionType
 } from './gadget/export';
 
+// Export enhanced types from gadget/types.ts
 export type {
+  GadgetConfig,
   GadgetConnectionOptions,
   GadgetClientStatus,
   GadgetStorageLimits,
   GadgetRateLimits,
   GadgetActionResponse,
-  GadgetLiveQueryOptions
-} from './gadget';
-
-export type {
-  CacheOptions
-} from './gadget/storage';
+  GadgetLiveQueryOptions,
+  GadgetHealthStatus,
+  GadgetSyncResponse,
+  GadgetClientResponse,
+  GadgetBatchOptions,
+  GadgetErrorReporter,
+  GadgetTelemetryTracker
+} from './gadget/types';
 
 // Export health check result type
 export type { HealthCheckResult } from './gadget/client/health';

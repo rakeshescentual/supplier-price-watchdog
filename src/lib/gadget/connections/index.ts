@@ -1,83 +1,98 @@
 
 /**
- * Gadget Connections API integration - Main Entry Point
- * 
- * This module provides functionality for managing external connections
- * using Gadget.dev's Connections API.
+ * Connection management utilities for Gadget
  */
 
-// Export connection types
-export interface ConnectionType {
-  id: string;
-  name: string;
-  provider: string;
-  description: string;
-}
+// Connection type enum
+export type ConnectionType = 'shopify' | 'klaviyo' | 'google' | 'amazon' | 'facebook';
 
+// Connection configuration
 export interface ConnectionConfig {
+  type: ConnectionType;
   name: string;
-  type: string;
   credentials: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
+// Connection response
 export interface ConnectionResponse {
   id: string;
+  type: ConnectionType;
   name: string;
-  type: string;
-  status: 'active' | 'inactive' | 'error';
+  isActive: boolean;
   createdAt: string;
-  updatedAt: string;
+  lastUsed?: string;
+  metadata?: Record<string, any>;
 }
 
-export interface AuthMethod {
-  type: 'oauth' | 'api_key' | 'basic';
-  label: string;
-  description: string;
-}
-
-// Connection management functions
-export const createGadgetConnection = async (config: ConnectionConfig): Promise<ConnectionResponse> => {
+/**
+ * Create a new Gadget connection
+ */
+export const createGadgetConnection = async (
+  config: ConnectionConfig
+): Promise<ConnectionResponse> => {
+  // Mock implementation
   return {
     id: `conn-${Date.now()}`,
-    name: config.name,
     type: config.type,
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    name: config.name,
+    isActive: true,
+    createdAt: new Date().toISOString()
   };
 };
 
-export const listGadgetConnections = async (): Promise<ConnectionResponse[]> => {
-  return [
-    {
-      id: 'conn-1',
-      name: 'Mock Shopify Connection',
-      type: 'shopify',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
+/**
+ * List all Gadget connections
+ */
+export const listGadgetConnections = async (
+  type?: ConnectionType
+): Promise<ConnectionResponse[]> => {
+  // Mock implementation
+  return [];
 };
 
-export const deleteGadgetConnection = async (id: string): Promise<boolean> => {
+/**
+ * Delete a Gadget connection
+ */
+export const deleteGadgetConnection = async (
+  id: string
+): Promise<boolean> => {
+  // Mock implementation
   return true;
 };
 
-export const getGadgetConnectionStatus = async (id: string): Promise<{
-  status: 'active' | 'inactive' | 'error';
-  message?: string;
-}> => {
-  return { status: 'active' };
+/**
+ * Get a Gadget connection status
+ */
+export const getGadgetConnectionStatus = async (
+  id: string
+): Promise<{ isActive: boolean; lastChecked: string }> => {
+  // Mock implementation
+  return {
+    isActive: true,
+    lastChecked: new Date().toISOString()
+  };
 };
 
-export const refreshGadgetConnection = async (id: string): Promise<boolean> => {
+/**
+ * Refresh a Gadget connection
+ */
+export const refreshGadgetConnection = async (
+  id: string
+): Promise<boolean> => {
+  // Mock implementation
   return true;
 };
 
-export const testGadgetConnectionAccess = async (id: string): Promise<{
-  success: boolean;
-  message?: string;
-}> => {
-  return { success: true };
+/**
+ * Test a Gadget connection access
+ */
+export const testGadgetConnectionAccess = async (
+  id: string
+): Promise<{ success: boolean; message?: string }> => {
+  // Mock implementation
+  return {
+    success: true,
+    message: "Connection test successful"
+  };
 };

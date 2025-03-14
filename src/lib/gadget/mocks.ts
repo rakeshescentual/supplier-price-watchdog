@@ -51,6 +51,42 @@ export const mockSyncToShopify = async (
 };
 
 /**
+ * Mock implementation of authenticating with Shopify via Gadget
+ * @param shop Shopify shop domain
+ * @param accessToken Shopify access token
+ * @returns Promise resolving to authentication success
+ */
+export const mockAuthenticateShopify = async (
+  shop: string,
+  accessToken: string
+): Promise<{ success: boolean; message?: string }> => {
+  logInfo(`Mock: Authenticating with Shopify via Gadget for shop ${shop}`, {}, 'mock');
+  
+  // Simulate processing delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Simple validation
+  if (!shop.includes('.myshopify.com') && !shop.endsWith('.com')) {
+    return {
+      success: false,
+      message: "Invalid shop domain format"
+    };
+  }
+  
+  if (!accessToken || accessToken.length < 10) {
+    return {
+      success: false,
+      message: "Invalid access token format"
+    };
+  }
+  
+  return {
+    success: true,
+    message: "Authentication successful"
+  };
+};
+
+/**
  * Mock implementation of processing PDF with Gadget
  * @param fileData The file data to process
  * @returns Promise resolving to processed items
@@ -118,15 +154,23 @@ export const mockGetMarketData = async (
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   // Return items with added market data
-  return items.map(item => ({
-    ...item,
-    marketData: {
+  return items.map(item => {
+    const enhancedItem = { ...item };
+    
+    // Add market data that matches the expected type
+    enhancedItem.marketData = {
+      pricePosition: ['low', 'average', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'average' | 'high',
       averagePrice: item.newPrice * (0.9 + Math.random() * 0.2),
+      minPrice: item.newPrice * 0.8,
+      maxPrice: item.newPrice * 1.2,
       competitorPrices: [
-        { name: 'Competitor A', price: item.newPrice * (0.9 + Math.random() * 0.3) },
-        { name: 'Competitor B', price: item.newPrice * (0.85 + Math.random() * 0.3) },
-        { name: 'Competitor C', price: item.newPrice * (0.95 + Math.random() * 0.2) }
+        item.newPrice * 0.9,
+        item.newPrice * 0.95,
+        item.newPrice * 1.05,
+        item.newPrice * 1.1
       ]
-    }
-  }));
+    };
+    
+    return enhancedItem;
+  });
 };

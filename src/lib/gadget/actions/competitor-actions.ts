@@ -1,30 +1,40 @@
 
 /**
- * Competitor-related Gadget actions
+ * Competitor-related actions for Gadget
  */
+import { logInfo } from '../logging';
 import { runGadgetAction } from './core';
-import { GadgetActionResponse } from './types';
+import { GadgetActionOptions, GadgetActionResponse } from './types';
 
 /**
- * Schedule a competitor price check via Gadget background job
+ * Schedule a competitor price check
+ * @param productSkus SKUs to check
+ * @param options Options for the action
+ * @returns Promise resolving to scheduled check result
  */
-export async function scheduleCompetitorCheck(
-  products: { sku: string; name: string }[],
-  competitors: string[]
+export const scheduleCompetitorCheck = async (
+  productSkus: string[],
+  options: GadgetActionOptions = {}
 ): Promise<GadgetActionResponse<{
   jobId: string;
-  estimatedCompletion: string;
-}>> {
+  estimatedCompletionTime: string;
+  skusToCheck: string[];
+}>> => {
+  logInfo(`Scheduling competitor check for ${productSkus.length} SKUs with Gadget`, {
+    skuCount: productSkus.length
+  }, 'competitor-actions');
+  
   return runGadgetAction(
     'scheduleCompetitorCheck',
-    { products, competitors },
+    { productSkus },
     {
-      showToast: true,
+      ...options,
       toastMessages: {
-        loading: "Scheduling competitor price check...",
-        success: "Competitor check scheduled",
-        error: "Failed to schedule competitor check"
+        loading: 'Scheduling competitor price check...',
+        success: 'Competitor check scheduled',
+        error: 'Error scheduling competitor check',
+        ...options.toastMessages
       }
     }
   );
-}
+};

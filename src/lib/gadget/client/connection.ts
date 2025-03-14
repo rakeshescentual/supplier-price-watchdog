@@ -1,83 +1,76 @@
 
 /**
- * Connection testing and status utilities for Gadget client
+ * Connection utilities for Gadget client
  */
 import { logInfo, logError } from '../logging';
 import { initGadgetClient } from './initialization';
-import { checkGadgetHealth } from './health';
-import { getDisplayInfo } from './display';
+import { GadgetHealthStatus } from '../types';
 
 /**
- * Test connection to Gadget
- * @returns Promise resolving to boolean indicating if connection was successful
+ * Test connection to Gadget service
+ * @returns Promise resolving to boolean indicating if connection is successful
  */
 export const testGadgetConnection = async (): Promise<boolean> => {
-  const client = initGadgetClient();
-  
-  if (!client) {
-    logInfo('Gadget client is not initialized', {}, 'connection');
-    return false;
-  }
-  
   try {
-    // Updated for latest Gadget API
-    // In production with actual Gadget SDK:
-    // const healthCheck = await client.connection.healthCheck();
-    // return healthCheck.status === 'healthy';
+    const client = initGadgetClient();
+    if (!client) {
+      logInfo('Cannot test connection: Gadget client is not initialized', {}, 'client');
+      return false;
+    }
     
-    // For mock implementation, simply return true
+    logInfo('Testing connection to Gadget...', {}, 'client');
+    
+    // In production, this would make a simple API call to check connectivity
+    // For now, return true (mock implementation)
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    
+    logInfo('Connection to Gadget successful', {}, 'client');
     return true;
   } catch (error) {
-    logError('Error testing Gadget connection', { error }, 'connection');
+    logError('Connection to Gadget failed', { error }, 'client');
     return false;
   }
 };
 
 /**
- * Get detailed Gadget status
- * @returns Promise resolving to status information
+ * Get Gadget service status
+ * @returns Promise resolving to service status
  */
 export const getGadgetStatus = async (): Promise<{
-  isConnected: boolean;
-  environment: string;
-  latency?: number;
+  status: 'online' | 'degraded' | 'offline';
   version?: string;
-  services: {
-    api: boolean;
-    database: boolean;
-    storage: boolean;
-    scheduler: boolean;
-  };
+  message?: string;
+  lastChecked: string;
 }> => {
-  const client = initGadgetClient();
-  
-  if (!client) {
+  try {
+    const client = initGadgetClient();
+    if (!client) {
+      return {
+        status: 'offline',
+        message: 'Gadget client is not initialized',
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
+    logInfo('Getting Gadget service status...', {}, 'client');
+    
+    // In production, this would make an API call to get service status
+    // For now, return mock data
+    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+    
     return {
-      isConnected: false,
-      environment: 'unknown',
-      services: {
-        api: false,
-        database: false,
-        storage: false,
-        scheduler: false
-      }
+      status: 'online',
+      version: '1.2.3',
+      message: 'All systems operational',
+      lastChecked: new Date().toISOString()
+    };
+  } catch (error) {
+    logError('Failed to get Gadget service status', { error }, 'client');
+    
+    return {
+      status: 'offline',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      lastChecked: new Date().toISOString()
     };
   }
-  
-  const displayInfo = getDisplayInfo();
-  const healthCheck = await checkGadgetHealth();
-  
-  // Updated format to match latest Gadget status response
-  return {
-    isConnected: true,
-    environment: client.config?.environment || 'development',
-    latency: 42, // Mock latency value
-    version: displayInfo.version,
-    services: {
-      api: healthCheck.status === 'healthy',
-      database: healthCheck.status === 'healthy',
-      storage: healthCheck.status === 'healthy',
-      scheduler: healthCheck.status === 'healthy'
-    }
-  };
 };

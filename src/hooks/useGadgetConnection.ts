@@ -31,7 +31,6 @@ export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
     } else {
       const savedConfig = getGadgetConfig();
       setConfig(savedConfig);
-      setIsConfigured(!!savedConfig);
     }
   }, [providedConfig]);
 

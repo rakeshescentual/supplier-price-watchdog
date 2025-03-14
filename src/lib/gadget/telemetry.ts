@@ -1,77 +1,131 @@
 
-/**
- * Telemetry functions for tracking Gadget operations
- */
-import { logInfo } from './logging';
+import { logInfo, logError } from './logging';
+import { GadgetErrorReporter, GadgetTelemetryTracker } from './types';
+
+// Map to store performance tracking start times
+const performanceTimers = new Map<string, {
+  startTime: number;
+  operationId: string;
+  properties?: Record<string, any>;
+}>();
 
 /**
- * Start tracking the performance of an operation
+ * Start tracking performance for an operation
  * @param operation The name of the operation to track
- * @param metadata Additional metadata to log with the operation
- * @returns A function to call when the operation is complete
+ * @param properties Additional properties to include with the tracking
+ * @returns Function to call when the operation is complete
  */
-export const startPerformanceTracking = (operation: string, metadata: Record<string, any> = {}) => {
-  const startTime = performance.now();
-  logInfo(`Starting operation: ${operation}`, metadata, 'telemetry');
+export const startPerformanceTracking = (
+  operation: string,
+  properties?: Record<string, any>
+): (() => Promise<void>) => {
+  const operationId = `${operation}-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  const startTime = Date.now();
   
+  performanceTimers.set(operationId, {
+    startTime,
+    operationId,
+    properties
+  });
+  
+  logInfo(`Starting operation: ${operation}`, {
+    operationId,
+    ...properties
+  }, 'telemetry');
+  
+  // Return function to finish tracking
   return async () => {
-    const duration = performance.now() - startTime;
+    const timerInfo = performanceTimers.get(operationId);
+    if (!timerInfo) return;
+    
+    const duration = Date.now() - timerInfo.startTime;
+    
     logInfo(`Completed operation: ${operation}`, {
-      ...metadata,
-      durationMs: Math.round(duration),
-      timestamp: new Date().toISOString()
+      operationId,
+      duration,
+      ...timerInfo.properties
     }, 'telemetry');
     
-    // Return metrics
-    return {
-      operation,
-      durationMs: Math.round(duration),
-      timestamp: new Date().toISOString()
-    };
+    performanceTimers.delete(operationId);
+    
+    // In a production environment, this would send telemetry data to an analytics service
   };
 };
-
-/**
- * Track performance of an operation
- * @param operation Name of the operation
- * @param metadata Additional metadata
- * @returns Function to complete tracking
- */
-export const trackPerformance = startPerformanceTracking;
 
 /**
  * Report an error to the telemetry system
  * @param error The error to report
- * @param metadata Additional metadata to log with the error
+ * @param context Additional context for the error
  */
-export const reportError = async (error: Error | string, metadata: Record<string, any> = {}) => {
-  const errorMessage = typeof error === 'string' ? error : error.message;
+export const reportError: GadgetErrorReporter = async (
+  error,
+  context = {}
+) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;
   
-  logInfo(`Error reported: ${errorMessage}`, {
-    ...metadata,
-    errorStack,
-    timestamp: new Date().toISOString()
-  }, 'error');
+  logError("Error reported to telemetry", {
+    error: errorMessage,
+    stack: errorStack,
+    ...context
+  }, 'telemetry');
   
-  // In production, we would send this to an error tracking service
-  return {
-    reported: true,
-    timestamp: new Date().toISOString()
-  };
+  // In a production environment, this would send error data to an error tracking service
+  
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  return;
 };
 
 /**
- * Report health check results to telemetry system
- * @param status Health status
- * @param details Additional details
+ * Track an event in the telemetry system
+ * @param event The name of the event to track
+ * @param properties Additional properties for the event
  */
-export const reportHealthCheck = async (
-  status: 'healthy' | 'degraded' | 'unhealthy',
-  details: Record<string, any> = {}
-): Promise<void> => {
-  logInfo(`Health check: ${status}`, details, 'telemetry');
+export const trackEvent: GadgetTelemetryTracker = (
+  event,
+  properties = {}
+) => {
+  logInfo(`Event tracked: ${event}`, properties, 'telemetry');
   
-  // In production, we would send this to a monitoring system
+  // In a production environment, this would send event data to an analytics service
 };
 
+/**
+ * Set user properties in the telemetry system
+ * @param userId The ID of the user
+ * @param properties The properties to set for the user
+ */
+export const setUserProperties = (
+  userId: string,
+  properties: Record<string, any>
+) => {
+  logInfo(`Setting user properties for ${userId}`, properties, 'telemetry');
+  
+  // In a production environment, this would set user properties in an analytics service
+};
+
+/**
+ * Start a user session in the telemetry system
+ * @param userId The ID of the user
+ * @param sessionProperties Additional properties for the session
+ */
+export const startUserSession = (
+  userId: string,
+  sessionProperties?: Record<string, any>
+) => {
+  logInfo(`Starting session for user ${userId}`, sessionProperties, 'telemetry');
+  
+  // In a production environment, this would start a user session in an analytics service
+};
+
+/**
+ * End a user session in the telemetry system
+ * @param userId The ID of the user
+ */
+export const endUserSession = (userId: string) => {
+  logInfo(`Ending session for user ${userId}`, {}, 'telemetry');
+  
+  // In a production environment, this would end a user session in an analytics service
+};

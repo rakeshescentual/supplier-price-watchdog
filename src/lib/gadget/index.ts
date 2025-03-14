@@ -1,67 +1,36 @@
 
 /**
- * Gadget Integration - Main Entry Point
+ * Gadget.dev Integration
  * 
- * This module exports all the necessary functionality for Gadget integration
- * without referencing non-existent modules.
+ * This module provides integration with Gadget.dev for enhanced data processing,
+ * Shopify synchronization, and other functionality.
  */
 
-// Re-export core client functionality
+// Re-export all submodules
 export * from './client';
-
-// Re-export action functionality
-export * from './actions';
-
-// Re-export logging functionality 
-export * from './logging';
-
-// Re-export telemetry
+export * from './batch';
+export * from './sync';
 export * from './telemetry';
+export * from './logging';
+export * from './types';
+export * from './mocks';
 
-// Define and export types used across the application
-export interface GadgetConnectionOptions {
-  apiKey: string;
-  appId: string;
-  environment: 'development' | 'production';
-  enableNetworkLogs?: boolean;
-}
-
-export interface GadgetClientStatus {
-  initialized: boolean;
-  connected: boolean;
-  lastChecked: string;
-  errorCount: number;
-}
-
-export interface GadgetStorageLimits {
-  maxRecords: number;
-  currentUsage: number;
-  percentUsed: number;
-}
-
-export interface GadgetRateLimits {
-  requestsPerMinute: number;
-  requestsRemaining: number;
-  resetAt: string;
-}
-
-export interface GadgetActionResponse<T = any> {
-  success: boolean;
-  data: T;
-  errors?: Array<{
-    message: string;
-    code: string;
-  }>;
-  performanceMetrics?: {
-    durationMs: number;
-    queryCount: number;
-    cacheHitRate: number;
+// Export a single function for initializing all Gadget functionality
+export const initializeGadgetIntegration = async () => {
+  const { initGadgetClient, checkGadgetHealth, isHealthy } = await import('./client');
+  
+  const client = initGadgetClient();
+  if (!client) {
+    console.warn('Failed to initialize Gadget integration');
+    return { initialized: false };
+  }
+  
+  const health = await checkGadgetHealth();
+  
+  return {
+    initialized: true,
+    client,
+    healthy: isHealthy(health),
+    health
   };
-}
-
-export interface GadgetLiveQueryOptions {
-  interval?: number;
-  batchSize?: number;
-  enabled?: boolean;
-  onError?: (error: Error) => void;
-}
+};

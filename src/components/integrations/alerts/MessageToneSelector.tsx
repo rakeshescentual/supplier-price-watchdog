@@ -1,10 +1,11 @@
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { MessageTone } from "@/hooks/usePriceAlerts";
 
 interface MessageToneSelectorProps {
-  messageTone: string;
-  setMessageTone: (tone: string) => void;
+  messageTone: MessageTone;
+  setMessageTone: (tone: MessageTone) => void;
 }
 
 export const MessageToneSelector = ({ 

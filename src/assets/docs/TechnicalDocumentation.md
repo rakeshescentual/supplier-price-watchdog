@@ -57,30 +57,42 @@ For detailed information about specific aspects of the system, please refer to t
 - [Google Workspace Integration](./GoogleWorkspaceIntegration.md)
 - [Application Workflows](./ApplicationWorkflows.md)
 - [Error Handling](./ErrorHandlingStrategy.md)
+- [Deployment Options](../docs/DeploymentOptions.md)
 
-## Stakeholder-Specific Guides
+## Stakeholder-Specific Documentation
 
 ### For Business Users & Decision Makers
 - [Executive Summary](../docs/ExecutiveSummary.md)
 - [ROI Analysis](../docs/ROIAnalysis.md)
 - [Feature Roadmap](../docs/FeatureRoadmap.md)
 - [User Permissions Guide](../docs/UserPermissions.md)
+- [Pricing Strategy Playbook](../docs/PriceStrategyPlaybook.md)
 
 ### For eCommerce Managers
 - [Shopify Merchant Guide](../docs/ShopifyMerchantGuide.md)
-- [Price Strategy Playbook](../docs/PriceStrategyPlaybook.md)
 - [Customer Communication Templates](../docs/CustomerCommunicationTemplates.md)
+- [Workflow Automation Guide](../docs/WorkflowAutomation.md)
+- [Reporting & Analytics](../docs/ReportingAnalytics.md)
 
 ### For Developers & IT Teams
 - [Developer Workflows](../docs/DeveloperWorkflows.md)
 - [API Documentation](../docs/APIDocumentation.md)
 - [Deployment Guide](../docs/DeploymentGuide.md)
 - [Component Reference](../docs/ComponentReference.md)
+- [Testing Framework](../docs/TestingFramework.md)
 
 ### For Integration Partners
 - [Shopify Compliance Guide](../docs/ShopifyComplianceGuide.md)
 - [Gadget.dev Integration Guide](../docs/Gadget_Integration_Guide.md)
 - [Google Workspace Integration Guide](../docs/GoogleWorkspaceGuide.md)
+- [Third-Party API Integration](../docs/ThirdPartyIntegration.md)
+
+## Quick Start Guides
+
+- [5-Minute Setup Guide](../docs/QuickStartGuide.md)
+- [First Price List Analysis](../docs/FirstPriceAnalysis.md)
+- [Connecting Your Shopify Store](../docs/ShopifyConnection.md)
+- [Setting Up Customer Notifications](../docs/NotificationSetup.md)
 
 ## System Requirements
 
@@ -103,6 +115,7 @@ The application implements several security measures:
 - No sensitive data is stored server-side without explicit permission
 - Authentication via OAuth 2.0 for third-party services
 - Regular security audits and dependency updates
+- GDPR and CCPA compliant data handling
 
 ## Performance Considerations
 
@@ -111,6 +124,7 @@ The application implements several security measures:
 - Caching mechanism for frequently accessed data
 - Optimistic UI updates for better perceived performance
 - Lazy loading of components and data
+- Progressive loading for large data sets
 
 ## Compliance Information
 
@@ -119,6 +133,7 @@ The application is designed to comply with:
 - CCPA for California users
 - PCI DSS when handling payment information
 - Shopify Partner Program requirements
+- ADA accessibility standards
 
 ## Support & Maintenance
 
@@ -126,6 +141,8 @@ The application is designed to comply with:
 - Bug reports can be submitted via GitHub Issues
 - Community support available via Discord
 - Premium support available for enterprise clients
+- Quarterly security patches
+- Annual major version updates
 
 ## User Feedback & Continuous Improvement
 
@@ -134,5 +151,21 @@ We value user feedback to continuously improve the application. You can:
 - Participate in user research and testing
 - Join our community calls to discuss the roadmap
 - Share your success stories for case studies
+
+## FAQ
+
+### General Questions
+- **Q: How often should I update supplier prices?**  
+  A: Most businesses benefit from weekly or monthly updates, depending on market volatility.
+
+- **Q: Can I use this with multiple Shopify stores?**  
+  A: Yes, you can connect multiple stores and manage them from a single dashboard.
+
+### Technical Questions
+- **Q: Does the application work without Gadget.dev integration?**  
+  A: Yes, all core functionality works without Gadget, but certain advanced features like PDF processing are enhanced with Gadget.
+
+- **Q: Can I export analysis results?**  
+  A: Yes, results can be exported in Excel, CSV, or PDF formats.
 
 For questions not addressed in this documentation, please contact support@supplierpricewatcher.com

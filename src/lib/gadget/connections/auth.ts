@@ -91,3 +91,46 @@ export const getAuthenticationMethods = async (
       return [];
   }
 };
+
+/**
+ * Initiate Gadget OAuth flow for a third-party service
+ * @param service Name of the service to authenticate with
+ * @param redirectUri URI to redirect to after authentication
+ * @returns Promise resolving to the OAuth URL
+ */
+export const initiateGadgetOAuth = async (
+  service: string, 
+  redirectUri: string
+): Promise<string | null> => {
+  // Mock implementation
+  return `https://gadget.dev/oauth/${service}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+};
+
+/**
+ * Handle OAuth callback from Gadget
+ * @param service Name of the service being authenticated
+ * @param code OAuth code from callback
+ * @param state OAuth state from callback
+ * @returns Promise resolving to success status
+ */
+export const handleGadgetOAuthCallback = async (
+  service: string,
+  code: string,
+  state: string
+): Promise<boolean> => {
+  // Mock implementation
+  return true;
+};
+
+/**
+ * Create authentication headers for Gadget API requests
+ * @param apiKey Gadget API key
+ * @returns Headers object with authentication
+ */
+export const createGadgetAuthHeaders = (apiKey: string): HeadersInit => {
+  return {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+};

@@ -16,7 +16,7 @@ export const IndexContent = () => {
     items,
     isProcessing,
     summary,
-    processFile,
+    handleFileAccepted
   } = useFileAnalysis();
 
   const { savedAnalyses, saveAnalysis } = useAnalysisHistory();
@@ -34,9 +34,9 @@ export const IndexContent = () => {
     }
   }, [file, items.length, summary, saveAnalysis]);
 
-  const handleFileAccepted = (acceptedFile) => {
+  const handleFileAcceptedWithToast = (acceptedFile) => {
     try {
-      processFile(acceptedFile);
+      handleFileAccepted(acceptedFile);
       toast.success(`File "${acceptedFile.name}" uploaded successfully`);
     } catch (error) {
       console.error("Error processing file:", error);
@@ -51,7 +51,7 @@ export const IndexContent = () => {
       <Header />
 
       <div className="max-w-2xl mx-auto">
-        <FileUpload onFileAccepted={handleFileAccepted} />
+        <FileUpload onFileAccepted={handleFileAcceptedWithToast} />
       </div>
 
       {isProcessing && (

@@ -12,7 +12,7 @@ export const ensureCompatibility = () => {
     if (typeof window.require === 'undefined') {
       // Create a no-op require function to prevent errors
       // This is just a temporary fix and should be replaced with proper ES module imports
-      window.require = function(moduleName) {
+      (window as any).require = function(moduleName: string) {
         console.warn(`Module "${moduleName}" was requested via require() which is not available in this environment. Use ES module imports instead.`);
         return {}; // Return empty object as fallback
       };

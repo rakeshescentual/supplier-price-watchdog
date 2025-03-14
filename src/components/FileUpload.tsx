@@ -1,13 +1,13 @@
-import { useState, useCallback, useEffect } from "react";
+
+import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileUp, FileText, Share, Check, AlertCircle } from "lucide-react";
+import { Share } from "lucide-react";
 import { Card } from "./ui/card";
-import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
-import { Alert, AlertDescription } from "./ui/alert";
-import { toast } from "sonner";
-import { useShopify } from "@/contexts/ShopifyContext";
-import { saveFileToShopify } from "@/lib/shopifyApi";
+import { useFileUpload } from "./file-upload/useFileUpload";
+import { UploadProgress } from "./file-upload/UploadProgress";
+import { UploadContent } from "./file-upload/UploadContent";
+import { ShopifyAlerts } from "./file-upload/ShopifyAlerts";
 
 export const FileUpload = ({ 
   onFileAccepted,
@@ -20,120 +20,33 @@ export const FileUpload = ({
   onFileAccepted: (file: File) => void;
   allowedFileTypes?: Record<string, string[]>;
 }) => {
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [fileType, setFileType] = useState<"excel" | "pdf" | null>(null);
-  const [uploadComplete, setUploadComplete] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [shopifyFileUrl, setShopifyFileUrl] = useState<string | null>(null);
-  const [shopifyUploadError, setShopifyUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const { shopifyContext, isShopifyConnected, isShopifyHealthy } = useShopify();
+  const { 
+    state, 
+    actions,
+    shopify
+  } = useFileUpload(onFileAccepted);
 
-  useEffect(() => {
-    if (!isShopifyConnected) {
-      setShopifyFileUrl(null);
-      setShopifyUploadError(null);
-    }
-  }, [isShopifyConnected]);
-
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setUploadProgress(0);
-      setUploadComplete(false);
-      setFileName(file.name);
-      setShopifyUploadError(null);
-      setIsUploading(true);
-      
-      if (file.type === "application/pdf") {
-        setFileType("pdf");
-      } else {
-        setFileType("excel");
-      }
-      
-      if (isShopifyConnected && shopifyContext) {
-        try {
-          const fileUrl = await saveFileToShopify(
-            shopifyContext, 
-            file,
-            (progress) => setUploadProgress(progress)
-          );
-          
-          setUploadComplete(true);
-          setIsUploading(false);
-          
-          if (fileUrl) {
-            setShopifyFileUrl(fileUrl);
-            toast.success("File uploaded to Shopify", {
-              description: "The file was successfully saved to your Shopify store.",
-            });
-          } else {
-            setShopifyUploadError("Upload to Shopify failed. Processing locally only.");
-            toast.error("Error uploading to Shopify", {
-              description: "The file will be processed locally only.",
-            });
-          }
-          
-          onFileAccepted(file);
-        } catch (error) {
-          console.error("Error uploading file to Shopify:", error);
-          setShopifyUploadError("Upload to Shopify failed. Processing locally only.");
-          toast.error("Error uploading to Shopify", {
-            description: "The file will be processed locally only.",
-          });
-          
-          simulateLocalProgress();
-          onFileAccepted(file);
-        }
-      } else {
-        simulateLocalProgress();
-        onFileAccepted(file);
-      }
-    }
-  }, [onFileAccepted, isShopifyConnected, shopifyContext, isShopifyHealthy]);
-
-  const simulateLocalProgress = () => {
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploadComplete(true);
-          setIsUploading(false);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 100);
-  };
+  const { 
+    uploadProgress, 
+    isDragging, 
+    fileType,
+    uploadComplete,
+    fileName,
+    shopifyFileUrl,
+    shopifyUploadError,
+    isUploading,
+    isShopifyConnectedButUnhealthy
+  } = state;
 
   const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: actions.handleDrop,
     accept: allowedFileTypes,
     multiple: false,
-    onDragEnter: () => setIsDragging(true),
-    onDragLeave: () => setIsDragging(false),
-    onDropAccepted: () => setIsDragging(false),
+    onDragEnter: () => actions.setIsDragging(true),
+    onDragLeave: () => actions.setIsDragging(false),
+    onDropAccepted: () => actions.setIsDragging(false),
     disabled: isUploading,
   });
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Supplier Price Watch',
-        text: 'Check out this tool for analyzing supplier price changes!',
-        url: window.location.href,
-      })
-      .then(() => toast.success("Shared successfully"))
-      .catch((error) => toast.error("Error sharing", { description: error.message }));
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-        .then(() => toast.success("Link copied to clipboard"))
-        .catch(() => toast.error("Failed to copy link"));
-    }
-  };
-
-  const isShopifyConnectedButUnhealthy = isShopifyConnected && !isShopifyHealthy;
 
   return (
     <Card
@@ -150,79 +63,41 @@ export const FileUpload = ({
           variant="ghost" 
           size="sm" 
           className="text-muted-foreground hover:text-foreground"
-          onClick={handleShare}
+          onClick={actions.handleShare}
         >
           <Share className="w-4 h-4 mr-1" /> Share
         </Button>
       </div>
       
-      {isShopifyConnectedButUnhealthy && (
-        <Alert className="mb-4" variant="warning">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Shopify connection may be experiencing issues. Files will still be processed locally.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {shopifyUploadError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{shopifyUploadError}</AlertDescription>
-        </Alert>
-      )}
+      <ShopifyAlerts 
+        isShopifyConnectedButUnhealthy={isShopifyConnectedButUnhealthy} 
+        shopifyUploadError={shopifyUploadError} 
+      />
       
       <div
         {...getRootProps()}
         className={`flex flex-col items-center justify-center gap-4 cursor-pointer ${isUploading ? 'opacity-70 pointer-events-none' : ''}`}
       >
         <input {...getInputProps()} />
-        <div className={`p-4 rounded-full ${uploadComplete ? "bg-green-100" : "bg-primary/10"}`}>
-          {uploadProgress === 0 && !uploadComplete ? (
-            <Upload className="w-8 h-8 text-primary" />
-          ) : uploadComplete ? (
-            <Check className="w-8 h-8 text-green-500" />
-          ) : fileType === "pdf" ? (
-            <FileText className="w-8 h-8 text-primary" />
-          ) : (
-            <FileUp className="w-8 h-8 text-primary" />
-          )}
-        </div>
-        <div className="text-center">
-          {uploadComplete && fileName ? (
-            <>
-              <h3 className="text-lg font-semibold">Upload complete</h3>
-              <p className="text-sm text-muted-foreground">{fileName}</p>
-              {shopifyFileUrl && (
-                <p className="text-xs text-green-600 mt-1">Saved to Shopify</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-2">Click or drag to upload another file</p>
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-semibold">Drop your supplier price list here</h3>
-              <p className="text-sm text-muted-foreground">
-                or click to select file (.xlsx, .xls, .pdf)
-              </p>
-              {isShopifyConnected && (
-                <p className="text-xs text-green-600 mt-1">
-                  Files will be saved to your Shopify store
-                  {isShopifyConnectedButUnhealthy && " when connection is restored"}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-        {uploadProgress > 0 && uploadProgress < 100 && (
-          <div className="w-full max-w-xs">
-            <Progress value={uploadProgress} className="h-2" />
-            <p className="text-xs text-center text-muted-foreground mt-1">
-              Uploading{fileName ? ` ${fileName}` : ''}...
-              {isShopifyConnected && uploadProgress < 90 && !shopifyUploadError && " to Shopify"}
-            </p>
-          </div>
-        )}
+        
+        <UploadContent 
+          uploadProgress={uploadProgress}
+          uploadComplete={uploadComplete}
+          fileType={fileType}
+          fileName={fileName}
+          shopifyFileUrl={shopifyFileUrl}
+          isShopifyConnected={shopify.isShopifyConnected}
+          isShopifyHealthy={shopify.isShopifyHealthy}
+        />
+        
+        <UploadProgress 
+          progress={uploadProgress}
+          fileName={fileName}
+          isShopifyConnected={shopify.isShopifyConnected}
+          shopifyUploadError={shopifyUploadError}
+        />
       </div>
+      
       <div className="flex justify-center mt-4">
         <Button
           type="button"

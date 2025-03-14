@@ -1,10 +1,10 @@
-
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ShopifyContext as ShopifyContextType } from '@/types/price';
 import { useShopifyConnection } from './hooks/useShopifyConnection';
 import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
+import { initializeShopifyApp } from '@/lib/shopifyApi';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
@@ -63,17 +63,10 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   
   // Import these modules using dynamic imports instead of require
   useEffect(() => {
-    // Initialize Shopify and Gadget
-    import('@/lib/shopifyApi').then(({ initializeShopifyApp }) => {
-      if (typeof initializeShopifyApp === 'function') {
-        initializeShopifyApp();
-      } else {
-        console.warn('initializeShopifyApp is not a function');
-      }
-    }).catch(err => {
-      console.error('Error importing shopifyApi:', err);
-    });
+    // Initialize Shopify
+    initializeShopifyApp();
     
+    // Initialize Gadget
     import('@/lib/gadgetApi').then(({ initGadgetClient }) => {
       const gadgetClient = initGadgetClient();
       setIsGadgetInitialized(!!gadgetClient?.ready);

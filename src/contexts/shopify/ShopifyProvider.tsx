@@ -2,11 +2,31 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ShopifyContext as ShopifyContextType } from '@/types/price';
-import { useShopifyConnection, ShopifyContextType as ShopifyProviderContextType } from './hooks/useShopifyConnection';
+import { useShopifyConnection } from './hooks/useShopifyConnection';
+import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
+}
+
+// Define the context type
+export interface ShopifyProviderContextType {
+  shopifyContext: ShopifyContextType | null;
+  isShopifyConnected: boolean;
+  isShopifyHealthy: boolean;
+  lastConnectionCheck: Date | null;
+  isGadgetInitialized: boolean;
+  isSyncing: boolean;
+  connectToShopify: (shop: string, accessToken: string) => Promise<boolean>;
+  disconnectShopify: () => void;
+  syncToShopify: (items: any[]) => Promise<boolean>;
+  loadShopifyData: () => Promise<any[]>;
+  batchProcessShopifyItems: <T, R>(
+    items: T[],
+    processFn: (item: T) => Promise<R>,
+    options?: { batchSize: number, concurrency: number }
+  ) => Promise<R[]>;
 }
 
 const ShopifyContext = createContext<ShopifyProviderContextType | undefined>(undefined);
@@ -34,19 +54,31 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     lastConnectionCheck, 
     connectionCheckInterval,
     connectToShopify, 
-    disconnectShopify 
+    disconnectShopify,
+    loadShopifyData,
+    batchProcessShopifyItems
   } = useShopifyConnection(shopifyContext, setShopifyContext);
+  
+  const { isSyncing, syncToShopify } = useShopifySync(shopifyContext, isShopifyHealthy);
   
   // Import these modules using dynamic imports instead of require
   useEffect(() => {
     // Initialize Shopify and Gadget
     import('@/lib/shopifyApi').then(({ initializeShopifyApp }) => {
-      initializeShopifyApp();
+      if (typeof initializeShopifyApp === 'function') {
+        initializeShopifyApp();
+      } else {
+        console.warn('initializeShopifyApp is not a function');
+      }
+    }).catch(err => {
+      console.error('Error importing shopifyApi:', err);
     });
     
     import('@/lib/gadgetApi').then(({ initGadgetClient }) => {
       const gadgetClient = initGadgetClient();
       setIsGadgetInitialized(!!gadgetClient?.ready);
+    }).catch(err => {
+      console.error('Error importing gadgetApi:', err);
     });
     
     return () => {
@@ -55,67 +87,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
       }
     };
   }, [connectionCheckInterval]);
-
-  // Stub implementations for required methods
-  const syncToShopify = async (items: any[]): Promise<boolean> => {
-    if (!shopifyContext) {
-      toast.error("Shopify connection required");
-      return false;
-    }
-    
-    try {
-      // In a real implementation, this would call Shopify API
-      console.log(`Syncing ${items.length} items to Shopify...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("Items synced to Shopify");
-      return true;
-    } catch (error) {
-      console.error("Error syncing to Shopify:", error);
-      toast.error("Failed to sync to Shopify");
-      return false;
-    }
-  };
-  
-  const loadShopifyData = async () => {
-    if (!shopifyContext) {
-      toast.error("Shopify connection required");
-      return [];
-    }
-    
-    try {
-      // In a real implementation, this would call Shopify API
-      console.log("Loading Shopify data...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return [];
-    } catch (error) {
-      console.error("Error loading Shopify data:", error);
-      toast.error("Failed to load Shopify data");
-      return [];
-    }
-  };
-  
-  const batchProcessShopifyItems = async <T, R>(
-    items: T[],
-    processFn: (item: T) => Promise<R>,
-    options = { batchSize: 10, concurrency: 1 }
-  ): Promise<R[]> => {
-    if (!shopifyContext) {
-      toast.error("Shopify connection required");
-      return [];
-    }
-    
-    try {
-      // In a real implementation, this would batch process items
-      console.log(`Batch processing ${items.length} items...`);
-      return [];
-    } catch (error) {
-      console.error("Error batch processing items:", error);
-      toast.error("Failed to batch process items");
-      return [];
-    }
-  };
-  
-  const isSyncing = false; // Default value, would be state in real implementation
 
   const value: ShopifyProviderContextType = {
     shopifyContext,

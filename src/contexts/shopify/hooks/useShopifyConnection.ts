@@ -1,11 +1,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContext as ShopifyContextType } from '@/types/price';
+import type { ShopifyContext } from '@/types/price';
 import { checkShopifyConnection } from '@/lib/shopifyApi';
 
 export interface ShopifyContextType {
-  shopifyContext: ShopifyContextType | null;
+  shopifyContext: ShopifyContext | null;
   isShopifyConnected: boolean;
   isShopifyHealthy: boolean;
   lastConnectionCheck: Date | null;
@@ -19,8 +19,8 @@ export interface ShopifyContextType {
 }
 
 export const useShopifyConnection = (
-  shopifyContext: ShopifyContextType | null,
-  setShopifyContext: React.Dispatch<React.SetStateAction<ShopifyContextType | null>>
+  shopifyContext: ShopifyContext | null,
+  setShopifyContext: React.Dispatch<React.SetStateAction<ShopifyContext | null>>
 ) => {
   const [isShopifyConnected, setIsShopifyConnected] = useState(false);
   const [isShopifyHealthy, setIsShopifyHealthy] = useState(false);
@@ -88,7 +88,7 @@ export const useShopifyConnection = (
   
   const connectToShopify = useCallback(async (shop: string, accessToken: string) => {
     try {
-      const newContext: ShopifyContextType = { shop, accessToken };
+      const newContext: ShopifyContext = { shop, accessToken };
       
       const isHealthy = await checkShopifyConnection(newContext);
       
@@ -142,44 +142,56 @@ export const useShopifyConnection = (
     });
   }, [connectionCheckInterval, setShopifyContext]);
   
-  // Stub implementations for required methods to match the interface
-  const syncToShopify = useCallback(async (items: any[]): Promise<boolean> => {
-    console.warn("syncToShopify stub implementation called");
-    return false;
-  }, []);
-  
+  // Implementation for loadShopifyData
   const loadShopifyData = useCallback(async (): Promise<any[]> => {
-    console.warn("loadShopifyData stub implementation called");
-    return [];
-  }, []);
+    if (!shopifyContext) {
+      toast.error("Shopify connection required");
+      return [];
+    }
+    
+    try {
+      // In a real implementation, this would call Shopify API
+      console.log("Loading Shopify data...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return [];
+    } catch (error) {
+      console.error("Error loading Shopify data:", error);
+      toast.error("Failed to load Shopify data");
+      return [];
+    }
+  }, [shopifyContext]);
   
+  // Implementation for batchProcessShopifyItems
   const batchProcessShopifyItems = useCallback(async <T, R>(
     items: T[],
     processFn: (item: T) => Promise<R>,
     options = { batchSize: 10, concurrency: 1 }
   ): Promise<R[]> => {
-    console.warn("batchProcessShopifyItems stub implementation called");
-    return [];
-  }, []);
+    if (!shopifyContext) {
+      toast.error("Shopify connection required");
+      return [];
+    }
+    
+    try {
+      // In a real implementation, this would batch process items
+      console.log(`Batch processing ${items.length} items...`);
+      return [];
+    } catch (error) {
+      console.error("Error batch processing items:", error);
+      toast.error("Failed to batch process items");
+      return [];
+    }
+  }, [shopifyContext]);
   
   return {
     isShopifyConnected,
     isShopifyHealthy,
     lastConnectionCheck,
     connectionCheckInterval,
-    isGadgetInitialized: false, // Default value
-    isSyncing: false, // Default value
     shopifyContext,
     connectToShopify,
     disconnectShopify,
-    syncToShopify,
     loadShopifyData,
     batchProcessShopifyItems
   };
-};
-
-// Create and export a dummy hook for testing or development
-export const useShopifyContext = (): ShopifyContextType => {
-  const [shopifyContext, setShopifyContext] = useState<ShopifyContextType | null>(null);
-  return useShopifyConnection(shopifyContext, setShopifyContext);
 };

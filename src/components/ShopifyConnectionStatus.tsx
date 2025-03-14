@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useShopify } from "@/contexts/ShopifyContext";
+import { useShopify } from "@/contexts/shopify";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";

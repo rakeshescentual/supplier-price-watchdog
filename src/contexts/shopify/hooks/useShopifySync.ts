@@ -1,17 +1,17 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContext as ShopifyContextType, PriceItem } from '@/types/price';
+import type { ShopifyContext } from '@/types/price';
 import { syncWithShopify, checkShopifyConnection } from '@/lib/shopifyApi';
 import { initGadgetClient, syncToShopifyViaGadget } from '@/lib/gadgetApi';
 
 export const useShopifySync = (
-  shopifyContext: ShopifyContextType | null,
+  shopifyContext: ShopifyContext | null,
   isShopifyHealthy: boolean
 ) => {
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const syncToShopify = useCallback(async (items: PriceItem[]): Promise<boolean> => {
+  const syncToShopify = useCallback(async (items: any[]): Promise<boolean> => {
     if (!shopifyContext) {
       toast.error("Shopify connection required", { 
         description: "Please connect to Shopify to sync data." 

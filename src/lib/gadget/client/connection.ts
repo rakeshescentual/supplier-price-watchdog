@@ -6,7 +6,6 @@ import { logInfo, logError } from '../logging';
 import { initGadgetClient } from './initialization';
 import { checkGadgetHealth } from './health';
 import { getDisplayInfo } from './display';
-import { prepareGadgetRequest, getGadgetApiUrl } from '@/utils/gadget-helpers';
 
 /**
  * Test connection to Gadget

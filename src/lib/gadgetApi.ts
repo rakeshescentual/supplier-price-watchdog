@@ -18,7 +18,7 @@ export {
 } from './gadget/client';
 
 // Import and re-export testGadgetConnection from the correct location
-export { testGadgetConnection } from './gadget/client/connection';
+export { testGadgetConnection, getGadgetStatus } from './gadget/client/connection';
 
 export {
   authenticateShopify,
@@ -128,4 +128,3 @@ export type {
 
 // Export health check result type
 export type { HealthCheckResult } from './gadget/client/health';
-

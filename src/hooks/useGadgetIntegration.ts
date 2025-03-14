@@ -5,15 +5,27 @@ import {
   initGadgetClient, 
   resetGadgetClient, 
   isGadgetInitialized,
-  checkGadgetHealth
+  checkGadgetHealth,
+  isHealthy
 } from '@/lib/gadgetApi';
 import { getGadgetConfig } from '@/utils/gadget-helpers';
+import { GadgetConfig } from '@/types/price';
 
 export function useGadgetIntegration() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  const initializeGadget = (config: GadgetConfig) => {
+    try {
+      initGadgetClient();
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize Gadget client:", error);
+      return false;
+    }
+  };
 
   const checkConnection = async () => {
     setIsLoading(true);
@@ -70,6 +82,7 @@ export function useGadgetIntegration() {
     isConnected,
     lastChecked,
     checkConnection,
-    resetConnection
+    resetConnection,
+    initializeGadget
   };
 }

@@ -7,16 +7,45 @@ import {
   checkGadgetHealth,
   isHealthy
 } from '@/lib/gadget/client';
-import { testGadgetConnection, getGadgetStatus } from '@/lib/gadget/client/connection';
+import { testGadgetConnection } from '@/lib/gadget/client/connection';
 import { GadgetConfig } from '@/types/price';
-import { useGadgetIntegration } from './useGadgetIntegration';
+import { getGadgetConfig } from '@/utils/gadget-helpers';
 
-export const useGadgetConnection = (config?: GadgetConfig) => {
+export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');
   const [healthStatus, setHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | 'unknown'>('unknown');
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [detailedStatus, setDetailedStatus] = useState<any>(null);
-  const { initializeGadget } = useGadgetIntegration();
+  const [config, setConfig] = useState<GadgetConfig | null>(null);
+  
+  // Computed properties to match expected API
+  const isConfigured = connectionStatus !== 'none';
+  const isConnected = connectionStatus === 'success';
+  const isInitialized = connectionStatus === 'success' || connectionStatus === 'testing';
+  const lastConnectionTest = lastChecked;
+
+  // Load or update config
+  useEffect(() => {
+    if (providedConfig) {
+      setConfig(providedConfig);
+    } else {
+      const savedConfig = getGadgetConfig();
+      setConfig(savedConfig);
+      setIsConfigured(!!savedConfig);
+    }
+  }, [providedConfig]);
+
+  const initializeGadget = useCallback((newConfig: GadgetConfig) => {
+    setConfig(newConfig);
+    
+    try {
+      initGadgetClient();
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize Gadget client:", error);
+      return false;
+    }
+  }, []);
 
   const testConnection = useCallback(async () => {
     if (!config) {
@@ -80,10 +109,16 @@ export const useGadgetConnection = (config?: GadgetConfig) => {
     
     try {
       const health = await checkGadgetHealth();
-      const status = await getGadgetStatus();
       
       setHealthStatus(health.status);
-      setDetailedStatus(status);
+      setDetailedStatus({
+        services: health.details?.services || {
+          api: false,
+          database: false,
+          storage: false,
+          scheduler: false
+        }
+      });
       setLastChecked(new Date());
       
       if (isHealthy(health)) {
@@ -112,12 +147,20 @@ export const useGadgetConnection = (config?: GadgetConfig) => {
   }, [connectionStatus, fetchHealthStatus]);
 
   return {
+    // Original properties
     connectionStatus,
     healthStatus,
     lastChecked,
     detailedStatus,
     testConnection,
-    fetchHealthStatus
+    fetchHealthStatus,
+    
+    // Additional properties needed by components
+    isConfigured,
+    isConnected,
+    isInitialized,
+    lastConnectionTest,
+    config,
+    initializeGadget
   };
 };
-

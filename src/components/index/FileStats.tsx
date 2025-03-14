@@ -3,6 +3,7 @@ import { RefreshCw, FileUp, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
 import { useShopify } from "@/contexts/shopify";
+import { toast } from "sonner";
 
 export const FileStats = () => {
   const { file, items, exportForShopify } = useFileAnalysis();
@@ -12,12 +13,24 @@ export const FileStats = () => {
   
   const handleSync = async () => {
     if (items.length > 0) {
-      await syncToShopify(items);
+      try {
+        await syncToShopify(items);
+        toast.success("Successfully synced to Shopify");
+      } catch (error) {
+        toast.error("Failed to sync to Shopify", {
+          description: error.message
+        });
+      }
     }
   };
   
+  const handleExport = () => {
+    exportForShopify();
+    toast.success("File exported successfully");
+  };
+  
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-2 bg-muted p-3 rounded-md">
+    <div className="flex flex-col sm:flex-row items-center gap-2 bg-muted p-3 rounded-md shadow-sm animate-fade-in">
       <div className="p-2 rounded-full bg-primary/10">
         {file.type === 'application/pdf' ? (
           <FileText className="w-5 h-5 text-primary" />
@@ -34,7 +47,7 @@ export const FileStats = () => {
           <Button 
             onClick={handleSync}
             disabled={isSyncing}
-            className="bg-[#5E8E3E] hover:bg-[#4a7331]"
+            className="bg-[#5E8E3E] hover:bg-[#4a7331] transition-colors"
             size="sm"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -42,8 +55,8 @@ export const FileStats = () => {
           </Button>
         )}
         <Button 
-          onClick={exportForShopify}
-          className="bg-[#5E8E3E] hover:bg-[#4a7331]"
+          onClick={handleExport}
+          className="bg-[#5E8E3E] hover:bg-[#4a7331] transition-colors"
           size="sm"
         >
           <Download className="mr-2 h-4 w-4" />

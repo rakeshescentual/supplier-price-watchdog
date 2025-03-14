@@ -8,6 +8,7 @@ import { FileStats } from "./FileStats";
 import { IndexTabs } from "./IndexTabs";
 import { HowItWorks } from "./HowItWorks";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
+import { toast } from "sonner";
 
 export const IndexContent = () => {
   const { 
@@ -15,6 +16,7 @@ export const IndexContent = () => {
     items,
     isProcessing,
     summary,
+    processFile,
   } = useFileAnalysis();
 
   const { savedAnalyses, saveAnalysis } = useAnalysisHistory();
@@ -32,16 +34,29 @@ export const IndexContent = () => {
     }
   }, [file, items.length, summary, saveAnalysis]);
 
+  const handleFileAccepted = (acceptedFile) => {
+    try {
+      processFile(acceptedFile);
+      toast.success(`File "${acceptedFile.name}" uploaded successfully`);
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast.error("Failed to process file", {
+        description: error.message || "Please try again with a different file"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <Header />
 
       <div className="max-w-2xl mx-auto">
-        <FileUpload onFileAccepted={(file) => {}} />
+        <FileUpload onFileAccepted={handleFileAccepted} />
       </div>
 
       {isProcessing && (
-        <div className="text-center text-muted-foreground">
+        <div className="text-center text-muted-foreground animate-pulse">
+          <div className="inline-block w-6 h-6 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           Processing file...
         </div>
       )}

@@ -97,11 +97,11 @@ export {
 export type {
   ConnectionType,
   ConnectionConfig,
-  ConnectionResponse,
-  AuthMethod
+  ConnectionResponse
 } from './gadget/connections';
 
 export type {
+  AuthMethod,
   OAuthConfig,
   ApiKeyConfig
 } from './gadget/connections/auth';

@@ -3,6 +3,9 @@
  * Connection management utilities for Gadget
  */
 
+// Re-export types from auth module
+export type { AuthMethod, OAuthConfig, ApiKeyConfig } from './auth';
+
 // Connection type enum
 export type ConnectionType = 'shopify' | 'klaviyo' | 'google' | 'amazon' | 'facebook';
 

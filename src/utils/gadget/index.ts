@@ -23,7 +23,11 @@ export { testGadgetConnection } from './connection';
 export { initializeGadgetIntegration } from './initialization';
 
 // Feature flags
-export { isGadgetFeatureEnabled } from './features';
+export { 
+  isGadgetFeatureEnabled,
+  areAllFeaturesEnabled,
+  getEnabledFeatures
+} from './features';
 
 // Status checks
 export { checkGadgetReadiness, checkGadgetConnectionHealth } from './status';

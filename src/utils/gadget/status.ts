@@ -1,80 +1,65 @@
 
 /**
- * Gadget.dev status check utilities
+ * Status check utilities for Gadget.dev integration
  */
-import { getGadgetConfig } from '../gadget-helpers';
-import { initGadgetClient, checkGadgetHealth, isHealthy } from '@/lib/gadget/client';
-import { logError } from '@/lib/gadget/logging';
+import { GadgetConfig } from '@/types/price';
+import { getGadgetApiUrl } from './urls';
+import { createGadgetHeaders } from './auth';
+import { getGadgetConfig } from './config';
+import { logInfo, logError } from '@/lib/gadget/logging';
 
 /**
- * Check if Gadget integration is fully configured and operational
- * @returns Promise resolving to status object
+ * Check if Gadget integration is ready to be used
+ * @returns Boolean indicating readiness
  */
-export const checkGadgetReadiness = async (): Promise<{
-  configured: boolean;
-  operational: boolean;
-  message: string;
-}> => {
-  // Check if configuration exists
-  const config = getGadgetConfig();
-  
-  if (!config) {
-    return {
-      configured: false,
-      operational: false,
-      message: "Gadget is not configured. Please set up your Gadget.dev configuration."
-    };
-  }
-  
+export const checkGadgetReadiness = (): boolean => {
   try {
-    // Check if client can be initialized
-    const client = initGadgetClient();
-    
-    if (!client) {
-      return {
-        configured: true,
-        operational: false,
-        message: "Gadget client initialization failed. Please check your configuration."
-      };
-    }
-    
-    // Check API health
-    const health = await checkGadgetHealth();
-    
-    if (health.status !== 'healthy') {
-      return {
-        configured: true,
-        operational: false,
-        message: health.message || "Gadget service is not operational."
-      };
-    }
-    
-    // All checks passed
-    return {
-      configured: true,
-      operational: true,
-      message: "Gadget integration is fully operational."
-    };
+    const config = getGadgetConfig();
+    return !!config && !!config.apiKey && !!config.appId;
   } catch (error) {
-    logError("Error checking Gadget readiness", { error }, 'integration');
-    
-    return {
-      configured: true,
-      operational: false,
-      message: error instanceof Error ? error.message : "An unexpected error occurred"
-    };
+    logError("Error checking Gadget readiness", { error }, 'status');
+    return false;
   }
 };
 
 /**
- * Verify Gadget connection health
+ * Check Gadget connection health by making a test request
+ * @returns Promise with boolean indicating health status
  */
-export async function checkGadgetConnectionHealth(): Promise<boolean> {
+export const checkGadgetConnectionHealth = async (): Promise<boolean> => {
   try {
-    const health = await checkGadgetHealth();
-    return isHealthy(health);
+    const config = getGadgetConfig();
+    
+    if (!config) {
+      logInfo("No Gadget configuration found for health check", {}, 'status');
+      return false;
+    }
+    
+    const apiUrl = getGadgetApiUrl(config);
+    const headers = createGadgetHeaders(config);
+    
+    // Make a simple health check request to the Gadget API
+    const response = await fetch(`${apiUrl}health`, {
+      method: 'GET',
+      headers
+    });
+    
+    const isHealthy = response.ok;
+    
+    if (isHealthy) {
+      logInfo("Gadget connection is healthy", {
+        statusCode: response.status
+      }, 'status');
+    } else {
+      logError("Gadget connection is unhealthy", {
+        statusCode: response.status,
+        statusText: response.statusText
+      }, 'status');
+    }
+    
+    return isHealthy;
   } catch (error) {
-    console.error("Failed to check Gadget connection health:", error);
+    logError("Error checking Gadget connection health", { error }, 'status');
     return false;
   }
-}
+};

@@ -11,14 +11,20 @@ export * from './config';
 export * from './validation';
 export * from './urls';
 export * from './auth';
-export * from './connection';
-export * from './initialization';
-export * from './features';
 export * from './status';
 
+// Export integrated functionality from lib/gadget
+export * from '@/lib/gadget/processing';
+export * from '@/lib/gadget/client';
+export * from '@/lib/gadget/telemetry';
+export * from '@/lib/gadget/logging';
+
 // Constants
-export const GADGET_VERSION = '1.2.0';
-export const GADGET_API_VERSION = '2023-09';
+export const GADGET_VERSION = '1.3.0'; // Updated version
+export const GADGET_API_VERSION = '2023-11'; // Updated API version
 
 // Export type definitions
 export type { GadgetConfig } from '@/types/price';
+
+// Export utility for initialization
+export { initializeGadgetIntegration } from '@/lib/gadget';

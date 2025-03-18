@@ -5,8 +5,9 @@ import { DocumentationContent } from "./DocumentationContent";
 import { DocumentationFAQ } from "./DocumentationFAQ";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Lightbulb, Clock, ArrowRight } from "lucide-react";
+import { BookOpen, Lightbulb, Clock, ArrowRight, Info, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DocumentationMainContentProps {
   activeTab: string;
@@ -28,10 +29,14 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
     day: "numeric"
   });
   
+  // Check for important alerts in the content
+  const showDeprecationAlert = content.toLowerCase().includes('deprecated');
+  const showBetaFeatureAlert = content.toLowerCase().includes('beta feature');
+  
   return (
     <div className="relative">
       <div className="flex items-center mb-4 gap-2 flex-wrap">
-        <h2 className="text-xl font-semibold text-gray-800 mr-auto">
+        <h2 className="text-xl md:text-3xl font-semibold text-gray-800 mr-auto">
           {activeTab === "technical" ? "Technical Documentation" : "Gadget Integration Guide"}
         </h2>
         {activeTab === "gadget" && (
@@ -45,6 +50,28 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
           Updated {lastUpdated}
         </Badge>
       </div>
+      
+      {/* Contextual alerts */}
+      {showDeprecationAlert && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Deprecation Notice</AlertTitle>
+          <AlertDescription>
+            This documentation contains references to deprecated features that will be removed
+            in a future version.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {showBetaFeatureAlert && (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Beta Features</AlertTitle>
+          <AlertDescription>
+            This documentation describes beta features that may change before final release.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <ScrollArea className="h-[calc(100vh-280px)] pr-4">
         <div className="max-w-3xl mx-auto">
@@ -88,6 +115,38 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
                     </div>
                   </Card>
                 </div>
+                
+                {/* Resource links */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-8">
+                  <h3 className="text-md font-medium mb-3">Additional Resources</h3>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <ExternalLinkIndicator /> 
+                      <a href="https://docs.gadget.dev/guides" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        Gadget Developer Guides
+                      </a>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ExternalLinkIndicator /> 
+                      <a href="https://docs.gadget.dev/api-reference" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        API Reference
+                      </a>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ExternalLinkIndicator /> 
+                      <a href="https://community.gadget.dev/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        Community Forums
+                      </a>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ExternalLinkIndicator /> 
+                      <a href="https://gadget.dev/changelog" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        Latest Changelog
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+                
                 <DocumentationFAQ items={faqItems} />
               </>
             )}
@@ -97,3 +156,13 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
     </div>
   );
 };
+
+// Helper component for external links
+const ExternalLinkIndicator = () => (
+  <div className="bg-gray-100 p-1 rounded">
+    <ExternalLink className="h-3 w-3 text-gray-500" />
+  </div>
+);
+
+// Import ExternalLink icon at the top of the file
+import { ExternalLink } from "lucide-react";

@@ -1,4 +1,3 @@
-
 # Supplier Price Watch - Technical Documentation
 
 ## Overview
@@ -57,7 +56,7 @@ For detailed information about specific aspects of the system, please refer to t
 - [Google Workspace Integration](./GoogleWorkspaceIntegration.md)
 - [Application Workflows](./ApplicationWorkflows.md)
 - [Error Handling](./ErrorHandlingStrategy.md)
-- [Deployment Options](../docs/DeploymentOptions.md)
+- [Deployment Options](./DeploymentOptions.md)
 
 ## Stakeholder-Specific Documentation
 

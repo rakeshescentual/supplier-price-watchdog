@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContextType, ShopifyProviderContextType } from '@/types/shopify';
+import type { ShopifyContextType, ShopifyProviderContextType, PriceItem as ShopifyPriceItem } from '@/types/shopify';
 import { useShopifyConnection } from './hooks/useShopifyConnection';
 import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
@@ -162,6 +161,25 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     return batchShopifyOperations(items, processFn, options);
   };
 
+  const convertToShopifyPriceItems = (items: any[]): ShopifyPriceItem[] => {
+    return items.map(item => ({
+      id: item.id || item.sku, // Use sku as id if id is not present
+      sku: item.sku,
+      name: item.name,
+      oldPrice: item.oldPrice,
+      newPrice: item.newPrice,
+      status: item.status,
+      percentChange: item.percentChange || ((item.newPrice - item.oldPrice) / item.oldPrice * 100),
+      difference: item.difference || (item.newPrice - item.oldPrice),
+      isMatched: item.isMatched !== undefined ? item.isMatched : true,
+      shopifyProductId: item.shopifyProductId || item.productId,
+      shopifyVariantId: item.shopifyVariantId || item.variantId,
+      category: item.category,
+      supplier: item.supplier || item.vendor,
+      ...item // Include any other properties
+    }));
+  };
+
   const value: ShopifyProviderContextType = {
     shopifyContext,
     isShopifyConnected: shopifyConnection.isConnected,
@@ -176,9 +194,19 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     loadShopifyData,
     batchProcessShopifyItems,
     bulkOperations: {
-      updatePrices: (items, options) => 
-        shopifyContext ? bulkUpdatePrices(shopifyContext, items, options) : 
-        Promise.resolve({ success: false, message: "Not connected to Shopify", updatedCount: 0, failedCount: items.length })
+      updatePrices: (items, options) => {
+        if (!shopifyContext) {
+          return Promise.resolve({ 
+            success: false, 
+            message: "Not connected to Shopify", 
+            updatedCount: 0, 
+            failedCount: items.length 
+          });
+        }
+        // Convert items to ensure they match the expected type
+        const shopifyItems = convertToShopifyPriceItems(items);
+        return bulkUpdatePrices(shopifyContext, shopifyItems, options);
+      }
     }
   };
 

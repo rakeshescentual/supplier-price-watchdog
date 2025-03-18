@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFileAnalysis } from '@/contexts/FileAnalysisContext';
+import type { PriceItem as ShopifyPriceItem } from '@/types/shopify';
 
 export function ShopifyBulkOperations() {
   const { items } = useFileAnalysis();
@@ -29,6 +29,25 @@ export function ShopifyBulkOperations() {
   const decreasedItems = items.filter(item => item.status === 'decreased');
   const unchangedItems = items.filter(item => item.status === 'unchanged');
   
+  const convertToShopifyPriceItems = (items: any[]): ShopifyPriceItem[] => {
+    return items.map(item => ({
+      id: item.id || item.sku,
+      sku: item.sku,
+      name: item.name,
+      oldPrice: item.oldPrice,
+      newPrice: item.newPrice,
+      status: item.status,
+      percentChange: item.percentChange || ((item.newPrice - item.oldPrice) / item.oldPrice * 100),
+      difference: item.difference || (item.newPrice - item.oldPrice),
+      isMatched: item.isMatched !== undefined ? item.isMatched : true,
+      shopifyProductId: item.shopifyProductId || item.productId,
+      shopifyVariantId: item.shopifyVariantId || item.variantId,
+      category: item.category,
+      supplier: item.supplier || item.vendor,
+      ...item
+    }));
+  };
+  
   const handleBulkUpdate = async (dryRun: boolean = false) => {
     if (!isShopifyConnected || !shopifyContext) {
       toast.error("Not connected to Shopify");
@@ -44,7 +63,9 @@ export function ShopifyBulkOperations() {
     setProgress(0);
     
     try {
-      const result = await bulkOperations.updatePrices(items, {
+      const shopifyItems = convertToShopifyPriceItems(items);
+      
+      const result = await bulkOperations.updatePrices(shopifyItems, {
         dryRun,
         notifyCustomers: false,
         onProgress: (p) => setProgress(p)

@@ -149,14 +149,17 @@ export interface ShopifyFlowCondition {
   value: string | number | boolean;
 }
 
-// Price item type
+// Combined Price item type with properties from both interfaces
 export interface PriceItem {
+  // Common required fields
   id: string;
   sku: string;
   name: string;
   oldPrice: number;
   newPrice: number;
-  status: 'increased' | 'decreased' | 'unchanged' | 'new';
+  status: 'increased' | 'decreased' | 'discontinued' | 'unchanged' | 'new' | 'anomaly';
+  
+  // Fields from shopify.ts PriceItem
   percentChange: number;
   shopifyProductId?: string;
   shopifyVariantId?: string;
@@ -164,4 +167,54 @@ export interface PriceItem {
   supplier?: string;
   lastUpdated?: Date;
   notes?: string;
+  
+  // Fields from price.ts PriceItem
+  difference: number;
+  isMatched: boolean;
+  potentialImpact?: number;
+  oldSupplierCode?: string;
+  newSupplierCode?: string;
+  oldBarcode?: string;
+  newBarcode?: string;
+  oldPackSize?: string;
+  newPackSize?: string;
+  oldTitle?: string;
+  newTitle?: string;
+  oldMargin?: number;
+  newMargin?: number;
+  marginChange?: number;
+  anomalyType?: string[];
+  productId?: string;
+  variantId?: string;
+  inventoryItemId?: string;
+  inventoryItemIds?: string[];
+  inventoryLevel?: number;
+  inventory?: number;
+  compareAtPrice?: number;
+  metafields?: Record<string, any>;
+  tags?: string[];
+  historicalSales?: number;
+  lastOrderDate?: string;
+  vendor?: string;
+  marketData?: {
+    pricePosition: 'low' | 'average' | 'high';
+    competitorPrices?: number[];
+    averagePrice?: number;
+    minPrice?: number;
+    maxPrice?: number;
+  };
+  suggestedPrice?: number;
+  suggestionReason?: string;
+  backupId?: string;
+  backupDate?: string;
+  scheduledPriceChange?: {
+    price: number;
+    effectiveDate: string;
+  };
+  b2bPrice?: number;
+  locationInventory?: {
+    locationId: string;
+    locationName: string;
+    available: number;
+  }[];
 }

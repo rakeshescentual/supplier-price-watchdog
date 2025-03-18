@@ -26,7 +26,7 @@ export const DocumentationGrid: React.FC<DocumentationGridProps> = ({
     <div className="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Sidebar with Table of Contents */}
       <div className="hidden lg:block lg:col-span-1">
-        <Card className="border shadow-sm h-[calc(100vh-220px)] overflow-hidden rounded-md">
+        <Card className="sticky top-6 border shadow-sm h-[calc(100vh-220px)] overflow-hidden rounded-md">
           <TableOfContents 
             content={content} 
             activeSection={activeSection}
@@ -37,7 +37,7 @@ export const DocumentationGrid: React.FC<DocumentationGridProps> = ({
       
       {/* Main content area */}
       <div className="lg:col-span-4">
-        <Card className="border shadow-sm p-4 md:p-6 rounded-md">
+        <Card className="border shadow-sm p-5 md:p-6 rounded-md bg-white">
           <DocumentationMainContent 
             activeTab={activeTab}
             content={content}

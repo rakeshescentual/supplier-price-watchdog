@@ -1,17 +1,8 @@
 
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Calendar, 
-  Tag, 
-  FileCheck, 
-  AlertCircle, 
-  Rocket, 
-  Zap,
-  CheckCircle2
-} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Check, Code, FileText, Info } from "lucide-react";
 
 interface ChangelogItem {
   version: string;
@@ -25,82 +16,61 @@ interface ChangelogItem {
 
 interface ChangelogContentProps {
   item: ChangelogItem;
+  viewMode?: 'detailed' | 'compact';
 }
 
-export const ChangelogContent: React.FC<ChangelogContentProps> = ({ item }) => {
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "feature":
-        return <Rocket className="h-4 w-4" />;
-      case "improvement":
-        return <Zap className="h-4 w-4" />;
-      case "bugfix":
-        return <CheckCircle2 className="h-4 w-4" />;
-      case "breaking":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <FileCheck className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case "feature":
-        return "default";
-      case "improvement":
-        return "secondary";
-      case "bugfix":
-        return "success";
-      case "breaking":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
-
+export const ChangelogContent: React.FC<ChangelogContentProps> = ({ 
+  item,
+  viewMode = 'detailed'
+}) => {
+  if (!item) return null;
+  
   return (
-    <ScrollArea className="h-[calc(100vh-250px)]">
-      <div className="p-2">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Tag className="h-5 w-5 mr-2" />
-            <h2 className="text-2xl font-bold">{item.version}</h2>
-          </div>
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span className="text-sm text-muted-foreground">{item.date}</span>
-          </div>
+    <div>
+      <p className="text-gray-700 mb-6">{item.description}</p>
+      
+      {item.details && item.details.length > 0 && viewMode === 'detailed' && (
+        <div className="mb-6">
+          <h4 className="text-lg font-medium mb-3">What's New</h4>
+          <ul className="space-y-2">
+            {item.details.map((detail, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <span>{detail}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-
-        <Badge variant={getTypeBadgeVariant(item.type) as any} className="mb-4 flex items-center w-fit">
-          {getTypeIcon(item.type)}
-          <span className="ml-1 capitalize">{item.type}</span>
-        </Badge>
-
-        <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-        <p className="mb-4 text-muted-foreground">{item.description}</p>
-
-        {item.details && item.details.length > 0 && (
-          <div className="mb-6">
-            <h4 className="text-lg font-medium mb-2">Details</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              {item.details.map((detail, idx) => (
-                <li key={idx} className="text-sm">{detail}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {item.technicalNotes && (
-          <>
-            <Separator className="my-4" />
-            <div className="bg-muted p-4 rounded-md">
-              <h4 className="text-sm font-medium mb-2">Technical Notes</h4>
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{item.technicalNotes}</p>
+      )}
+      
+      {item.technicalNotes && viewMode === 'detailed' && (
+        <>
+          <Separator className="my-6" />
+          <div className="bg-gray-50 border rounded-md p-4">
+            <div className="flex items-start gap-2 mb-2">
+              <Code className="h-5 w-5 text-gray-700 mt-0.5" />
+              <h4 className="text-lg font-medium">Technical Notes</h4>
             </div>
-          </>
-        )}
-      </div>
-    </ScrollArea>
+            <p className="text-gray-700 whitespace-pre-line">{item.technicalNotes}</p>
+            
+            {item.type === 'breaking' && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded p-3 flex items-start gap-2">
+                <Info className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-red-700 m-0">
+                  This update includes breaking changes. Please review the technical notes carefully before upgrading.
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      
+      {item.version && viewMode === 'detailed' && (
+        <div className="mt-6 flex items-center justify-end gap-2 text-sm text-gray-500">
+          <FileText className="h-4 w-4" />
+          <span>Full release notes available in <a href="#" className="text-blue-600 hover:underline">documentation</a></span>
+        </div>
+      )}
+    </div>
   );
 };

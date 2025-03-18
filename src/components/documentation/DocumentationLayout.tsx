@@ -7,6 +7,8 @@ import { useGadgetStatus } from "@/hooks/useGadgetStatus";
 import { DocumentationGrid } from "./DocumentationGrid";
 import { technicalDoc, gadgetFAQ, faqItems } from "./mockData";
 import { useDocumentSection } from "@/hooks/useDocumentSection";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface DocumentationLayoutProps {
   children?: React.ReactNode;
@@ -39,6 +41,15 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
         
         {!children && (
           <div className="animate-fade-in">
+            {activeTab === "technical" && (
+              <Alert className="mb-6 bg-blue-50 border-blue-100 text-blue-800">
+                <Info className="h-4 w-4 text-blue-500" />
+                <AlertDescription>
+                  This technical documentation provides comprehensive details about the application's architecture and functionality.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <DocumentationTabs 
               showSearch={showSearch} 
               quickRefOpen={quickRefOpen}

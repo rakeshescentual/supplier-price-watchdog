@@ -5,6 +5,7 @@
 import { getGadgetApiUrl } from './urls';
 import { createGadgetHeaders } from './auth';
 import { getGadgetConfig } from './config';
+import { GadgetStatusResponse, GadgetStatusSummaryResponse, GadgetHealth } from './types';
 
 /**
  * Check Gadget service status
@@ -15,11 +16,7 @@ export const checkGadgetStatus = async (options?: {
   retry?: boolean;
   retryAttempts?: number;
   retryDelay?: number;
-}): Promise<{
-  status: 'ready' | 'degraded' | 'down';
-  message: string;
-  latency?: number;
-}> => {
+}): Promise<GadgetStatusResponse> => {
   const config = getGadgetConfig();
   if (!config) {
     return {
@@ -99,11 +96,7 @@ export const checkGadgetStatus = async (options?: {
 /**
  * Get a comprehensive status summary for all Gadget services
  */
-export const getGadgetStatusSummary = async (): Promise<{
-  status: 'ready' | 'partial' | 'degraded' | 'down';
-  message: string;
-  details: Record<string, any>;
-}> => {
+export const getGadgetStatusSummary = async (): Promise<GadgetStatusSummaryResponse> => {
   try {
     // Check main API status first
     const apiStatus = await checkGadgetStatus({ 
@@ -191,7 +184,7 @@ export const checkGadgetConnectionHealth = async (): Promise<boolean> => {
   return status.status === 'ready';
 };
 
-export const getDetailedGadgetStatus = async () => {
+export const getDetailedGadgetStatus = async (): Promise<GadgetHealth> => {
   const summary = await getGadgetStatusSummary();
   
   return {

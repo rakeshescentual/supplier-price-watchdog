@@ -1,8 +1,7 @@
-
-import { useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -11,104 +10,119 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { testGadgetConnection } from '@/utils/gadget/connection';
-import { saveGadgetConfig, getGadgetConfig } from '@/utils/gadget/config';
-import { Key, RefreshCw, Database, Lock, Cpu } from 'lucide-react';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { RefreshCw, Server, Shield } from "lucide-react";
+import { GadgetConfig } from "@/utils/gadget/types";
+import { getGadgetConfig, saveGadgetConfig, testGadgetConnection } from "@/utils/gadget/config";
 
-// Define the form schema
+// Schema for the form
 const gadgetConfigSchema = z.object({
   apiKey: z.string().min(10, {
-    message: 'API Key must be at least 10 characters.',
+    message: "API key must be at least 10 characters long",
   }),
   appId: z.string().min(3, {
-    message: 'App ID is required.',
+    message: "App ID must be at least 3 characters long",
   }),
-  environment: z.enum(['development', 'production']),
+  environment: z.enum(["development", "production"]),
   featureFlags: z.object({
-    enableAdvancedAnalytics: z.boolean().default(true),
-    enablePdfProcessing: z.boolean().default(true),
-    enableMarketData: z.boolean().default(true),
+    enableAdvancedAnalytics: z.boolean().default(false),
+    enablePdfProcessing: z.boolean().default(false),
+    enableMarketData: z.boolean().default(false),
   }),
 });
-
-type GadgetConfigValues = z.infer<typeof gadgetConfigSchema>;
 
 export function GadgetConfigForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   
-  // Initialize form with saved values or defaults
-  const savedConfig = getGadgetConfig();
-  
-  const form = useForm<GadgetConfigValues>({
+  // Load existing config
+  const existingConfig = getGadgetConfig();
+
+  // Initialize form with existing values or defaults
+  const form = useForm<z.infer<typeof gadgetConfigSchema>>({
     resolver: zodResolver(gadgetConfigSchema),
-    defaultValues: savedConfig || {
-      apiKey: '',
-      appId: '',
-      environment: 'development',
+    defaultValues: {
+      apiKey: existingConfig?.apiKey || "",
+      appId: existingConfig?.appId || "",
+      environment: existingConfig?.environment || "development",
       featureFlags: {
-        enableAdvancedAnalytics: true,
-        enablePdfProcessing: true,
-        enableMarketData: true,
+        enableAdvancedAnalytics: existingConfig?.featureFlags?.enableAdvancedAnalytics || false,
+        enablePdfProcessing: existingConfig?.featureFlags?.enablePdfProcessing || false,
+        enableMarketData: existingConfig?.featureFlags?.enableMarketData || false,
       },
     },
   });
 
-  async function onSubmit(values: GadgetConfigValues) {
+  const onSubmit = async (values: z.infer<typeof gadgetConfigSchema>) => {
     setIsSubmitting(true);
     
     try {
+      // Make sure we're creating a complete GadgetConfig object with required properties
+      const config: GadgetConfig = {
+        apiKey: values.apiKey,
+        appId: values.appId,
+        environment: values.environment,
+        featureFlags: values.featureFlags
+      };
+      
       // Save the configuration
-      saveGadgetConfig(values);
+      saveGadgetConfig(config);
       
-      toast.success('Configuration saved', {
-        description: 'Gadget configuration has been updated successfully.',
-      });
+      // Test the connection
+      const result = await testGadgetConnection(config);
       
+      if (result.success) {
+        toast.success('Connection successful', {
+          description: result.message,
+        });
+      } else {
+        toast.warning('Configuration saved, but connection failed', {
+          description: result.message,
+        });
+      }
     } catch (error) {
-      console.error('Error saving Gadget configuration:', error);
-      
-      toast.error('Configuration error', {
-        description: 'There was an error saving your Gadget configuration.',
+      console.error("Error saving Gadget configuration:", error);
+      toast.error('Error saving configuration', {
+        description: 'Please check your configuration and try again.',
       });
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  const testConnection = async () => {
+  const handleTestConnection = async () => {
     setIsTesting(true);
     
     try {
       const values = form.getValues();
+      // Create a complete config object for testing
+      const config: GadgetConfig = {
+        apiKey: values.apiKey,
+        appId: values.appId,
+        environment: values.environment,
+        featureFlags: values.featureFlags
+      };
       
-      // Temporarily save the config for testing
-      saveGadgetConfig(values);
-      
-      // Test the connection
-      const result = await testGadgetConnection();
+      const result = await testGadgetConnection(config);
       
       if (result.success) {
         toast.success('Connection successful', {
-          description: `Connected to Gadget API (${result.latency}ms)`,
+          description: result.message,
         });
       } else {
         toast.error('Connection failed', {
-          description: result.message || 'Could not connect to Gadget API',
+          description: result.message,
         });
       }
     } catch (error) {
-      console.error('Error testing Gadget connection:', error);
-      
-      toast.error('Connection test failed', {
-        description: 'There was an error testing the Gadget connection.',
+      console.error("Error testing Gadget connection:", error);
+      toast.error('Error testing connection', {
+        description: 'Please check your configuration and try again.',
       });
     } finally {
       setIsTesting(false);
@@ -116,147 +130,114 @@ export function GadgetConfigForm() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Database className="h-5 w-5" />
+          <Server className="h-5 w-5" />
           Gadget.dev Configuration
         </CardTitle>
         <CardDescription>
-          Configure your Gadget.dev integration for enhanced functionality
+          Configure your Gadget.dev integration for enhanced data processing
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="credentials" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="credentials">Credentials</TabsTrigger>
-                <TabsTrigger value="features">Features</TabsTrigger>
-              </TabsList>
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="apiKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API Key</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter your Gadget API Key" 
+                        {...field} 
+                        type="password"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Your Gadget.dev API key for authentication
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <TabsContent value="credentials" className="space-y-4 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="apiKey"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          <Key className="h-3.5 w-3.5" />
-                          API Key
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your Gadget API key"
-                            type="password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Your Gadget.dev API key for authentication
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="appId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          <Cpu className="h-3.5 w-3.5" />
-                          App ID
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your Gadget app ID"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          The ID of your Gadget.dev application
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="environment"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Environment</FormLabel>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="development"
-                            value="development"
-                            checked={field.value === 'development'}
-                            onChange={() => field.onChange('development')}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor="development" className="text-sm cursor-pointer">
-                            Development
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="production"
-                            value="production"
-                            checked={field.value === 'production'}
-                            onChange={() => field.onChange('production')}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor="production" className="text-sm cursor-pointer">
-                            Production
-                          </label>
-                        </div>
-                      </div>
-                      <FormDescription>
-                        Select your Gadget.dev environment
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 flex items-start gap-2">
-                  <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">Secure Storage</p>
-                    <p className="text-blue-700 text-xs mt-1">
-                      Your API credentials are stored securely in your browser's local storage and are not transmitted to our servers.
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
+              <FormField
+                control={form.control}
+                name="appId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>App ID</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter your Gadget App ID" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      The unique identifier for your Gadget.dev application
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <TabsContent value="features" className="pt-4">
-                <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="environment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Environment</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={field.value === "development" ? "default" : "outline"}
+                        onClick={() => field.onChange("development")}
+                        className="flex-1"
+                      >
+                        Development
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={field.value === "production" ? "default" : "outline"}
+                        onClick={() => field.onChange("production")}
+                        className="flex-1"
+                      >
+                        Production
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Select which environment to connect to
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="pt-4">
+                <h3 className="text-sm font-medium mb-3">Feature Flags</h3>
+                
+                <div className="space-y-3">
                   <FormField
                     control={form.control}
                     name="featureFlags.enableAdvancedAnalytics"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormItem className="flex justify-between items-center">
+                        <div>
+                          <FormLabel className="text-base">Advanced Analytics</FormLabel>
+                          <FormDescription>
+                            Enable extended data analysis and reporting
+                          </FormDescription>
+                        </div>
                         <FormControl>
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Advanced Analytics</FormLabel>
-                          <FormDescription>
-                            Enable AI-powered analytics for deeper insights into supplier pricing
-                          </FormDescription>
-                        </div>
                       </FormItem>
                     )}
                   />
@@ -265,19 +246,19 @@ export function GadgetConfigForm() {
                     control={form.control}
                     name="featureFlags.enablePdfProcessing"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormItem className="flex justify-between items-center">
+                        <div>
+                          <FormLabel className="text-base">PDF Processing</FormLabel>
+                          <FormDescription>
+                            Enable PDF file parsing and data extraction
+                          </FormDescription>
+                        </div>
                         <FormControl>
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>PDF Processing</FormLabel>
-                          <FormDescription>
-                            Process PDF price lists through Gadget.dev for enhanced accuracy
-                          </FormDescription>
-                        </div>
                       </FormItem>
                     )}
                   />
@@ -286,71 +267,66 @@ export function GadgetConfigForm() {
                     control={form.control}
                     name="featureFlags.enableMarketData"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormItem className="flex justify-between items-center">
+                        <div>
+                          <FormLabel className="text-base">Market Data</FormLabel>
+                          <FormDescription>
+                            Enable competitor and market trend data analysis
+                          </FormDescription>
+                        </div>
                         <FormControl>
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Market Data Enrichment</FormLabel>
-                          <FormDescription>
-                            Enrich your pricing data with market intelligence from Gadget.dev
-                          </FormDescription>
-                        </div>
                       </FormItem>
                     )}
                   />
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
             
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={testConnection}
-                disabled={isTesting || isSubmitting}
+            <div className="flex gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleTestConnection}
+                disabled={isTesting}
               >
                 {isTesting ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Testing...
                   </>
                 ) : (
-                  'Test Connection'
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Test Connection
+                  </>
                 )}
               </Button>
-              
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  'Save Configuration'
+                  "Save Configuration"
                 )}
               </Button>
             </div>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex justify-between border-t pt-4">
-        <p className="text-xs text-muted-foreground">
-          <a 
-            href="https://gadget.dev/docs" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            Gadget.dev Documentation
-          </a>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Version: {savedConfig ? '1.3.0' : 'Not Configured'}
-        </p>
+      <CardFooter className="text-xs text-muted-foreground">
+        Gadget.dev provides enhanced data processing capabilities for your application
       </CardFooter>
     </Card>
   );

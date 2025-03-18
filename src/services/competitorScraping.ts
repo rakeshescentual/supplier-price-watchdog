@@ -46,7 +46,7 @@ export class CompetitorScrapingService {
       });
       
       if (!result.success) {
-        throw new Error(result.error || 'Unknown error scheduling scraping job');
+        throw new Error(result.errors?.[0]?.message || 'Unknown error scheduling scraping job');
       }
       
       return {

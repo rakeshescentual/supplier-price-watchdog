@@ -133,3 +133,4 @@ export interface ShopifyHealthcheckResult extends ShopifyConnectionResult {
     missingScopes?: string[];
   };
 }
+

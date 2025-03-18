@@ -28,7 +28,7 @@ import {
 
 export function ShopifyApiHealthCheck() {
   const [activeTab, setActiveTab] = useState("overview");
-  const { isShopifyConnected, shopifyContext, testConnection } = useShopify();
+  const { isShopifyConnected, shopifyContext } = useShopify();
   
   // Use react-query for data fetching with caching
   const { 
@@ -165,7 +165,7 @@ export function ShopifyApiHealthCheck() {
                 Connect to your Shopify store to enable API health monitoring
               </p>
             </div>
-            <Button onClick={testConnection}>Connect to Shopify</Button>
+            <Button onClick={() => refetch()}>Connect to Shopify</Button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -201,9 +201,7 @@ export function ShopifyApiHealthCheck() {
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>
-                  Last checked: {healthCheck?.lastConnectionCheck ? 
-                    new Date(healthCheck.lastConnectionCheck).toLocaleTimeString() : 
-                    "Never"}
+                  Last checked: {new Date().toLocaleTimeString()}
                 </span>
               </div>
             </div>

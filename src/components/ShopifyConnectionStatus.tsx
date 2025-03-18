@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { checkShopifyConnection } from '@/lib/shopifyApi';
+import type { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 
 // Mock ShopifyContext for connection functions
 const mockShopifyContext = {
@@ -14,27 +15,27 @@ export function ShopifyConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<'idle' | 'connected' | 'error'>('idle');
-  const [message, setMessage] = useState('Checking connection...');
+  const [statusMessage, setStatusMessage] = useState('Checking connection...');
   
   useEffect(() => {
     const checkConnection = async () => {
       try {
         setIsLoading(true);
-        const result = await checkShopifyConnection(mockShopifyContext);
+        const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
         
-        if ('success' in result) {
+        if (result.success) {
           setIsConnected(result.success);
           setStatus(result.success ? 'connected' : 'error');
-          setMessage(result.message || 'Connection checked');
+          setStatusMessage(result.message || 'Connection checked');
         } else {
           setIsConnected(false);
           setStatus('error');
-          setMessage('Invalid response from server');
+          setStatusMessage('Invalid response from server');
         }
       } catch (error) {
         setIsConnected(false);
         setStatus('error');
-        setMessage(error instanceof Error ? error.message : 'Unknown error');
+        setStatusMessage(error instanceof Error ? error.message : 'Unknown error');
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +69,7 @@ export function ShopifyConnectionStatus() {
           <div className={statusColor}>
             {statusIcon}
           </div>
-          <p className="text-sm">{message}</p>
+          <p className="text-sm">{statusMessage}</p>
           {status === 'connected' && (
             <Badge variant="outline">Connected</Badge>
           )}

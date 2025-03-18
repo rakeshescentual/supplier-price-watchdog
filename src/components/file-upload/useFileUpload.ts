@@ -1,5 +1,6 @@
+
 import { useState, useCallback } from 'react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { saveFileToShopify } from '@/lib/shopify';
 import type { ShopifyContext, ShopifyFileUploadResult } from '@/types/price';
 
@@ -26,6 +27,7 @@ export interface FileUploadActions {
   handleUpload: (file: File) => Promise<void>;
 }
 
+// Mock ShopifyContext for connection functions
 const mockShopifyContext: ShopifyContext = {
   shop: 'example-shop.myshopify.com',
   accessToken: 'example-token'
@@ -76,7 +78,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     setState(prev => ({ ...prev, isLoading: true, progress: 0, error: null }));
     
     try {
-      const result = await saveFileToShopify(mockShopifyContext, file);
+      const result: ShopifyFileUploadResult = await saveFileToShopify(mockShopifyContext, file);
       
       if (result.success) {
         setState(prev => ({ 

@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { checkShopifyConnection } from '@/lib/shopify/connection';
-import type { ShopifyContext } from '@/types/price';
+import type { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 
 // Mock ShopifyContext for connection function
 const mockShopifyContext: ShopifyContext = {
@@ -19,15 +19,17 @@ export const useShopifyConnection = () => {
     setError(null);
     
     try {
-      // Use the mock context to fix the missing parameter error
-      const result = await checkShopifyConnection(mockShopifyContext);
+      const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
       setIsConnected(result.success);
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown connection error');
       setError(error);
       setIsConnected(false);
-      return { success: false, message: error.message };
+      return { 
+        success: false, 
+        message: error.message 
+      };
     } finally {
       setIsLoading(false);
     }

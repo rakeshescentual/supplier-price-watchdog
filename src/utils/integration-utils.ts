@@ -1,6 +1,7 @@
+
 import { toast } from 'sonner';
 import { checkShopifyConnection } from '@/lib/shopifyApi';
-import type { ShopifyContext } from '@/types/price';
+import type { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 
 // Mock ShopifyContext for connection functions
 const mockShopifyContext: ShopifyContext = {
@@ -9,16 +10,11 @@ const mockShopifyContext: ShopifyContext = {
 };
 
 /**
- * Utility functions for managing integrations
- */
-
-/**
  * Test a Shopify connection 
  */
 export const testShopifyStoreConnection = async () => {
   try {
-    // Use the mock context to fix the missing parameter error
-    const result = await checkShopifyConnection(mockShopifyContext);
+    const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
     
     if (result.success) {
       toast.success('Shopify connection successful', {

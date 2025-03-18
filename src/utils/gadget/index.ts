@@ -1,3 +1,4 @@
+
 /**
  * Gadget.dev integration utilities
  */
@@ -21,6 +22,4 @@ export const GADGET_API_VERSION = '2023-11';
 
 // Export utility for initialization
 export { initializeGadgetIntegration } from '@/lib/gadget';
-
-// Use different name to avoid conflict
-export { testGadgetConnection as validateGadgetConnection } from './config';
+export { validateGadgetConnection } from './config';

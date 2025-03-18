@@ -1,47 +1,47 @@
-
 import { useState, useEffect } from 'react';
-import { getShopifyProducts, getShopifySyncHistory } from '@/lib/shopifyApi';
 import type { PriceItem } from '@/types/price';
 
+const mockData: PriceItem[] = [
+  {
+    sku: 'SKU001',
+    name: 'Product 1',
+    oldPrice: 19.99,
+    newPrice: 24.99,
+    supplier: 'Supplier A',
+    category: 'Category 1',
+    status: 'unchanged',
+    difference: 5,
+    isMatched: true
+  }
+];
+
 export const useShopifyData = () => {
-  const [products, setProducts] = useState<PriceItem[]>([]);
+  const [data, setData] = useState<PriceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
-        setIsLoading(true);
-        setError(null);
-        
-        const shopifyProducts = await getShopifyProducts();
-        
-        // Convert Shopify products to PriceItems
-        const convertedProducts: PriceItem[] = shopifyProducts.map(product => ({
-          id: product.id,
-          sku: product.id,
-          name: product.title,
-          oldPrice: product.price,
-          newPrice: product.price,
-          supplier: 'Shopify',
-          category: 'Unknown',
-          status: 'unchanged'
-        }));
-        
-        setProducts(convertedProducts);
+        // Simulate fetching data from an API
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setData(mockData);
       } catch (err) {
-        console.error('Error fetching Shopify products:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error fetching products'));
+        const error = err instanceof Error ? err : new Error('Failed to fetch data');
+        setError(error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchProducts();
+    fetchData();
   }, []);
   
   return {
-    products,
+    data,
     isLoading,
     error
   };

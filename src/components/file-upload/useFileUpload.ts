@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { saveFileToShopify } from '@/lib/shopifyApi';
-import type { ShopifyFileUploadResult } from '@/types/price';
+import { saveFileToShopify } from '@/lib/shopify';
+import type { ShopifyContext, ShopifyFileUploadResult } from '@/types/price';
 
 export interface FileUploadState {
   isLoading: boolean;
@@ -9,21 +9,21 @@ export interface FileUploadState {
   error: Error | null;
   fileUrl: string | null;
   isDragging: boolean;
-  fileType: string | null;
+  fileType: "excel" | "pdf" | null;
   uploadComplete: boolean;
   fileName: string | null;
+  uploadProgress: number;
   shopifyFileUrl: string | null;
   shopifyUploadError: string | null;
   isUploading: boolean;
   isShopifyConnectedButUnhealthy: boolean;
 }
 
-export interface FileUploadActions {
-  handleDrop: (files: File[]) => void;
-  setIsDragging: (isDragging: boolean) => void;
-  handleShare: () => void;
-  handleUpload: (file: File) => Promise<void>;
-}
+// Mock ShopifyContext for file upload functions
+const mockShopifyContext: ShopifyContext = {
+  shop: 'example-shop.myshopify.com',
+  accessToken: 'example-token'
+};
 
 export function useFileUpload(onFileAccepted: (file: File) => void) {
   const [state, setState] = useState<FileUploadState>({
@@ -35,6 +35,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     fileType: null,
     uploadComplete: false,
     fileName: null,
+    uploadProgress: 0,
     shopifyFileUrl: null,
     shopifyUploadError: null,
     isUploading: false,
@@ -105,13 +106,18 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     }
   }, []);
 
+  const handleDrop = useCallback((files: File[]) => {
+    if (files.length) {
+      const file = files[0];
+      const fileType = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'excel';
+      setState(prev => ({ ...prev, fileType }));
+      onFileAccepted(file);
+    }
+  }, [onFileAccepted]);
+
   const actions: FileUploadActions = {
-    handleDrop: (files) => {
-      if (files.length) {
-        onFileAccepted(files[0]);
-      }
-    },
-    setIsDragging: (isDragging) => setState(prev => ({ ...prev, isDragging })),
+    handleDrop,
+    setIsDragging: (isDragging: boolean) => setState(prev => ({ ...prev, isDragging })),
     handleShare: () => {
       // Implement your share functionality here
       toast({
@@ -126,8 +132,8 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     state,
     actions,
     shopify: {
-      isShopifyConnected: true, // This should come from your Shopify context
-      isShopifyHealthy: true // This should come from your Shopify context
+      isShopifyConnected: true, // TODO: Get from context
+      isShopifyHealthy: true // TODO: Get from context
     }
   };
 }

@@ -25,3 +25,6 @@ export const GADGET_API_VERSION = '2023-11'; // Updated API version
 
 // Export utility for initialization
 export { initializeGadgetIntegration } from '@/lib/gadget';
+
+// Export specific functions to avoid ambiguity
+export { testGadgetConnection as testGadgetConnectionUtility } from './connection';

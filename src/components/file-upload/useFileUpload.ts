@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useShopify } from "@/contexts/shopify";
@@ -67,6 +68,7 @@ export const useFileUpload = (onFileAccepted: (file: File) => void) => {
         try {
           const { saveFileToShopify } = await import('@/lib/shopifyApi');
           
+          // Here we use the progress callback function
           const fileUrl = await saveFileToShopify(file, (progress) => setUploadProgress(progress));
           
           setUploadComplete(true);

@@ -87,6 +87,9 @@ export interface ShopifyContextType {
   ) => Promise<R[]>;
 }
 
+// Export ShopifyProviderContextType as an alias of ShopifyContextType for backward compatibility
+export type ShopifyProviderContextType = ShopifyContextType;
+
 export interface ShopifySyncResult {
   success: boolean;
   message: string;
@@ -133,4 +136,3 @@ export interface ShopifyHealthcheckResult extends ShopifyConnectionResult {
     missingScopes?: string[];
   };
 }
-

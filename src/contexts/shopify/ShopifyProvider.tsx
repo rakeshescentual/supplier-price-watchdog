@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContext as ShopifyContextType, ShopifyProviderContextType } from '@/types/shopify';
+import type { ShopifyContext as ShopifyContextType } from '@/types/shopify';
 import { useShopifyConnection } from './hooks/useShopifyConnection';
 import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
@@ -9,6 +9,26 @@ import { initializeShopifyApp } from '@/lib/shopifyApi';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
+}
+
+// Define the context type
+export interface ShopifyProviderContextType {
+  shopifyContext: ShopifyContextType | null;
+  isShopifyConnected: boolean;
+  isShopifyHealthy: boolean;
+  lastConnectionCheck: Date | null;
+  connectionCheckInterval: NodeJS.Timeout | null;
+  isGadgetInitialized: boolean;
+  isSyncing: boolean;
+  connectToShopify: (shop: string, accessToken: string) => Promise<boolean>;
+  disconnectShopify: () => void;
+  syncToShopify: (items: any[]) => Promise<boolean>;
+  loadShopifyData: () => Promise<any[]>;
+  batchProcessShopifyItems: <T, R>(
+    items: T[],
+    processFn: (item: T) => Promise<R>,
+    options?: { batchSize: number, concurrency: number }
+  ) => Promise<R[]>;
 }
 
 const ShopifyContext = createContext<ShopifyProviderContextType | undefined>(undefined);
@@ -52,7 +72,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     isShopifyConnected: shopifyConnection.isConnected,
     isShopifyHealthy: shopifyConnection.isConnected && !shopifyConnection.error,
     lastConnectionCheck: shopifyConnection.lastChecked || null,
-    connectionCheckInterval: shopifyConnection.connectionIntervalRef.current,
+    connectionCheckInterval: shopifyConnection.connectionIntervalRef?.current || null,
     isGadgetInitialized,
     isSyncing: shopifySync.isSyncing,
     connectToShopify: async (shop: string, accessToken: string) => {
@@ -73,4 +93,3 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     </ShopifyContext.Provider>
   );
 };
-

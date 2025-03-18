@@ -7,7 +7,7 @@ import { checkShopifyConnection } from '@/lib/shopifyApi';
 import type { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 
 // Mock ShopifyContext for connection functions
-const mockShopifyContext = {
+const mockShopifyContext: ShopifyContext = {
   shop: 'example-shop.myshopify.com',
   accessToken: 'example-token'
 };

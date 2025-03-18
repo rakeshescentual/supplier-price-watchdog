@@ -65,7 +65,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     try {
       const result = await saveFileToShopify(mockShopifyContext, file);
       
-      // Handle both ShopifyFileUploadResult and string returns
+      // Handle both string and ShopifyFileUploadResult returns
       if (typeof result === 'string') {
         setState(prev => ({ 
           ...prev, 
@@ -74,9 +74,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
           progress: 100 
         }));
         
-        toast({
-          description: "File saved to Shopify successfully.",
-        });
+        toast.success("File saved to Shopify successfully.");
       } else if (result && typeof result === 'object') {
         if (result.success) {
           setState(prev => ({ 
@@ -86,9 +84,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
             progress: 100 
           }));
           
-          toast({
-            description: "File saved to Shopify successfully.",
-          });
+          toast.success("File saved to Shopify successfully.");
         } else {
           throw new Error(result.message || 'Upload failed');
         }
@@ -99,9 +95,8 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
       const error = err instanceof Error ? err : new Error('Unknown upload error');
       setState(prev => ({ ...prev, error }));
       
-      toast({
-        description: error.message,
-        variant: "destructive",
+      toast.error("Upload failed", {
+        description: error.message
       });
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
@@ -118,9 +113,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
   }, [onFileAccepted]);
 
   const handleShare = useCallback(() => {
-    toast({
-      description: "Share functionality is not implemented yet.",
-    });
+    toast.info("Share functionality not implemented yet.");
   }, []);
 
   return {

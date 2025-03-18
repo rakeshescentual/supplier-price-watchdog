@@ -1,5 +1,5 @@
 
-import { ShopifyContext } from '@/types/price';
+import { ShopifyContext, ShopifyFileUploadResult } from '@/types/price';
 import { toast } from 'sonner';
 import { shopifyCache } from '../api-cache';
 
@@ -8,7 +8,7 @@ export const saveFileToShopify = async (
   shopifyContext: ShopifyContext, 
   file: File,
   onProgress?: (progress: number) => void
-): Promise<string | null> => {
+): Promise<ShopifyFileUploadResult> => {
   try {
     console.log(`Saving file ${file.name} to Shopify store: ${shopifyContext.shop}`);
     
@@ -46,13 +46,18 @@ export const saveFileToShopify = async (
     // Update cache with completed status
     shopifyCache.set(uploadCacheKey, { progress: 100, status: 'completed' });
     
-    // Return a mock file URL
-    return `https://${shopifyContext.shop}/cdn/files/uploads/${file.name}`;
+    // Return a result object
+    return {
+      success: true,
+      fileUrl: `https://${shopifyContext.shop}/cdn/files/uploads/${file.name}`,
+      message: 'File uploaded successfully'
+    };
   } catch (error) {
     console.error("Error saving file to Shopify:", error);
-    toast.error("File upload failed", {
-      description: "Could not save the file to Shopify. Please try again.",
-    });
-    return null;
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error during file upload"
+    };
   }
 };

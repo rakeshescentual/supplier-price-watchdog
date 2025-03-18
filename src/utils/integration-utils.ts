@@ -17,10 +17,11 @@ export const testShopifyStoreConnection = async (): Promise<ShopifyConnectionRes
     const result = await checkShopifyConnection(mockShopifyContext);
     
     // Handle both boolean and object results
-    const success = typeof result === 'boolean' ? result : result.success;
+    const success = typeof result === 'boolean' ? result : 
+                    typeof result === 'object' && 'success' in result ? result.success : false;
     const message = typeof result === 'boolean' 
       ? (result ? 'Connected successfully' : 'Connection failed')
-      : (result.message || '');
+      : (typeof result === 'object' && 'message' in result ? result.message : '');
     
     if (success) {
       toast.success('Shopify connection successful', {
@@ -32,7 +33,11 @@ export const testShopifyStoreConnection = async (): Promise<ShopifyConnectionRes
       });
     }
     
-    return typeof result === 'boolean' ? { success } : result;
+    return typeof result === 'boolean' 
+      ? { success } 
+      : typeof result === 'object' && 'success' in result 
+        ? result 
+        : { success: false };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     

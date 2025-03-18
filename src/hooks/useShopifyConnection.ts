@@ -25,9 +25,13 @@ export const useShopifyConnection = () => {
       if (typeof result === 'boolean') {
         setIsConnected(result);
         return { success: result };
-      } else {
+      } else if (typeof result === 'object' && 'success' in result) {
         setIsConnected(result.success);
         return result;
+      } else {
+        // Default fallback
+        setIsConnected(false);
+        return { success: false, message: 'Invalid result type' };
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown connection error');

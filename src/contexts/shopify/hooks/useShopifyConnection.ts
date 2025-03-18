@@ -21,17 +21,23 @@ export const useShopifyConnection = () => {
     
     try {
       const result = await checkShopifyConnection(mockShopifyContext);
+      
+      // Handle different return types
       if (typeof result === 'boolean') {
-        // Handle legacy return type
+        // Handle legacy boolean return type
         setIsConnected(result);
         return { success: result };
-      } else {
-        // Handle proper ShopifyConnectionResult
+      } else if (typeof result === 'object') {
+        // Handle ShopifyConnectionResult return type
         setIsConnected(result.success);
         if (result.shopDetails) {
           setShopDetails(result.shopDetails);
         }
         return result;
+      } else {
+        // Default fallback
+        setIsConnected(false);
+        return { success: false, message: 'Invalid result type' };
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown connection error');

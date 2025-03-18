@@ -50,7 +50,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   }, []);
   
   const shopifyConnection = useShopifyConnection();
-  const { isSyncing, syncToShopify } = useShopifySync();
+  const shopifySync = useShopifySync();
   
   // Import these modules using dynamic imports instead of require
   useEffect(() => {
@@ -64,26 +64,20 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     }).catch(err => {
       console.error('Error importing gadgetApi:', err);
     });
-    
-    return () => {
-      if (shopifyConnection.connectionCheckInterval) {
-        clearInterval(shopifyConnection.connectionCheckInterval);
-      }
-    };
-  }, [shopifyConnection.connectionCheckInterval]);
+  }, []);
 
   const value: ShopifyProviderContextType = {
     shopifyContext,
-    isShopifyConnected: shopifyConnection.isShopifyConnected,
-    isShopifyHealthy: shopifyConnection.isShopifyHealthy,
-    lastConnectionCheck: shopifyConnection.lastConnectionCheck,
+    isShopifyConnected: shopifyConnection.isConnected,
+    isShopifyHealthy: shopifyConnection.isConnected && !shopifyConnection.error,
+    lastConnectionCheck: shopifyConnection.lastChecked || null,
     isGadgetInitialized,
-    isSyncing,
+    isSyncing: shopifySync.isSyncing,
     connectToShopify: async () => false, // Not implemented yet
-    disconnectShopify: shopifyConnection.disconnectShopify,
-    syncToShopify,
-    loadShopifyData: shopifyConnection.loadShopifyData,
-    batchProcessShopifyItems: shopifyConnection.batchProcessShopifyItems
+    disconnectShopify: () => {}, // Not implemented yet
+    syncToShopify: shopifySync.syncToShopify,
+    loadShopifyData: async () => [], // Not implemented yet
+    batchProcessShopifyItems: async () => [] // Not implemented yet
   };
 
   return (

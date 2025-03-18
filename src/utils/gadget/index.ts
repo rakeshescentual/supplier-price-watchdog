@@ -5,7 +5,7 @@ export * from './urls';
 export * from './auth';
 export * from './status';
 
-// Re-export with unique name
+// Re-export with unique name to avoid conflicts
 export { testGadgetConnection as validateGadgetConnection } from './config';
 export { getGadgetConfig } from './config';
 

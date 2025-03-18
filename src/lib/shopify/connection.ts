@@ -1,13 +1,13 @@
 
-import { ShopifyContext } from '@/types/price';
+import { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 import { shopifyCache } from '../api-cache';
 
 /**
  * Check Shopify connection health status
  * @param shopifyContext The Shopify context containing shop and accessToken
- * @returns Promise resolving to a boolean indicating if the connection is healthy
+ * @returns Promise resolving to a connection result object
  */
-export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Promise<boolean> => {
+export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Promise<ShopifyConnectionResult> => {
   try {
     console.log(`Checking Shopify connection for store: ${shopifyContext.shop}`);
     
@@ -18,7 +18,10 @@ export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Pr
     // Use cached result if less than 5 minutes old
     if (cachedHealth && (Date.now() - cachedHealth.timestamp < 5 * 60 * 1000)) {
       console.log(`Using cached Shopify health status for ${shopifyContext.shop}`);
-      return cachedHealth.healthy;
+      return { 
+        success: cachedHealth.healthy,
+        message: cachedHealth.healthy ? 'Connected (cached)' : 'Connection failed (cached)'
+      };
     }
     
     // In a real implementation, this would ping the Shopify API to check connection status
@@ -40,10 +43,21 @@ export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Pr
     // Cache the health status
     shopifyCache.set(cacheKey, { healthy: isHealthy, timestamp: Date.now() }, { ttl: 5 * 60 * 1000 });
     
-    return isHealthy;
+    return {
+      success: isHealthy,
+      message: isHealthy ? 'Connected successfully' : 'Connection failed - invalid credentials',
+      shopDetails: isHealthy ? {
+        name: shopifyContext.shop.split('.')[0],
+        domain: shopifyContext.shop,
+        plan: 'Basic'
+      } : undefined
+    };
   } catch (error) {
     console.error("Error checking Shopify connection:", error);
-    return false;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown connection error'
+    };
   }
 };
 

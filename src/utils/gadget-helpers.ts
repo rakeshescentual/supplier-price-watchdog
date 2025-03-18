@@ -1,9 +1,7 @@
 
 /**
  * Utility functions for Gadget.dev integration
- * 
- * This file now re-exports from smaller, more focused modules
- * for better maintainability.
+ * Re-exports from smaller, more focused modules for better maintainability.
  */
 
 // Re-export all functions from the gadget utility modules
@@ -18,5 +16,5 @@ export * from './gadget/status';
 
 // Be explicit about what we re-export to avoid ambiguity
 export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './gadget/config';
-// Fixed: Renamed export to avoid duplicate export error
-export { testGadgetConnection as testGadgetConnectionUtil } from './gadget/connection';
+// Use a different name to avoid conflict
+export { testGadgetConnection as testGadgetEnvironment } from './gadget/connection';

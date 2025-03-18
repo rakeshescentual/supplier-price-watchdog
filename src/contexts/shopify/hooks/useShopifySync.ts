@@ -18,20 +18,18 @@ export const useShopifySync = () => {
     timestamp: Date;
   } | null>(null);
   
-  const syncPrices = useCallback(async (prices: PriceItem[]) => {
-    // Implementation using mockShopifyContext
+  const syncPrices = useCallback(async (prices: PriceItem[]): Promise<boolean> => {
     setIsSyncing(true);
     
     try {
-      const result = await syncWithShopify(mockShopifyContext);
+      const result = await syncWithShopify(mockShopifyContext, prices);
       setLastSyncResult({
         success: result.success,
-        message: result.message,
+        message: result.message || '',
         timestamp: new Date()
       });
-      return result;
+      return result.success;
     } catch (error) {
-      // Error handling
       setLastSyncResult({
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error during sync',
@@ -43,8 +41,7 @@ export const useShopifySync = () => {
     }
   }, []);
   
-  const batchSync = useCallback(async (items, processFn, options) => {
-    // Implementation using batchShopifyOperations with correct arguments
+  const batchSync = useCallback(async (items: PriceItem[], processFn: (item: PriceItem) => Promise<any>, options: any) => {
     return batchShopifyOperations(items, processFn, options);
   }, []);
   

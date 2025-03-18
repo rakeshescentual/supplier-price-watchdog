@@ -1,9 +1,6 @@
 
 /**
  * Gadget.dev integration utilities
- * 
- * This module provides integration with Gadget.dev for enhanced data processing,
- * Shopify synchronization, and other functionality.
  */
 
 // Re-export all submodules
@@ -20,11 +17,11 @@ export * from '@/lib/gadget/telemetry';
 export * from '@/lib/gadget/logging';
 
 // Constants
-export const GADGET_VERSION = '1.3.0'; // Updated version
-export const GADGET_API_VERSION = '2023-11'; // Updated API version
+export const GADGET_VERSION = '1.3.0';
+export const GADGET_API_VERSION = '2023-11';
 
 // Export utility for initialization
 export { initializeGadgetIntegration } from '@/lib/gadget';
 
-// Fixed: Renamed export to avoid duplicate export error
-export { testGadgetConnection as testGadgetConnectionService } from './connection';
+// Rename export to avoid conflict
+export { testGadgetConnection as testGadgetService } from './connection';

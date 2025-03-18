@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
@@ -8,7 +9,7 @@ import {
 } from '@/lib/gadget/client';
 import { testGadgetConnection } from '@/lib/gadget/client/connection';
 import { GadgetConfig } from '@/types/price';
-import { getGadgetConfig } from '@/utils/gadget';
+import { getGadgetConfig } from '@/utils/gadget/config';
 
 export const useGadgetConnection = (providedConfig?: GadgetConfig) => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');

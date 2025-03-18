@@ -2,7 +2,6 @@
 import { getGadgetConfig, saveGadgetConfig, clearGadgetConfig, testGadgetConnection as _testGadgetConnection } from './gadget/config';
 
 // Re-export all functions from the gadget utility modules, except testGadgetConnection
-export * from './gadget/config';
 export * from './gadget/validation';
 export * from './gadget/urls';
 export * from './gadget/auth';

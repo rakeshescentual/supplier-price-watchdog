@@ -12,21 +12,27 @@ const mockShopifyContext: ShopifyContext = {
 /**
  * Test a Shopify connection 
  */
-export const testShopifyStoreConnection = async () => {
+export const testShopifyStoreConnection = async (): Promise<ShopifyConnectionResult> => {
   try {
-    const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
+    const result = await checkShopifyConnection(mockShopifyContext);
     
-    if (result.success) {
+    // Handle both boolean and object results
+    const success = typeof result === 'boolean' ? result : result.success;
+    const message = typeof result === 'boolean' 
+      ? (result ? 'Connected successfully' : 'Connection failed')
+      : (result.message || '');
+    
+    if (success) {
       toast.success('Shopify connection successful', {
         description: `Connected to ${mockShopifyContext.shop}`
       });
     } else {
       toast.error('Shopify connection failed', {
-        description: result.message
+        description: message
       });
     }
     
-    return result;
+    return typeof result === 'boolean' ? { success } : result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     

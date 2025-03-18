@@ -23,12 +23,18 @@ export const useShopifySync = () => {
     
     try {
       const result = await syncWithShopify(mockShopifyContext, prices);
+      
+      // Handle both boolean and object returns
+      const success = typeof result === 'boolean' ? result : result.success;
+      const message = typeof result === 'boolean' ? (result ? 'Success' : 'Failed') : (result.message || '');
+      
       setLastSyncResult({
-        success: result.success,
-        message: result.message || '',
+        success,
+        message,
         timestamp: new Date()
       });
-      return result.success;
+      
+      return success;
     } catch (error) {
       setLastSyncResult({
         success: false,
@@ -48,7 +54,7 @@ export const useShopifySync = () => {
   return {
     isSyncing,
     lastSyncResult,
-    syncPrices,
+    syncToShopify: syncPrices, // Rename to match expected name
     batchSync
   };
 };

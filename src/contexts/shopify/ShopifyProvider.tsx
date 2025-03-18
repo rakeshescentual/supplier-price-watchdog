@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ShopifyContext as ShopifyContextType } from '@/types/price';
@@ -48,18 +49,8 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     ensureCompatibility();
   }, []);
   
-  const { 
-    isShopifyConnected, 
-    isShopifyHealthy, 
-    lastConnectionCheck, 
-    connectionCheckInterval,
-    connectToShopify, 
-    disconnectShopify,
-    loadShopifyData,
-    batchProcessShopifyItems
-  } = useShopifyConnection(shopifyContext, setShopifyContext);
-  
-  const { isSyncing, syncToShopify } = useShopifySync(shopifyContext, isShopifyHealthy);
+  const shopifyConnection = useShopifyConnection();
+  const { isSyncing, syncToShopify } = useShopifySync();
   
   // Import these modules using dynamic imports instead of require
   useEffect(() => {
@@ -75,24 +66,24 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     });
     
     return () => {
-      if (connectionCheckInterval) {
-        clearInterval(connectionCheckInterval);
+      if (shopifyConnection.connectionCheckInterval) {
+        clearInterval(shopifyConnection.connectionCheckInterval);
       }
     };
-  }, [connectionCheckInterval]);
+  }, [shopifyConnection.connectionCheckInterval]);
 
   const value: ShopifyProviderContextType = {
     shopifyContext,
-    isShopifyConnected,
-    isShopifyHealthy,
-    lastConnectionCheck,
+    isShopifyConnected: shopifyConnection.isShopifyConnected,
+    isShopifyHealthy: shopifyConnection.isShopifyHealthy,
+    lastConnectionCheck: shopifyConnection.lastConnectionCheck,
     isGadgetInitialized,
     isSyncing,
-    connectToShopify,
-    disconnectShopify,
+    connectToShopify: async () => false, // Not implemented yet
+    disconnectShopify: shopifyConnection.disconnectShopify,
     syncToShopify,
-    loadShopifyData,
-    batchProcessShopifyItems
+    loadShopifyData: shopifyConnection.loadShopifyData,
+    batchProcessShopifyItems: shopifyConnection.batchProcessShopifyItems
   };
 
   return (

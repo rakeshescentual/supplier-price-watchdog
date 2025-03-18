@@ -7,7 +7,7 @@ import {
   checkGadgetHealth,
   isHealthy
 } from '@/lib/gadgetApi';
-import { getGadgetConfig } from '@/utils/gadget';
+import { getGadgetConfig } from '@/utils/gadget/config';
 import { GadgetConfig } from '@/types/price';
 
 export function useGadgetIntegration() {

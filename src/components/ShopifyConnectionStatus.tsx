@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
@@ -21,16 +22,17 @@ export function ShopifyConnectionStatus() {
     const checkConnection = async () => {
       try {
         setIsLoading(true);
-        const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
+        const result = await checkShopifyConnection(mockShopifyContext);
         
-        if (result.success) {
+        // Handle both boolean and object returns
+        if (typeof result === 'boolean') {
+          setIsConnected(result);
+          setStatus(result ? 'connected' : 'error');
+          setStatusMessage(result ? 'Connected' : 'Connection failed');
+        } else {
           setIsConnected(result.success);
           setStatus(result.success ? 'connected' : 'error');
           setStatusMessage(result.message || 'Connection checked');
-        } else {
-          setIsConnected(false);
-          setStatus('error');
-          setStatusMessage('Invalid response from server');
         }
       } catch (error) {
         setIsConnected(false);

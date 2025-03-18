@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { saveFileToShopify } from '@/lib/shopify';
@@ -64,10 +65,11 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     try {
       const result = await saveFileToShopify(mockShopifyContext, file);
       
-      if (result && result.success) {
+      // Handle both ShopifyFileUploadResult and string returns
+      if (typeof result === 'string') {
         setState(prev => ({ 
           ...prev, 
-          fileUrl: result.fileUrl || null,
+          fileUrl: result,
           uploadComplete: true,
           progress: 100 
         }));
@@ -75,8 +77,23 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
         toast({
           description: "File saved to Shopify successfully.",
         });
+      } else if (result && typeof result === 'object') {
+        if (result.success) {
+          setState(prev => ({ 
+            ...prev, 
+            fileUrl: result.fileUrl || null,
+            uploadComplete: true,
+            progress: 100 
+          }));
+          
+          toast({
+            description: "File saved to Shopify successfully.",
+          });
+        } else {
+          throw new Error(result.message || 'Upload failed');
+        }
       } else {
-        throw new Error(result?.message || 'Upload failed');
+        throw new Error('Invalid upload result');
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown upload error');
@@ -100,17 +117,18 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     }
   }, [onFileAccepted]);
 
+  const handleShare = useCallback(() => {
+    toast({
+      description: "Share functionality is not implemented yet.",
+    });
+  }, []);
+
   return {
     state,
     actions: {
       handleDrop,
       setIsDragging: (isDragging: boolean) => setState(prev => ({ ...prev, isDragging })),
-      handleShare: () => {
-        toast({
-          title: "Share",
-          description: "Share functionality is not implemented yet.",
-        });
-      },
+      handleShare,
       handleUpload
     },
     shopify: {
@@ -119,4 +137,3 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     }
   };
 }
-

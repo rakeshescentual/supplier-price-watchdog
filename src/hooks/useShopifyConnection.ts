@@ -14,14 +14,21 @@ export const useShopifyConnection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const testConnection = useCallback(async () => {
+  const testConnection = useCallback(async (): Promise<ShopifyConnectionResult> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const result: ShopifyConnectionResult = await checkShopifyConnection(mockShopifyContext);
-      setIsConnected(result.success);
-      return result;
+      const result = await checkShopifyConnection(mockShopifyContext);
+      
+      // Handle both boolean and object results
+      if (typeof result === 'boolean') {
+        setIsConnected(result);
+        return { success: result };
+      } else {
+        setIsConnected(result.success);
+        return result;
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown connection error');
       setError(error);

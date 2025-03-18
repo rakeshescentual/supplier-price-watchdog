@@ -7,6 +7,7 @@ export * from './status';
 
 // Re-export with unique name
 export { testGadgetConnection as validateGadgetConnection } from './config';
+export { getGadgetConfig } from './config';
 
 // Export integrated functionality from lib/gadget
 export * from '@/lib/gadget/processing';

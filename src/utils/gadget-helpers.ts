@@ -18,5 +18,5 @@ export * from './gadget/status';
 
 // Be explicit about what we re-export to avoid ambiguity
 export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './gadget/config';
-// Export only specific connection test to avoid ambiguity
-export { testGadgetConnection as testGadgetConnectionUtility } from './gadget/connection';
+// Fixed: Renamed export to avoid duplicate export error
+export { testGadgetConnection as testGadgetConnectionUtil } from './gadget/connection';

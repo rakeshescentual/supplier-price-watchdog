@@ -2,14 +2,15 @@
 // Re-export functionality from the Shopify module
 export { 
   checkShopifyConnection,
-  getShopifyProducts,
   syncWithShopify,
-  saveFileToShopify,
-  batchShopifyOperations,
-  getShopifySyncHistory
+  saveFileToShopify
 } from './shopify';
 
-// We don't export initializeShopifyApp, so let's add it
+// Re-export from specific shopify modules for better organization
+export { batchShopifyOperations } from './shopify/batch';
+export { getShopifyProducts, getShopifySyncHistory } from './shopify/products';
+
+// Export shopify app initialization function
 export const initializeShopifyApp = () => {
   console.log("Initializing Shopify app...");
   return true;

@@ -14,6 +14,7 @@ export const useShopifyBatch = (shopifyContext: ShopifyContextType | null) => {
     }
     
     try {
+      // Fix: Correct argument usage for batchShopifyOperations
       return await batchShopifyOperations(shopifyContext, items, processFn, options);
     } catch (error) {
       console.error("Error during batch processing:", error);

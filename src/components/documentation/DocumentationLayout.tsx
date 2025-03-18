@@ -37,21 +37,25 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
           showSearch={showSearch}
         />
         
-        <DocumentationTabs 
-          showSearch={showSearch} 
-          quickRefOpen={quickRefOpen}
-          onQuickRefClose={() => setQuickRefOpen(false)}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        
-        <DocumentationGrid 
-          activeTab={activeTab}
-          content={getContent()}
-          activeSection={activeSection}
-          onSectionClick={handleSectionClick}
-          faqItems={faqItems}
-        />
+        {!children && (
+          <>
+            <DocumentationTabs 
+              showSearch={showSearch} 
+              quickRefOpen={quickRefOpen}
+              onQuickRefClose={() => setQuickRefOpen(false)}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+            
+            <DocumentationGrid 
+              activeTab={activeTab}
+              content={getContent()}
+              activeSection={activeSection}
+              onSectionClick={handleSectionClick}
+              faqItems={faqItems}
+            />
+          </>
+        )}
         
         {children}
       </div>

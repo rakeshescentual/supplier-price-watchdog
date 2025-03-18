@@ -1,12 +1,16 @@
 
-// This file re-exports all Shopify API functions from the new structure
-// for backwards compatibility
-export {
-  initializeShopifyApp,
+// Re-export functionality from the Shopify module
+export { 
   checkShopifyConnection,
-  getShopifySyncHistory,
   getShopifyProducts,
   syncWithShopify,
   saveFileToShopify,
-  batchShopifyOperations
+  batchShopifyOperations,
+  getShopifySyncHistory
 } from './shopify';
+
+// Export Gadget integration functions
+export { 
+  initGadgetClient, 
+  syncToShopifyViaGadget 
+} from './gadgetApi';

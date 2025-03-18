@@ -18,7 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RefreshCw, Server, Shield } from "lucide-react";
 import { GadgetConfig } from "@/utils/gadget/types";
-import { getGadgetConfig, saveGadgetConfig, testGadgetConnection } from "@/utils/gadget/config";
+import { getGadgetConfig, saveGadgetConfig } from "@/utils/gadget/config";
+import { testGadgetConnection } from "@/utils/gadget/connection";
 
 // Schema for the form
 const gadgetConfigSchema = z.object({
@@ -32,7 +33,8 @@ const gadgetConfigSchema = z.object({
   featureFlags: z.object({
     enableAdvancedAnalytics: z.boolean().default(false),
     enablePdfProcessing: z.boolean().default(false),
-    enableMarketData: z.boolean().default(false),
+    enableBackgroundJobs: z.boolean().default(false),
+    enableShopifySync: z.boolean().default(false),
   }),
 });
 
@@ -53,7 +55,8 @@ export function GadgetConfigForm() {
       featureFlags: {
         enableAdvancedAnalytics: existingConfig?.featureFlags?.enableAdvancedAnalytics || false,
         enablePdfProcessing: existingConfig?.featureFlags?.enablePdfProcessing || false,
-        enableMarketData: existingConfig?.featureFlags?.enableMarketData || false,
+        enableBackgroundJobs: existingConfig?.featureFlags?.enableBackgroundJobs || false,
+        enableShopifySync: existingConfig?.featureFlags?.enableShopifySync || false,
       },
     },
   });
@@ -74,7 +77,7 @@ export function GadgetConfigForm() {
       saveGadgetConfig(config);
       
       // Test the connection
-      const result = await testGadgetConnection(config);
+      const result = await testGadgetConnection();
       
       if (result.success) {
         toast.success('Connection successful', {
@@ -108,7 +111,10 @@ export function GadgetConfigForm() {
         featureFlags: values.featureFlags
       };
       
-      const result = await testGadgetConnection(config);
+      // Save config before testing
+      saveGadgetConfig(config);
+      
+      const result = await testGadgetConnection();
       
       if (result.success) {
         toast.success('Connection successful', {
@@ -265,13 +271,34 @@ export function GadgetConfigForm() {
                   
                   <FormField
                     control={form.control}
-                    name="featureFlags.enableMarketData"
+                    name="featureFlags.enableBackgroundJobs"
                     render={({ field }) => (
                       <FormItem className="flex justify-between items-center">
                         <div>
-                          <FormLabel className="text-base">Market Data</FormLabel>
+                          <FormLabel className="text-base">Background Jobs</FormLabel>
                           <FormDescription>
-                            Enable competitor and market trend data analysis
+                            Enable background processing tasks
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="featureFlags.enableShopifySync"
+                    render={({ field }) => (
+                      <FormItem className="flex justify-between items-center">
+                        <div>
+                          <FormLabel className="text-base">Shopify Sync</FormLabel>
+                          <FormDescription>
+                            Enable Shopify data synchronization
                           </FormDescription>
                         </div>
                         <FormControl>

@@ -15,3 +15,6 @@ export * from './gadget/connection';
 export * from './gadget/initialization';
 export * from './gadget/features';
 export * from './gadget/status';
+
+// Be explicit about what we re-export to avoid ambiguity
+export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './gadget/config';

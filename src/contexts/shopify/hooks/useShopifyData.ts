@@ -1,7 +1,6 @@
 
 import { useCallback } from 'react';
 import type { ShopifyContext as ShopifyContextType, PriceItem } from '@/types/price';
-import { getShopifyProducts } from '@/lib/shopifyApi';
 
 export const useShopifyData = (shopifyContext: ShopifyContextType | null) => {
   const loadShopifyData = useCallback(async (): Promise<PriceItem[]> => {
@@ -10,7 +9,9 @@ export const useShopifyData = (shopifyContext: ShopifyContextType | null) => {
     }
     
     try {
-      return await getShopifyProducts(shopifyContext);
+      // Import the function directly to avoid circular dependencies
+      const { getShopifyProducts } = await import('@/lib/shopifyApi');
+      return await getShopifyProducts();
     } catch (error) {
       console.error("Error loading Shopify data:", error);
       throw error;

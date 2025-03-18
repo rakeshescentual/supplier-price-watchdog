@@ -1,5 +1,19 @@
-
 export const changelogData = [
+  {
+    version: "3.6.0",
+    date: "July 15, 2024",
+    title: "Advanced Gadget.dev Integration Capabilities",
+    type: "feature" as const,
+    description: "This release expands Gadget.dev integration with enhanced modularity, advanced PDF processing, and comprehensive documentation.",
+    details: [
+      "Modular architecture with specialized modules for client, batch, and sync operations",
+      "Advanced PDF processing for complex supplier price lists",
+      "Intelligent fallbacks when Gadget services are unavailable",
+      "Enhanced error handling and telemetry for Gadget operations",
+      "Comprehensive documentation on Gadget integration patterns"
+    ],
+    technicalNotes: "The Gadget.dev integration now follows a modular design with specialized components handling different aspects of the integration. Added support for feature flags to toggle specific Gadget features, improved error handling with detailed logging, and enhanced performance tracking. Documentation has been expanded to provide clear implementation patterns."
+  },
   {
     version: "3.5.2",
     date: "June 30, 2024",

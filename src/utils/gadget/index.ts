@@ -1,33 +1,24 @@
 
 /**
- * Gadget utility functions index
- * Re-exports all gadget utility functions from their respective modules
+ * Gadget.dev integration utilities
+ * 
+ * This module provides integration with Gadget.dev for enhanced data processing,
+ * Shopify synchronization, and other functionality.
  */
 
-// Configuration management
-export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './config';
+// Re-export all submodules
+export * from './config';
+export * from './validation';
+export * from './urls';
+export * from './auth';
+export * from './connection';
+export * from './initialization';
+export * from './features';
+export * from './status';
 
-// Validation utilities
-export { validateGadgetConfig } from './validation';
+// Constants
+export const GADGET_VERSION = '1.2.0';
+export const GADGET_API_VERSION = '2023-09';
 
-// URL generation
-export { getGadgetApiUrl } from './urls';
-
-// Authentication
-export { createGadgetHeaders, prepareGadgetRequest } from './auth';
-
-// Connection testing
-export { testGadgetConnection } from './connection';
-
-// Initialization
-export { initializeGadgetIntegration } from './initialization';
-
-// Feature flags
-export { 
-  isGadgetFeatureEnabled,
-  areAllFeaturesEnabled,
-  getEnabledFeatures
-} from './features';
-
-// Status checks
-export { checkGadgetReadiness, checkGadgetConnectionHealth } from './status';
+// Export type definitions
+export type { GadgetConfig } from '@/types/price';

@@ -133,7 +133,7 @@ export const getGadgetStatusSummary = async (): Promise<{
         services: {
           processing: { status: 'ready', message: 'Service operational' },
           storage: { status: 'ready', message: 'Service operational' },
-          shopify: { status: 'ready', message: 'Integration operational' }
+          shopify: { status: 'ready', message: 'Service operational' }
         },
         timestamp: new Date().toISOString()
       }
@@ -182,5 +182,56 @@ export const getServiceHealth = async (): Promise<Record<string, 'healthy' | 'de
     processing: mapStatusToHealth(status.details.services.processing.status),
     storage: mapStatusToHealth(status.details.services.storage.status),
     shopify: mapStatusToHealth(status.details.services.shopify.status)
+  };
+};
+
+// Additional utility functions for GadgetHealthMonitor and GadgetHealthSummary components
+export const checkGadgetConnectionHealth = async (): Promise<boolean> => {
+  const status = await checkGadgetStatus();
+  return status.status === 'ready';
+};
+
+export const getDetailedGadgetStatus = async () => {
+  const summary = await getGadgetStatusSummary();
+  
+  return {
+    healthy: summary.status === 'ready',
+    components: {
+      api: { status: summary.details.api.status === 'ready' ? 'healthy' : summary.details.api.status === 'degraded' ? 'degraded' : 'down' },
+      database: { status: summary.details.services.storage.status === 'ready' ? 'healthy' : 'degraded' },
+      storage: { status: summary.details.services.storage.status === 'ready' ? 'healthy' : 'degraded' },
+      processing: { status: summary.details.services.processing.status === 'ready' ? 'healthy' : 'degraded' }
+    },
+    latency: summary.details.api.latency,
+    version: '1.3.0' // Example version
+  };
+};
+
+export const checkGadgetReadiness = () => {
+  const config = getGadgetConfig();
+  
+  if (!config) {
+    return {
+      ready: false,
+      reason: 'configuration_missing'
+    };
+  }
+  
+  if (!config.apiKey) {
+    return {
+      ready: false,
+      reason: 'api_key_missing'
+    };
+  }
+  
+  if (!config.appId) {
+    return {
+      ready: false,
+      reason: 'app_id_missing'
+    };
+  }
+  
+  return {
+    ready: true
   };
 };

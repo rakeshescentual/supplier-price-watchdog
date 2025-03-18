@@ -18,9 +18,10 @@ export const initializeShopifyIntegration = async (shopDomain?: string, accessTo
   const { initializeShopifyApp } = await import('./init');
   const { checkShopifyConnection } = await import('./connection');
   
-  // Initialize without parameters, as they'll be passed to checkShopifyConnection
+  // Initialize Shopify app without parameters first
   const initialized = await initializeShopifyApp();
   
+  // Check if initialization returned false (not just undefined or truthy)
   if (initialized === false) {
     console.warn('Failed to initialize Shopify integration');
     return { initialized: false };

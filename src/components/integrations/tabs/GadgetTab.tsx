@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Check, Cog, Database, Mail, ShoppingBag, Webhook } from "lucide-react";
-import GadgetConfigForm from "@/components/GadgetConfigForm";
+import { GadgetConfigForm } from "@/components/GadgetConfigForm";
 
 export const GadgetTab: React.FC = () => {
   const [gadgetTab, setGadgetTab] = useState("config");

@@ -93,11 +93,7 @@ export function GadgetConfigForm() {
       saveGadgetConfig(values);
       
       // Test the connection
-      const result = await testGadgetConnection({
-        apiKey: values.apiKey,
-        appId: values.appId,
-        environment: values.environment
-      });
+      const result = await testGadgetConnection();
       
       if (result.success) {
         toast.success('Connection successful', {
@@ -359,3 +355,5 @@ export function GadgetConfigForm() {
     </Card>
   );
 }
+
+export default GadgetConfigForm;

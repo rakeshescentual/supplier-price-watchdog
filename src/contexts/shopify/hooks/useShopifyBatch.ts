@@ -1,9 +1,9 @@
 
 import { useCallback } from 'react';
-import type { ShopifyContext as ShopifyContextType } from '@/types/price';
+import type { ShopifyContext } from '@/types/price';
 import { batchShopifyOperations } from '@/lib/shopifyApi';
 
-export const useShopifyBatch = (shopifyContext: ShopifyContextType | null) => {
+export const useShopifyBatch = (shopifyContext: ShopifyContext | null) => {
   const batchProcessShopifyItems = useCallback(async <T, R>(
     items: T[],
     processFn: (item: T) => Promise<R>,
@@ -13,13 +13,7 @@ export const useShopifyBatch = (shopifyContext: ShopifyContextType | null) => {
       throw new Error("Shopify connection required");
     }
     
-    try {
-      // Fix: Correct argument usage for batchShopifyOperations
-      return await batchShopifyOperations(shopifyContext, items, processFn, options);
-    } catch (error) {
-      console.error("Error during batch processing:", error);
-      throw error;
-    }
+    return batchShopifyOperations(items, processFn, options);
   }, [shopifyContext]);
   
   return { batchProcessShopifyItems };

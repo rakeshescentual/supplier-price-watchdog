@@ -3,7 +3,6 @@ import { ShopifyContext } from '@/types/price';
 
 // Batch operations for better performance
 export const batchShopifyOperations = async <T, R>(
-  shopifyContext: ShopifyContext,
   items: T[],
   operationFn: (item: T) => Promise<R>,
   options = { batchSize: 10, concurrency: 1 }

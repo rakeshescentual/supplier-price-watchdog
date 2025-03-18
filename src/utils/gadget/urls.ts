@@ -1,16 +1,17 @@
 
 /**
- * URL generation utilities for Gadget.dev API
+ * URL utilities for Gadget API
  */
-import { GadgetConfig } from '@/types/price';
+import { GadgetConfig } from './types';
 
 /**
- * Generate Gadget API base URL
+ * Get the base URL for Gadget API
  */
 export function getGadgetApiUrl(config: GadgetConfig): string {
   const { appId, environment } = config;
-  // In production environments, Gadget uses a different URL structure
-  return environment === 'production' 
-    ? `https://${appId}.gadget.app/api/` 
-    : `https://${appId}--development.gadget.app/api/`;
+  const baseUrl = environment === 'production'
+    ? `https://${appId}.gadget.app/api/`
+    : `https://${appId}.development.gadget.app/api/`;
+  
+  return baseUrl;
 }

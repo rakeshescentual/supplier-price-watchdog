@@ -11,7 +11,7 @@ import { GadgetHealth } from "@/utils/gadget/types";
 export function GadgetHealthMonitor() {
   const { toast } = useToast();
   const [status, setStatus] = useState<GadgetHealth>({
-    healthy: false,
+    status: 'down',
     components: {
       api: { status: 'down' },
       database: { status: 'down' },
@@ -36,7 +36,7 @@ export function GadgetHealthMonitor() {
         const detailedStatus = await getDetailedGadgetStatus();
         setStatus(detailedStatus);
         
-        if (detailedStatus.healthy) {
+        if (detailedStatus.status === 'healthy') {
           toast({
             title: "Gadget services are operational",
             description: "All components are running normally.",
@@ -45,7 +45,6 @@ export function GadgetHealthMonitor() {
           toast({
             title: "Some Gadget services are degraded",
             description: "Check the component details for more information.",
-            variant: "warning",
           });
         }
       }
@@ -153,13 +152,13 @@ export function GadgetHealthMonitor() {
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            {status.healthy ? (
+            {status.status === 'healthy' ? (
               <CheckCircle className="h-5 w-5 text-green-500" />
             ) : (
               <AlertTriangle className="h-5 w-5 text-amber-500" />
             )}
             <span className="font-medium">
-              {status.healthy ? "All systems operational" : "System issues detected"}
+              {status.status === 'healthy' ? "All systems operational" : "System issues detected"}
             </span>
           </div>
           <Button

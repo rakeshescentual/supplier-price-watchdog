@@ -1,7 +1,8 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { getGadgetConfig, testGadgetConnection } from "@/utils/gadget/config";
+import { getGadgetConfig } from "@/utils/gadget/config";
+import { testGadgetConnection } from "@/utils/gadget/config";
 import { checkGadgetStatus, getGadgetStatusSummary } from "@/utils/gadget/status";
 import { GadgetConfig, GadgetStatusResponse } from "@/utils/gadget/types";
 
@@ -11,7 +12,7 @@ interface GadgetContextValue {
   isChecking: boolean;
   lastChecked: Date | null;
   serviceStatus: GadgetStatusResponse | null;
-  checkConnection: () => Promise<boolean>;
+  checkConnection: (silent?: boolean) => Promise<boolean>;
   refreshStatus: () => Promise<void>;
   config: GadgetConfig | null;
 }

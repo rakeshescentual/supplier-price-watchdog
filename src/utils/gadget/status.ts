@@ -188,7 +188,7 @@ export const getDetailedGadgetStatus = async (): Promise<GadgetHealth> => {
   const summary = await getGadgetStatusSummary();
   
   return {
-    healthy: summary.status === 'ready',
+    status: summary.status === 'ready' ? 'healthy' : summary.status === 'degraded' ? 'degraded' : 'down',
     components: {
       api: { status: summary.details.api.status === 'ready' ? 'healthy' : summary.details.api.status === 'degraded' ? 'degraded' : 'down' },
       database: { status: summary.details.services.storage.status === 'ready' ? 'healthy' : 'degraded' },

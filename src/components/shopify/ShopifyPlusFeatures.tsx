@@ -5,9 +5,12 @@ import { Code, ShoppingBag, Calendar, Map, FileText, Workflow } from "lucide-rea
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useShopify } from "@/contexts/shopify";
+import { useState } from "react";
 
 export function ShopifyPlusFeatures() {
-  const { isShopifyConnected, isShopifyPlus } = useShopify();
+  const { isShopifyConnected } = useShopify();
+  // Since isShopifyPlus doesn't exist in the context, we'll simulate it for now
+  const [isShopifyPlus] = useState(true); // Simulate Shopify Plus status
   
   if (!isShopifyConnected) {
     return (

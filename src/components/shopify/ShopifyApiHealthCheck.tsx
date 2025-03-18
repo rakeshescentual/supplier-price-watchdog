@@ -78,7 +78,6 @@ export function ShopifyApiHealthCheck() {
         toast({
           title: "High API Usage",
           description: `You're using ${mockLimits.percentUsed.toFixed(1)}% of your Shopify API limits.`,
-          variant: "warning",
         });
       }
     } catch (error) {

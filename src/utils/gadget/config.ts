@@ -3,8 +3,10 @@
  * Configuration management utilities for Gadget.dev integration
  */
 import { toast } from 'sonner';
-import { GadgetConfig } from '@/types/price';
+import { GadgetConfig, GadgetConnectionTestResult } from '@/utils/gadget/types';
 import { loadConnectionContext, saveConnectionContext } from '../connection-helpers';
+import { getGadgetApiUrl } from './urls';
+import { createGadgetHeaders } from './auth';
 
 /**
  * Safely fetches and parses the Gadget configuration
@@ -57,5 +59,60 @@ export function clearGadgetConfig(): void {
     toast.error("Clear error", {
       description: "Could not clear your Gadget configuration."
     });
+  }
+}
+
+/**
+ * Test connection to Gadget API
+ */
+export async function testGadgetConnection(config?: GadgetConfig): Promise<GadgetConnectionTestResult> {
+  try {
+    const effectiveConfig = config || getGadgetConfig();
+    
+    if (!effectiveConfig) {
+      return {
+        success: false,
+        message: "Gadget configuration not found"
+      };
+    }
+    
+    const statusUrl = `${getGadgetApiUrl(effectiveConfig)}status`;
+    
+    const response = await fetch(statusUrl, {
+      method: 'GET',
+      headers: createGadgetHeaders(effectiveConfig)
+    });
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        message: `HTTP Error: ${response.status} ${response.statusText}`
+      };
+    }
+    
+    const data = await response.json();
+    
+    if (data.ready === true) {
+      return {
+        success: true,
+        message: "Connected to Gadget successfully",
+        details: {
+          apiVersion: data.version || "unknown",
+          environment: effectiveConfig.environment
+        }
+      };
+    }
+    
+    return {
+      success: false,
+      message: data.message || "Gadget service not ready",
+      details: data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error connecting to Gadget",
+      details: { error }
+    };
   }
 }

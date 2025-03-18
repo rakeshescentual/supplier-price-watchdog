@@ -80,8 +80,10 @@ export const DocumentationContent: React.FC<DocumentationContentProps> = ({
         <div className="prose prose-sm lg:prose-base max-w-none dark:prose-invert">
           <ReactMarkdown components={{
             // Custom component for code blocks
-            code: ({ node, inline, className, children, ...props }) => {
-              if (inline) {
+            code: ({ node, className, children, ...props }) => {
+              const isInline = !props.className;
+              
+              if (isInline) {
                 return <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>{children}</code>;
               }
               

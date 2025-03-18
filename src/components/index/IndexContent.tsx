@@ -10,6 +10,7 @@ import { HowItWorks } from "./HowItWorks";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { toast } from "sonner";
 import { GadgetStatusBar } from "@/components/gadget/GadgetStatusBar";
+import { GadgetHealthSummary } from "@/components/gadget/GadgetHealthSummary";
 
 export const IndexContent = () => {
   const { 
@@ -55,8 +56,13 @@ export const IndexContent = () => {
       <div className="container mx-auto px-4 py-8 space-y-8">
         <Header />
 
-        <div className="max-w-2xl mx-auto">
-          <FileUpload onFileAccepted={handleFileAcceptedWithToast} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <FileUpload onFileAccepted={handleFileAcceptedWithToast} />
+          </div>
+          <div className="md:col-span-1">
+            {isGadgetInitialized && <GadgetHealthSummary />}
+          </div>
         </div>
 
         {isProcessing && (
@@ -77,4 +83,4 @@ export const IndexContent = () => {
       </div>
     </div>
   );
-};
+}

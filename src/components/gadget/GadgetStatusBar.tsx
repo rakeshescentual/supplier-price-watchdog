@@ -3,14 +3,30 @@ import React, { useEffect, useState } from 'react';
 import { useGadgetConnection } from '@/hooks/useGadgetConnection';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Settings, AlertTriangle, CheckCircle } from 'lucide-react';
+import { 
+  RefreshCw, 
+  Settings, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock,
+  Server
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
 
 export function GadgetStatusBar() {
-  const { isConfigured, healthStatus, fetchHealthStatus, lastChecked } = useGadgetConnection();
+  const { 
+    isConfigured, 
+    healthStatus, 
+    fetchHealthStatus, 
+    lastChecked,
+    detailedStatus
+  } = useGadgetConnection();
   const [isChecking, setIsChecking] = useState(false);
   
   const isHealthy = healthStatus === 'healthy';
+  const isDegraded = healthStatus === 'degraded';
   
   const handleCheckHealth = async () => {
     setIsChecking(true);
@@ -31,7 +47,7 @@ export function GadgetStatusBar() {
   
   // Format last checked time
   const formattedLastChecked = lastChecked 
-    ? new Date(lastChecked).toLocaleTimeString()
+    ? formatDistanceToNow(lastChecked, { addSuffix: true })
     : 'Never';
   
   if (!isConfigured) {
@@ -53,21 +69,65 @@ export function GadgetStatusBar() {
   
   return (
     <div className={`flex items-center justify-between py-2 px-3 border-b text-sm ${
-      isHealthy ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
+      isHealthy ? 'bg-green-50 border-green-100 text-green-700' : 
+      isDegraded ? 'bg-amber-50 border-amber-100 text-amber-700' :
+      'bg-red-50 border-red-100 text-red-700'
     }`}>
       <div className="flex items-center">
         {isHealthy ? (
           <CheckCircle className="w-4 h-4 mr-2" />
+        ) : isDegraded ? (
+          <AlertTriangle className="w-4 h-4 mr-2" />
         ) : (
           <AlertTriangle className="w-4 h-4 mr-2" />
         )}
         <span>Gadget.dev</span>
-        <Badge variant={isHealthy ? "success" : "destructive"} className="ml-2">
-          {isHealthy ? 'Connected' : 'Issue Detected'}
+        <Badge variant={isHealthy ? "success" : isDegraded ? "warning" : "destructive"} className="ml-2">
+          {isHealthy ? 'Connected' : isDegraded ? 'Degraded' : 'Issue Detected'}
         </Badge>
-        <span className="ml-3 text-xs opacity-75">
-          Last checked: {formattedLastChecked}
-        </span>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="ml-3 text-xs flex items-center cursor-help">
+                <Clock className="w-3 h-3 mr-1" />
+                {formattedLastChecked}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Last health check: {lastChecked?.toLocaleString() || 'Never'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        {detailedStatus && detailedStatus.services && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="ml-3">
+                  <Server className="w-3 h-3 cursor-help" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <p className="font-medium mb-1">Service Status:</p>
+                  <ul>
+                    {Object.entries(detailedStatus.services).map(([service, status]) => (
+                      <li key={service} className="flex items-center">
+                        {status ? (
+                          <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                        ) : (
+                          <AlertTriangle className="w-3 h-3 mr-1 text-amber-500" />
+                        )}
+                        {service}: {status ? 'OK' : 'Issue'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <Button 
         variant="outline" 

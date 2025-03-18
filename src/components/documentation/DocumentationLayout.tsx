@@ -27,10 +27,10 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
   };
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       {isInitialized && <GadgetStatusBar />}
       
-      <div className="container mx-auto py-8 px-4 flex-1">
+      <div className="container mx-auto py-6 md:py-8 px-4 flex-1">
         <DocumentationHeader 
           onToggleSearch={() => setShowSearch(!showSearch)} 
           onToggleQuickRef={() => setQuickRefOpen(!quickRefOpen)}
@@ -38,7 +38,7 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
         />
         
         {!children && (
-          <>
+          <div className="animate-fade-in">
             <DocumentationTabs 
               showSearch={showSearch} 
               quickRefOpen={quickRefOpen}
@@ -54,10 +54,14 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
               onSectionClick={handleSectionClick}
               faqItems={faqItems}
             />
-          </>
+          </div>
         )}
         
-        {children}
+        {children && (
+          <div className="animate-fade-in mt-4">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

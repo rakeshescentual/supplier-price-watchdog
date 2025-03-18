@@ -48,20 +48,20 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
   if (tocItems.length === 0) return null;
   
   return (
-    <div className="rounded-md border p-4">
-      <h3 className="text-sm font-medium mb-3">Table of Contents</h3>
-      <ScrollArea className="h-[calc(100vh-300px)]">
+    <div className="p-4">
+      <h3 className="text-sm font-medium mb-3 px-2">Table of Contents</h3>
+      <ScrollArea className="h-[calc(100vh-280px)]">
         <div className="space-y-1">
           {tocItems.map(item => (
             <button
               key={item.id}
               className={cn(
-                'w-full text-left text-sm transition-colors hover:text-primary px-2 py-1 rounded-sm block',
+                'w-full text-left text-sm transition-colors hover:text-primary px-2 py-1.5 rounded-md block',
                 {
                   'pl-4': item.level === 2,
                   'pl-6': item.level === 3,
-                  'bg-muted font-medium': activeSection === item.id,
-                  'text-muted-foreground': activeSection !== item.id,
+                  'bg-accent font-medium': activeSection === item.id,
+                  'text-muted-foreground hover:text-foreground': activeSection !== item.id,
                 }
               )}
               onClick={() => onSectionClick(item.id)}

@@ -13,9 +13,9 @@ const ChangelogPage = () => {
   
   return (
     <DocumentationLayout>
-      <div className="mt-8">
-        <h1 className="text-3xl font-bold mb-6">Version History & Changelog</h1>
-        <p className="text-muted-foreground mb-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Version History & Changelog</h1>
+        <p className="text-muted-foreground mb-6">
           View the complete history of Supplier Price Watch versions and updates, including features, improvements, and bug fixes.
         </p>
         <Changelog />

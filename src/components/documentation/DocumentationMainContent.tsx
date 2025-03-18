@@ -20,19 +20,21 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
   faqItems
 }) => {
   return (
-    <div className="lg:col-span-3">
-      <ScrollArea className="h-[calc(100vh-250px)]">
-        <DocumentationContent 
-          content={content}
-          type={activeTab as 'technical' | 'gadget'}
-        />
-        
-        {activeTab === "gadget" && (
-          <>
-            <Separator className="my-8" />
-            <DocumentationFAQ items={faqItems} />
-          </>
-        )}
+    <div>
+      <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+        <div className="max-w-3xl mx-auto">
+          <DocumentationContent 
+            content={content}
+            type={activeTab as 'technical' | 'gadget'}
+          />
+          
+          {activeTab === "gadget" && (
+            <>
+              <Separator className="my-8" />
+              <DocumentationFAQ items={faqItems} />
+            </>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );

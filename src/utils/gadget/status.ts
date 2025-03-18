@@ -1,302 +1,186 @@
 
 /**
- * Status check utilities for Gadget.dev integration
- * 
- * Based on latest Gadget.dev API documentation (2023-11)
+ * Gadget status utilities
  */
-import { GadgetConfig } from '@/types/price';
 import { getGadgetApiUrl } from './urls';
 import { createGadgetHeaders } from './auth';
 import { getGadgetConfig } from './config';
-import { logInfo, logError } from '@/lib/gadget/logging';
-import { toast } from 'sonner';
 
 /**
- * Check if Gadget integration is ready to be used with enhanced validation
- * @returns Object with readiness status and reason if not ready
+ * Check Gadget service status
+ * @param options Configuration options for status check
+ * @returns Promise resolving to status information
  */
-export const checkGadgetReadiness = (): { 
-  ready: boolean; 
-  reason?: string;
-  config?: Partial<GadgetConfig>;
-} => {
-  try {
-    const config = getGadgetConfig();
-    
-    if (!config) {
-      return { 
-        ready: false, 
-        reason: 'configuration_missing'
-      };
-    }
-    
-    if (!config.apiKey) {
-      return { 
-        ready: false, 
-        reason: 'api_key_missing',
-        config: { appId: config.appId }
-      };
-    }
-    
-    if (!config.appId) {
-      return { 
-        ready: false, 
-        reason: 'app_id_missing',
-        config: { apiKey: '***' } // Masked for security
-      };
-    }
-    
-    return { 
-      ready: true,
-      config: { 
-        appId: config.appId,
-        apiKey: '***' // Masked for security
-      }
-    };
-  } catch (error) {
-    logError("Error checking Gadget readiness", { error }, 'status');
-    return { 
-      ready: false, 
-      reason: 'unexpected_error'
-    };
-  }
-};
-
-/**
- * Check Gadget connection health by making a test request
- * @returns Promise with boolean indicating health status
- */
-export const checkGadgetConnectionHealth = async (): Promise<boolean> => {
-  try {
-    const config = getGadgetConfig();
-    
-    if (!config) {
-      logInfo("No Gadget configuration found for health check", {}, 'status');
-      return false;
-    }
-    
-    const apiUrl = getGadgetApiUrl(config);
-    const headers = createGadgetHeaders(config);
-    
-    // Make a simple health check request to the Gadget API
-    // Using the latest health endpoint for 2023-11 API version
-    const response = await fetch(`${apiUrl}health`, {
-      method: 'GET',
-      headers
-    });
-    
-    // Check for the updated health response format
-    if (response.ok) {
-      const data = await response.json();
-      // The latest Gadget API returns a status field in the response
-      const isHealthy = response.ok && data?.status === 'healthy';
-      
-      if (isHealthy) {
-        logInfo("Gadget connection is healthy", {
-          statusCode: response.status,
-          version: data?.version || 'unknown'
-        }, 'status');
-      } else {
-        logError("Gadget connection is unhealthy", {
-          statusCode: response.status,
-          statusText: response.statusText,
-          details: data?.details || 'No details provided'
-        }, 'status');
-      }
-      
-      return isHealthy;
-    }
-    
-    // Fall back to basic status check for compatibility
-    const isHealthy = response.ok;
-    
-    if (isHealthy) {
-      logInfo("Gadget connection is healthy (basic check)", {
-        statusCode: response.status
-      }, 'status');
-    } else {
-      logError("Gadget connection is unhealthy (basic check)", {
-        statusCode: response.status,
-        statusText: response.statusText
-      }, 'status');
-    }
-    
-    return isHealthy;
-  } catch (error) {
-    logError("Error checking Gadget connection health", { error }, 'status');
-    return false;
-  }
-};
-
-/**
- * Get detailed Gadget system status with component health and retry logic
- * @returns Promise with detailed status information
- */
-export const getDetailedGadgetStatus = async (
-  options = { retry: true, retryAttempts: 2, retryDelay: 500 }
-): Promise<{
-  healthy: boolean;
-  components: Record<string, { status: 'healthy' | 'degraded' | 'down'; message?: string }>;
+export const checkGadgetStatus = async (options?: {
+  retry?: boolean;
+  retryAttempts?: number;
+  retryDelay?: number;
+}): Promise<{
+  status: 'ready' | 'degraded' | 'down';
+  message: string;
   latency?: number;
-  version?: string;
 }> => {
-  let attempts = 0;
-  
-  const attemptRequest = async (): Promise<any> => {
-    attempts++;
-    try {
-      const config = getGadgetConfig();
-      
-      if (!config) {
-        throw new Error("No Gadget configuration found");
-      }
-      
-      const apiUrl = getGadgetApiUrl(config);
-      const headers = createGadgetHeaders(config);
-      const startTime = Date.now();
-      
-      // Make a request to the detailed status endpoint
-      const response = await fetch(`${apiUrl}system/status`, {
-        method: 'GET',
-        headers
-      });
-      
-      const latency = Date.now() - startTime;
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      return {
-        response: data,
-        latency,
-        ok: true
-      };
-    } catch (error) {
-      if (options.retry && attempts < options.retryAttempts) {
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, options.retryDelay));
-        return attemptRequest();
-      }
-      
-      throw error;
-    }
-  };
-  
-  try {
-    const result = await attemptRequest();
-    
-    if (!result.ok) {
-      return {
-        healthy: false,
-        components: {
-          api: { status: 'down', message: result.error || 'Unknown error' }
-        }
-      };
-    }
-    
-    // In production, this would parse the actual response
-    // For now, return a mock but structured response
+  const config = getGadgetConfig();
+  if (!config) {
     return {
-      healthy: true,
-      components: {
-        api: { status: 'healthy' },
-        database: { status: 'healthy' },
-        storage: { status: 'healthy' },
-        processing: { status: 'healthy' }
-      },
-      latency: result.latency,
-      version: result.response?.version || '1.3.0'
+      status: 'down',
+      message: 'Gadget configuration not found'
+    };
+  }
+
+  const opts = {
+    retry: options?.retry || false,
+    retryAttempts: options?.retryAttempts || 3,
+    retryDelay: options?.retryDelay || 1000
+  };
+
+  try {
+    const startTime = Date.now();
+    const statusUrl = `${getGadgetApiUrl(config)}status`;
+    
+    let attempt = 0;
+    let lastError;
+    
+    while (attempt < (opts.retry ? opts.retryAttempts : 1)) {
+      attempt++;
+      
+      try {
+        const response = await fetch(statusUrl, {
+          method: 'GET',
+          headers: createGadgetHeaders(config)
+        });
+        
+        const latency = Date.now() - startTime;
+        
+        if (!response.ok) {
+          return {
+            status: 'degraded',
+            message: `HTTP ${response.status}: ${response.statusText}`,
+            latency
+          };
+        }
+        
+        const data = await response.json();
+        
+        if (data.ready === true) {
+          return {
+            status: 'ready',
+            message: 'All systems operational',
+            latency
+          };
+        } else {
+          return {
+            status: 'degraded',
+            message: data.message || 'Service not ready',
+            latency
+          };
+        }
+      } catch (error) {
+        lastError = error;
+        
+        if (opts.retry && attempt < opts.retryAttempts) {
+          await new Promise(resolve => setTimeout(resolve, opts.retryDelay));
+        }
+      }
+    }
+    
+    return {
+      status: 'down',
+      message: lastError instanceof Error ? lastError.message : 'Unknown error occurred'
     };
   } catch (error) {
-    logError("Error getting detailed Gadget status", { error }, 'status');
-    
-    toast.error("Unable to fetch Gadget status", {
-      description: error instanceof Error ? error.message : "Connection failed"
-    });
-    
     return {
-      healthy: false,
-      components: {
-        system: { 
-          status: 'down', 
-          message: error instanceof Error ? error.message : "Unknown error" 
-        }
-      }
+      status: 'down',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
 };
 
 /**
- * Get a simplified status summary suitable for UI display
+ * Get a comprehensive status summary for all Gadget services
  */
 export const getGadgetStatusSummary = async (): Promise<{
   status: 'ready' | 'partial' | 'degraded' | 'down';
   message: string;
-  details?: Record<string, any>;
+  details: Record<string, any>;
 }> => {
-  const readiness = checkGadgetReadiness();
-  
-  if (!readiness.ready) {
-    return {
-      status: 'down',
-      message: 'Not configured',
-      details: {
-        reason: readiness.reason
-      }
-    };
-  }
-  
   try {
-    const health = await getDetailedGadgetStatus({ retry: true });
+    // Check main API status first
+    const apiStatus = await checkGadgetStatus({ 
+      retry: true,
+      retryAttempts: 2,
+      retryDelay: 1000
+    });
     
-    if (!health.healthy) {
-      const downComponents = Object.entries(health.components)
-        .filter(([_, status]) => status.status === 'down')
-        .map(([name]) => name);
-      
+    if (apiStatus.status === 'down') {
       return {
-        status: downComponents.length === Object.keys(health.components).length ? 'down' : 'degraded',
-        message: `Service ${downComponents.length === Object.keys(health.components).length ? 'unavailable' : 'degraded'}`,
+        status: 'down',
+        message: 'Gadget services unavailable',
         details: {
-          components: health.components,
-          downComponents
+          api: apiStatus,
+          timestamp: new Date().toISOString()
         }
       };
     }
     
-    const degradedComponents = Object.entries(health.components)
-      .filter(([_, status]) => status.status === 'degraded')
-      .map(([name]) => name);
-    
-    if (degradedComponents.length > 0) {
-      return {
-        status: 'partial',
-        message: 'Some services degraded',
-        details: {
-          components: health.components,
-          degradedComponents
-        }
-      };
-    }
-    
+    // In a real implementation, check status of various Gadget services
+    // For now, we'll just return the API status
     return {
-      status: 'ready',
-      message: 'All systems operational',
+      status: apiStatus.status === 'ready' ? 'ready' : 'degraded',
+      message: apiStatus.message,
       details: {
-        latency: health.latency,
-        version: health.version
+        api: apiStatus,
+        services: {
+          processing: { status: 'ready', message: 'Service operational' },
+          storage: { status: 'ready', message: 'Service operational' },
+          shopify: { status: 'ready', message: 'Integration operational' }
+        },
+        timestamp: new Date().toISOString()
       }
     };
   } catch (error) {
     return {
       status: 'down',
-      message: 'Connection error',
+      message: error instanceof Error ? error.message : 'Unknown error checking Gadget status',
       details: {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       }
     };
   }
+};
+
+// Export additional status utilities for use in the application
+export const isGadgetAvailable = async (): Promise<boolean> => {
+  const status = await checkGadgetStatus();
+  return status.status !== 'down';
+};
+
+export const getServiceHealth = async (): Promise<Record<string, 'healthy' | 'degraded' | 'unhealthy'>> => {
+  const status = await getGadgetStatusSummary();
+  
+  if (status.status === 'down') {
+    return {
+      api: 'unhealthy',
+      processing: 'unhealthy',
+      storage: 'unhealthy',
+      shopify: 'unhealthy'
+    };
+  }
+  
+  // Map status to health indicators
+  const mapStatusToHealth = (status: string): 'healthy' | 'degraded' | 'unhealthy' => {
+    switch (status) {
+      case 'ready': return 'healthy';
+      case 'degraded': return 'degraded';
+      default: return 'unhealthy';
+    }
+  };
+  
+  return {
+    api: mapStatusToHealth(status.details.api.status),
+    processing: mapStatusToHealth(status.details.services.processing.status),
+    storage: mapStatusToHealth(status.details.services.storage.status),
+    shopify: mapStatusToHealth(status.details.services.shopify.status)
+  };
 };

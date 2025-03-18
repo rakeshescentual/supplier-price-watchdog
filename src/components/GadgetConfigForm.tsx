@@ -1,228 +1,361 @@
-import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+
+import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Cog, Save, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { GadgetConfig } from '@/types/price';
-import { BasicConfigTab } from './gadget/BasicConfigTab';
-import { AdvancedFeaturesTab } from './gadget/AdvancedFeaturesTab';
-import { ConfigStatusIndicator } from './gadget/ConfigStatusIndicator';
-import { 
-  getGadgetConfig, 
-  saveGadgetConfig, 
-  clearGadgetConfig, 
-  validateGadgetConfig, 
-  testGadgetConnection 
-} from '@/utils/gadget';
+import { testGadgetConnection } from '@/utils/gadget/connection';
+import { saveGadgetConfig, getGadgetConfig } from '@/utils/gadget/config';
+import { Key, RefreshCw, Database, Lock, Cpu } from 'lucide-react';
 
-const GadgetConfigForm = () => {
-  const [config, setConfig] = useState<GadgetConfig>({
-    apiKey: '',
-    appId: '',
-    environment: 'development',
-    featureFlags: {
-      enableAdvancedAnalytics: false,
-      enablePdfProcessing: false,
-      enableBackgroundJobs: false,
-      enableShopifySync: true,
-    }
-  });
-  const [activeTab, setActiveTab] = useState("basic");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isConfigured, setIsConfigured] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
+// Define the form schema
+const gadgetConfigSchema = z.object({
+  apiKey: z.string().min(10, {
+    message: 'API Key must be at least 10 characters.',
+  }),
+  appId: z.string().min(3, {
+    message: 'App ID is required.',
+  }),
+  environment: z.enum(['development', 'production']),
+  featureFlags: z.object({
+    enableAdvancedAnalytics: z.boolean().default(true),
+    enablePdfProcessing: z.boolean().default(true),
+    enableMarketData: z.boolean().default(true),
+  }),
+});
 
-  useEffect(() => {
-    const storedConfig = getGadgetConfig();
-    
-    if (storedConfig) {
-      setConfig(storedConfig);
-      setIsConfigured(true);
-    }
-  }, []);
+type GadgetConfigValues = z.infer<typeof gadgetConfigSchema>;
 
-  const handleChange = (field: keyof GadgetConfig, value: string | boolean) => {
-    setConfig(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleFeatureFlagChange = (flag: string, value: boolean) => {
-    setConfig(prev => ({
-      ...prev,
-      featureFlags: {
-        ...prev.featureFlags,
-        [flag]: value
-      }
-    }));
-  };
-
-  const testConnection = async () => {
-    const { isValid, errors } = validateGadgetConfig(config);
-    
-    if (!isValid) {
-      toast.error("Missing configuration", {
-        description: errors.join(", ")
-      });
-      return;
-    }
-
-    setIsTestingConnection(true);
-    setConnectionStatus('none');
-
-    try {
-      const success = await testGadgetConnection(config);
-      
-      setConnectionStatus(success ? 'success' : 'error');
-      
-      if (success) {
-        toast.success("Connection successful", {
-          description: "Successfully connected to Gadget.dev"
-        });
-      } else {
-        toast.error("Connection failed", {
-          description: "Could not connect to Gadget.dev. Please check your API key and App ID."
-        });
-      }
-    } catch (error) {
-      console.error("Error testing Gadget connection:", error);
-      setConnectionStatus('error');
-      toast.error("Connection error", {
-        description: "An error occurred while testing the connection."
-      });
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
-  const handleSave = () => {
-    const { isValid, errors } = validateGadgetConfig(config);
-    
-    if (!isValid) {
-      toast.error("Validation error", {
-        description: errors.join(", ")
-      });
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      const saved = saveGadgetConfig(config, () => {
-        setIsConfigured(true);
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      });
-      
-      if (!saved) {
-        toast.error("Save error", {
-          description: "Could not save your configuration."
-        });
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleClear = () => {
-    clearGadgetConfig();
-    setConfig({
+export function GadgetConfigForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  
+  // Initialize form with saved values or defaults
+  const savedConfig = getGadgetConfig();
+  
+  const form = useForm<GadgetConfigValues>({
+    resolver: zodResolver(gadgetConfigSchema),
+    defaultValues: savedConfig || {
       apiKey: '',
       appId: '',
       environment: 'development',
       featureFlags: {
-        enableAdvancedAnalytics: false,
-        enablePdfProcessing: false,
-        enableBackgroundJobs: false,
-        enableShopifySync: true,
-      }
-    });
-    setIsConfigured(false);
+        enableAdvancedAnalytics: true,
+        enablePdfProcessing: true,
+        enableMarketData: true,
+      },
+    },
+  });
+
+  async function onSubmit(values: GadgetConfigValues) {
+    setIsSubmitting(true);
     
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
+    try {
+      // Save the configuration
+      saveGadgetConfig(values);
+      
+      toast.success('Configuration saved', {
+        description: 'Gadget configuration has been updated successfully.',
+      });
+      
+    } catch (error) {
+      console.error('Error saving Gadget configuration:', error);
+      
+      toast.error('Configuration error', {
+        description: 'There was an error saving your Gadget configuration.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const testConnection = async () => {
+    setIsTesting(true);
+    
+    try {
+      const values = form.getValues();
+      
+      // Temporarily save the config for testing
+      saveGadgetConfig(values);
+      
+      // Test the connection
+      const result = await testGadgetConnection({
+        apiKey: values.apiKey,
+        appId: values.appId,
+        environment: values.environment
+      });
+      
+      if (result.success) {
+        toast.success('Connection successful', {
+          description: `Connected to Gadget API (${result.latency}ms)`,
+        });
+      } else {
+        toast.error('Connection failed', {
+          description: result.message || 'Could not connect to Gadget API',
+        });
+      }
+    } catch (error) {
+      console.error('Error testing Gadget connection:', error);
+      
+      toast.error('Connection test failed', {
+        description: 'There was an error testing the Gadget connection.',
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   return (
-    <Card className="w-full shadow-md transition-all duration-300 hover:shadow-lg">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Cog className="h-5 w-5" />
-            Gadget.dev Configuration
-          </CardTitle>
-          
-          {isConfigured && (
-            <Badge variant="outline" className="ml-2">
-              {config.environment}
-            </Badge>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Database className="h-5 w-5" />
+          Gadget.dev Configuration
+        </CardTitle>
         <CardDescription>
-          Configure your Gadget.dev integration for enhanced features with Shopify Plus and Klaviyo
+          Configure your Gadget.dev integration for enhanced functionality
         </CardDescription>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <ConfigStatusIndicator isConfigured={isConfigured} config={config} />
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="basic">Basic Configuration</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced Features</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="basic">
-            <BasicConfigTab 
-              config={config}
-              handleChange={handleChange}
-              testConnection={testConnection}
-              isTestingConnection={isTestingConnection}
-              connectionStatus={connectionStatus}
-            />
-          </TabsContent>
-          
-          <TabsContent value="advanced">
-            <AdvancedFeaturesTab 
-              config={config} 
-              handleFeatureFlagChange={handleFeatureFlagChange} 
-            />
-          </TabsContent>
-        </Tabs>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <Tabs defaultValue="credentials" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="credentials">Credentials</TabsTrigger>
+                <TabsTrigger value="features">Features</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="credentials" className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="apiKey"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          <Key className="h-3.5 w-3.5" />
+                          API Key
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your Gadget API key"
+                            type="password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Your Gadget.dev API key for authentication
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="appId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          <Cpu className="h-3.5 w-3.5" />
+                          App ID
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your Gadget app ID"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          The ID of your Gadget.dev application
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="environment"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Environment</FormLabel>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="development"
+                            value="development"
+                            checked={field.value === 'development'}
+                            onChange={() => field.onChange('development')}
+                            className="h-4 w-4"
+                          />
+                          <label htmlFor="development" className="text-sm cursor-pointer">
+                            Development
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="production"
+                            value="production"
+                            checked={field.value === 'production'}
+                            onChange={() => field.onChange('production')}
+                            className="h-4 w-4"
+                          />
+                          <label htmlFor="production" className="text-sm cursor-pointer">
+                            Production
+                          </label>
+                        </div>
+                      </div>
+                      <FormDescription>
+                        Select your Gadget.dev environment
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 flex items-start gap-2">
+                  <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Secure Storage</p>
+                    <p className="text-blue-700 text-xs mt-1">
+                      Your API credentials are stored securely in your browser's local storage and are not transmitted to our servers.
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="features" className="pt-4">
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="featureFlags.enableAdvancedAnalytics"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Advanced Analytics</FormLabel>
+                          <FormDescription>
+                            Enable AI-powered analytics for deeper insights into supplier pricing
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="featureFlags.enablePdfProcessing"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>PDF Processing</FormLabel>
+                          <FormDescription>
+                            Process PDF price lists through Gadget.dev for enhanced accuracy
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="featureFlags.enableMarketData"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Market Data Enrichment</FormLabel>
+                          <FormDescription>
+                            Enrich your pricing data with market intelligence from Gadget.dev
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={testConnection}
+                disabled={isTesting || isSubmitting}
+              >
+                {isTesting ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  'Test Connection'
+                )}
+              </Button>
+              
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Configuration'
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
-      
-      <CardFooter className="flex gap-2 justify-between border-t pt-4">
-        {isConfigured && (
-          <Button variant="outline" onClick={handleClear} className="group transition-all">
-            <X className="mr-2 h-4 w-4 group-hover:text-destructive transition-colors" />
-            <span className="group-hover:text-destructive transition-colors">Clear Configuration</span>
-          </Button>
-        )}
-        
-        <Button
-          className="ml-auto"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <>
-              <span className="mr-2 h-4 w-4 animate-spin inline-block rounded-full border-2 border-current border-t-transparent"></span>
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Configuration
-            </>
-          )}
-        </Button>
+      <CardFooter className="flex justify-between border-t pt-4">
+        <p className="text-xs text-muted-foreground">
+          <a 
+            href="https://gadget.dev/docs" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            Gadget.dev Documentation
+          </a>
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Version: {savedConfig ? '1.3.0' : 'Not Configured'}
+        </p>
       </CardFooter>
     </Card>
   );
-};
-
-export default GadgetConfigForm;
+}

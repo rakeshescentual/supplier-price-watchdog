@@ -19,7 +19,13 @@ export interface FileUploadState {
   isShopifyConnectedButUnhealthy: boolean;
 }
 
-// Mock ShopifyContext for file upload functions
+export interface FileUploadActions {
+  handleDrop: (files: File[]) => void;
+  setIsDragging: (isDragging: boolean) => void;
+  handleShare: () => void;
+  handleUpload: (file: File) => Promise<void>;
+}
+
 const mockShopifyContext: ShopifyContext = {
   shop: 'example-shop.myshopify.com',
   accessToken: 'example-token'
@@ -42,7 +48,6 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     isShopifyConnectedButUnhealthy: false
   });
 
-  // Simulate upload progress
   const simulateProgress = (percent: number) => {
     return new Promise<void>(resolve => {
       setTimeout(() => {
@@ -52,17 +57,13 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     });
   };
 
-  // Fix the incorrect parameter type in saveFileToShopify
-  // This is a mock implementation - you'll need to update with actual logic
   const saveToShopify = async (file: File) => {
     try {
-      // Create a mock shopify context just for this function
       const mockContext = {
         shop: 'example-shop.myshopify.com',
         accessToken: 'example-token'
       };
       
-      // Now call saveFileToShopify with the correct parameters
       const result = await saveFileToShopify(mockContext, file);
       return result;
     } catch (error) {
@@ -75,7 +76,7 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     setState(prev => ({ ...prev, isLoading: true, progress: 0, error: null }));
     
     try {
-      const result: ShopifyFileUploadResult = await saveFileToShopify(mockShopifyContext, file);
+      const result = await saveFileToShopify(mockShopifyContext, file);
       
       if (result.success) {
         setState(prev => ({ 
@@ -115,25 +116,22 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     }
   }, [onFileAccepted]);
 
-  const actions: FileUploadActions = {
-    handleDrop,
-    setIsDragging: (isDragging: boolean) => setState(prev => ({ ...prev, isDragging })),
-    handleShare: () => {
-      // Implement your share functionality here
-      toast({
-        title: "Share",
-        description: "Share functionality is not implemented yet.",
-      });
-    },
-    handleUpload
-  };
-
   return {
     state,
-    actions,
+    actions: {
+      handleDrop,
+      setIsDragging: (isDragging: boolean) => setState(prev => ({ ...prev, isDragging })),
+      handleShare: () => {
+        toast({
+          title: "Share",
+          description: "Share functionality is not implemented yet.",
+        });
+      },
+      handleUpload
+    },
     shopify: {
-      isShopifyConnected: true, // TODO: Get from context
-      isShopifyHealthy: true // TODO: Get from context
+      isShopifyConnected: true,
+      isShopifyHealthy: true
     }
   };
 }

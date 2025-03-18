@@ -20,11 +20,17 @@ export function ShopifyConnectionStatus() {
     const checkConnection = async () => {
       try {
         setIsLoading(true);
-        // Update to use mockShopifyContext
         const result = await checkShopifyConnection(mockShopifyContext);
-        setIsConnected(result.success);
-        setStatus(result.success ? 'connected' : 'error');
-        setMessage(result.message);
+        
+        if ('success' in result) {
+          setIsConnected(result.success);
+          setStatus(result.success ? 'connected' : 'error');
+          setMessage(result.message || 'Connection checked');
+        } else {
+          setIsConnected(false);
+          setStatus('error');
+          setMessage('Invalid response from server');
+        }
       } catch (error) {
         setIsConnected(false);
         setStatus('error');

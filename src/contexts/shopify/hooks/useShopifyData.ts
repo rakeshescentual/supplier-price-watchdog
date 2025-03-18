@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import type { PriceItem } from '@/types/price';
 
@@ -7,11 +8,11 @@ const mockData: PriceItem[] = [
     name: 'Product 1',
     oldPrice: 19.99,
     newPrice: 24.99,
-    supplier: 'Supplier A',
-    category: 'Category 1',
     status: 'unchanged',
     difference: 5,
-    isMatched: true
+    isMatched: true,
+    category: 'Category 1',
+    vendor: 'Supplier A'
   }
 ];
 

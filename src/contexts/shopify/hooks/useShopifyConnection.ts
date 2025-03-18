@@ -22,13 +22,14 @@ export const useShopifyConnection = () => {
     
     try {
       const result = await checkShopifyConnection(mockShopifyContext);
-      setIsConnected(result.success);
-      
-      if (result.shopDetails) {
-        setShopDetails(result.shopDetails);
+      if ('success' in result) {
+        setIsConnected(result.success);
+        if (result.shopDetails) {
+          setShopDetails(result.shopDetails);
+        }
+        return result;
       }
-      
-      return result;
+      throw new Error('Invalid response format');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown connection error');
       setError(error);

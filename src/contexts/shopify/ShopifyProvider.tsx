@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContext as ShopifyContextType, ShopifyContextType as ShopifyProviderContextType } from '@/types/shopify';
+import type { ShopifyContextType, ShopifyProviderContextType } from '@/types/shopify';
 import { useShopifyConnection } from './hooks/useShopifyConnection';
 import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
@@ -65,7 +65,10 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     },
     syncToShopify: shopifySync.syncToShopify,
     loadShopifyData: async () => [], // Not implemented yet
-    batchProcessShopifyItems: async () => [] // Not implemented yet
+    batchProcessShopifyItems: async (items, processFn, options) => {
+      // Not implemented yet
+      return [];
+    }
   };
 
   return (
@@ -74,3 +77,6 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     </ShopifyContext.Provider>
   );
 };
+
+// Export the ShopifyProviderContextType to ensure it's available for imports
+export type { ShopifyProviderContextType };

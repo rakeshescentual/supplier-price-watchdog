@@ -3,12 +3,14 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, BookOpen, Bookmark } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { DocumentationSearch } from "./DocumentationSearch";
 import { QuickReferenceGuide } from "./QuickReferenceGuide";
 import { DocumentationNavigationControls } from "./DocumentationNavigationControls";
 import { DocumentationBookmarks } from "./DocumentationBookmarks";
+import { GadgetBadge } from "@/components/gadget/GadgetBadge";
+import { Badge } from "@/components/ui/badge";
 
 interface DocumentationTabContentProps {
   activeTab: string;
@@ -50,9 +52,29 @@ export const DocumentationTabContent: React.FC<DocumentationTabContentProps> = (
 }) => {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center">
+              {title}
+              {activeTab === 'gadget' && (
+                <GadgetBadge 
+                  className="ml-3" 
+                  showEnvironment={false} 
+                  showLastChecked={false}
+                />
+              )}
+            </CardTitle>
+            <CardDescription className="mt-1">{description}</CardDescription>
+          </div>
+          
+          {activeTab === 'gadget' && (
+            <Badge variant="outline" className="text-xs">
+              <BookOpen className="h-3 w-3 mr-1" /> 
+              Integration Guide
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {showSearch && (
@@ -89,7 +111,7 @@ export const DocumentationTabContent: React.FC<DocumentationTabContentProps> = (
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between border-t pt-4">
         <div>
           <DocumentationBookmarks bookmarks={bookmarks} />
         </div>

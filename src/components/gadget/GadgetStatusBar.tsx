@@ -7,12 +7,14 @@ import { RefreshCw, Settings, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function GadgetStatusBar() {
-  const { isConfigured, isHealthy, checkHealth, lastChecked } = useGadgetConnection();
+  const { isConfigured, healthStatus, fetchHealthStatus, lastChecked } = useGadgetConnection();
   const [isChecking, setIsChecking] = useState(false);
+  
+  const isHealthy = healthStatus === 'healthy';
   
   const handleCheckHealth = async () => {
     setIsChecking(true);
-    await checkHealth();
+    await fetchHealthStatus();
     setIsChecking(false);
   };
   
@@ -20,12 +22,12 @@ export function GadgetStatusBar() {
   useEffect(() => {
     if (isConfigured) {
       const interval = setInterval(() => {
-        checkHealth();
+        fetchHealthStatus();
       }, 1000 * 60 * 5);
       
       return () => clearInterval(interval);
     }
-  }, [isConfigured, checkHealth]);
+  }, [isConfigured, fetchHealthStatus]);
   
   // Format last checked time
   const formattedLastChecked = lastChecked 

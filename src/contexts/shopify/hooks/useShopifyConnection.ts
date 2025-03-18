@@ -124,11 +124,11 @@ export const useShopifyConnection = () => {
     testConnection,
     startConnectionCheck,
     stopConnectionCheck,
+    connectionCheckInterval: connectionIntervalRef.current, // Expose the interval as connectionCheckInterval
     // For compatibility with ShopifyProvider expectations
     isShopifyConnected: isConnected,
     isShopifyHealthy: isConnected && !error,
     lastConnectionCheck: lastChecked,
-    connectionCheckInterval: connectionIntervalRef.current,
     loadShopifyData: async () => [], 
     batchProcessShopifyItems: async () => [], 
     connectToShopify: async () => false, 

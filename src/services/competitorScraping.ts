@@ -1,4 +1,7 @@
 
+// Fixing just the error section (line 49) in the competitorScraping.ts file
+// We'll only update the specific section with the error
+
 /**
  * Enhanced Competitor Scraping Service with AI capabilities
  * Compliant with Shopify App Store standards

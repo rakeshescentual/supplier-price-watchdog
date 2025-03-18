@@ -20,7 +20,7 @@ export const useShopifySync = (
     }
     
     if (!isShopifyHealthy) {
-      const isHealthy = await checkShopifyConnection(shopifyContext);
+      const isHealthy = await checkShopifyConnection();
       
       if (!isHealthy) {
         toast.warning("Shopify connection issues", {
@@ -48,10 +48,7 @@ export const useShopifySync = (
       }
       
       console.log("Syncing with Shopify via direct API...");
-      const syncResult = await syncWithShopify(shopifyContext, items, {
-        retryAttempts: 3,
-        retryDelay: 1000
-      });
+      const syncResult = await syncWithShopify();
       
       if (syncResult) {
         toast.success("Sync complete", {

@@ -65,9 +65,9 @@ export function clearGadgetConfig(): void {
 /**
  * Test connection to Gadget API
  */
-export async function testGadgetConnection(config?: GadgetConfig): Promise<GadgetConnectionTestResult> {
+export async function testGadgetConnection(): Promise<GadgetConnectionTestResult> {
   try {
-    const effectiveConfig = config || getGadgetConfig();
+    const effectiveConfig = getGadgetConfig();
     
     if (!effectiveConfig) {
       return {

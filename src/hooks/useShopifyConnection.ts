@@ -24,7 +24,7 @@ export const useShopifyConnection = (shopifyContext?: ShopifyContext) => {
     setConnectionError(null);
     
     try {
-      const connected = await checkShopifyConnection(shopifyContext);
+      const connected = await checkShopifyConnection();
       setIsConnected(connected);
       setLastChecked(new Date());
       
@@ -70,7 +70,7 @@ export const useShopifyConnection = (shopifyContext?: ShopifyContext) => {
     setIsLoadingHistory(true);
     
     try {
-      const history = await getShopifySyncHistory(shopifyContext);
+      const history = await getShopifySyncHistory();
       setSyncHistory(history);
       return history;
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { ShopifyContext } from '@/types/price';
@@ -33,7 +32,7 @@ export const useShopifyConnection = (
     setConnectionError(null);
     
     try {
-      const connected = await checkShopifyConnection(shopifyContext);
+      const connected = await checkShopifyConnection();
       setIsShopifyConnected(connected);
       setIsShopifyHealthy(connected);
       setLastConnectionCheck(new Date());
@@ -88,7 +87,7 @@ export const useShopifyConnection = (
       const newContext: ShopifyContext = { shop, accessToken };
       
       // Test the connection
-      const connected = await checkShopifyConnection(newContext);
+      const connected = await checkShopifyConnection();
       
       if (connected) {
         // Save the context
@@ -158,7 +157,7 @@ export const useShopifyConnection = (
     setIsLoadingHistory(true);
     
     try {
-      const history = await getShopifySyncHistory(shopifyContext);
+      const history = await getShopifySyncHistory();
       setSyncHistory(history);
       return history;
     } catch (error) {

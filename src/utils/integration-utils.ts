@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { ShopifyContext } from '@/types/price';
 import { checkShopifyConnection } from '@/lib/shopify';
@@ -39,7 +38,7 @@ export const testIntegrationConnections = async (
   try {
     // Test Shopify connection if provided
     if (services.shopify) {
-      results.shopify = await checkShopifyConnection(services.shopify);
+      results.shopify = await checkShopifyConnection();
     }
     
     // Test Klaviyo connection if provided

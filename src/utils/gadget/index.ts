@@ -23,8 +23,5 @@ export * from '@/lib/gadget/logging';
 export const GADGET_VERSION = '1.3.0'; // Updated version
 export const GADGET_API_VERSION = '2023-11'; // Updated API version
 
-// Export type definitions
-export type { GadgetConfig } from '@/types/price';
-
 // Export utility for initialization
 export { initializeGadgetIntegration } from '@/lib/gadget';

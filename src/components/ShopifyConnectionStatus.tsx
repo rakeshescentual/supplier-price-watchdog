@@ -22,7 +22,7 @@ export const ShopifyConnectionStatus = () => {
     
     setIsRefreshing(true);
     try {
-      const isHealthy = await checkShopifyConnection(shopifyContext);
+      const isHealthy = await checkShopifyConnection();
       if (isHealthy) {
         toast.success("Shopify connection is healthy");
       } else {

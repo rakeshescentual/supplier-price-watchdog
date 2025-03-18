@@ -1,14 +1,12 @@
 
-/**
- * Gadget.dev integration utilities
- */
-
-// Re-export all submodules
-export * from './config';
+// Export all submodules except testGadgetConnection
 export * from './validation';
 export * from './urls';
 export * from './auth';
 export * from './status';
+
+// Re-export with unique name
+export { testGadgetConnection as validateGadgetConnection } from './config';
 
 // Export integrated functionality from lib/gadget
 export * from '@/lib/gadget/processing';
@@ -22,4 +20,3 @@ export const GADGET_API_VERSION = '2023-11';
 
 // Export utility for initialization
 export { initializeGadgetIntegration } from '@/lib/gadget';
-export { validateGadgetConnection } from './config';

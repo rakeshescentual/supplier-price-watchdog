@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { saveFileToShopify } from '@/lib/shopify';
@@ -59,28 +58,13 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     });
   };
 
-  const saveToShopify = async (file: File) => {
-    try {
-      const mockContext = {
-        shop: 'example-shop.myshopify.com',
-        accessToken: 'example-token'
-      };
-      
-      const result = await saveFileToShopify(mockContext, file);
-      return result;
-    } catch (error) {
-      console.error("Error saving file to Shopify:", error);
-      throw error;
-    }
-  };
-
   const handleUpload = useCallback(async (file: File) => {
     setState(prev => ({ ...prev, isLoading: true, progress: 0, error: null }));
     
     try {
-      const result: ShopifyFileUploadResult = await saveFileToShopify(mockShopifyContext, file);
+      const result = await saveFileToShopify(mockShopifyContext, file);
       
-      if (result.success) {
+      if (result && result.success) {
         setState(prev => ({ 
           ...prev, 
           fileUrl: result.fileUrl || null,
@@ -89,18 +73,16 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
         }));
         
         toast({
-          title: "Upload successful",
           description: "File saved to Shopify successfully.",
         });
       } else {
-        throw new Error(result.message || 'Upload failed');
+        throw new Error(result?.message || 'Upload failed');
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown upload error');
       setState(prev => ({ ...prev, error }));
       
       toast({
-        title: "Upload error",
         description: error.message,
         variant: "destructive",
       });
@@ -137,3 +119,4 @@ export function useFileUpload(onFileAccepted: (file: File) => void) {
     }
   };
 }
+

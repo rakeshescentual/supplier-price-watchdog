@@ -1,10 +1,7 @@
 
-/**
- * Utility functions for Gadget.dev integration
- * Re-exports from smaller, more focused modules for better maintainability.
- */
+import { getGadgetConfig, saveGadgetConfig, clearGadgetConfig, testGadgetConnection as _testGadgetConnection } from './gadget/config';
 
-// Re-export all functions from the gadget utility modules
+// Re-export all functions from the gadget utility modules, except testGadgetConnection
 export * from './gadget/config';
 export * from './gadget/validation';
 export * from './gadget/urls';
@@ -14,6 +11,6 @@ export * from './gadget/initialization';
 export * from './gadget/features';
 export * from './gadget/status';
 
-// Be explicit about what we re-export to avoid ambiguity
-export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig } from './gadget/config';
-export { validateGadgetConnection } from './gadget/config';
+// Re-export with unique names to avoid conflicts
+export const testGadgetConnection = _testGadgetConnection;
+export { getGadgetConfig, saveGadgetConfig, clearGadgetConfig };

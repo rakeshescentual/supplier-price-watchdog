@@ -30,13 +30,29 @@ export interface ShopifyProviderContextType {
   isSyncing: boolean;
   connectToShopify: (shop: string, accessToken: string) => Promise<boolean>;
   disconnectShopify: () => void;
-  syncToShopify: (items: any[]) => Promise<boolean>;
+  syncToShopify: (items: any[], options?: { silent?: boolean }) => Promise<boolean>;
   loadShopifyData: () => Promise<any[]>;
   batchProcessShopifyItems: <T, R>(
     items: T[],
     processFn: (item: T) => Promise<R>,
     options?: { batchSize?: number, concurrency?: number }
   ) => Promise<R[]>;
+  bulkOperations: {
+    updatePrices: (
+      prices: PriceItem[],
+      options?: {
+        dryRun?: boolean;
+        notifyCustomers?: boolean;
+        onProgress?: (progress: number) => void;
+      }
+    ) => Promise<{
+      success: boolean;
+      message: string;
+      operationId?: string;
+      updatedCount: number;
+      failedCount: number;
+    }>;
+  };
   testConnection?: () => Promise<ShopifyConnectionResult>;
 }
 
@@ -95,4 +111,57 @@ export interface ShopifyFileUploadResult {
   message: string;
   fileUrl?: string;
   fileId?: string;
+}
+
+// Shopify Plus specific types
+export interface ShopifyScript {
+  id: string;
+  name: string;
+  scriptType: 'discount' | 'shipping' | 'payment';
+  source: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShopifyFlow {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  triggerType: string;
+  actions: ShopifyFlowAction[];
+  conditions: ShopifyFlowCondition[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShopifyFlowAction {
+  id: string;
+  type: string;
+  config: Record<string, any>;
+}
+
+export interface ShopifyFlowCondition {
+  id: string;
+  field: string;
+  operator: string;
+  value: string | number | boolean;
+}
+
+// Price item type
+export interface PriceItem {
+  id: string;
+  sku: string;
+  name: string;
+  oldPrice: number;
+  newPrice: number;
+  status: 'increased' | 'decreased' | 'unchanged' | 'new';
+  percentChange: number;
+  shopifyProductId?: string;
+  shopifyVariantId?: string;
+  category?: string;
+  supplier?: string;
+  lastUpdated?: Date;
+  notes?: string;
 }

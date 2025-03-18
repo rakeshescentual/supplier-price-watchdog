@@ -9,19 +9,46 @@ import { ShopifyConnectionStatus } from "@/components/ShopifyConnectionStatus";
 import { ShopifyApiHealthCheck } from "@/components/ShopifyApiHealthCheck";
 import { ShopifyPlusFeatures } from "@/components/ShopifyPlusFeatures";
 import { AiMarketInsights } from "@/components/AiMarketInsights";
+import { ShopifyBulkOperations } from "@/components/shopify/ShopifyBulkOperations";
+import { ShopifyScriptsManager } from "@/components/shopify/ShopifyScriptsManager";
 import { ExternalLink, AlertTriangle, Settings, Store } from "lucide-react";
 import { toast } from "sonner";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { isShopifyConnected, shopifyContext } = useShopify();
+  const { isShopifyConnected, shopifyContext, connectToShopify } = useShopify();
   const [mockCompetitorData] = useState([]);
+  const [shopUrl, setShopUrl] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // This could be expanded to fetch real data from the API in a production app
   const fetchMockData = () => {
     toast.success("Data refreshed", {
       description: "Latest Shopify data has been loaded"
     });
+  };
+
+  const handleConnect = async () => {
+    if (!shopUrl || !accessToken) {
+      toast.error("Missing credentials", {
+        description: "Please enter both shop URL and access token"
+      });
+      return;
+    }
+    
+    setIsConnecting(true);
+    try {
+      const success = await connectToShopify(shopUrl, accessToken);
+      if (success) {
+        setShopUrl("");
+        setAccessToken("");
+      }
+    } catch (error) {
+      console.error("Connection error:", error);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -41,7 +68,7 @@ export function ShopifyIntegrationDashboard() {
           <ShopifyConnectionStatus />
           
           {!isShopifyConnected && (
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setActiveTab("connect")}>
               <Settings className="h-4 w-4 mr-2" />
               Connect
             </Button>
@@ -63,8 +90,11 @@ export function ShopifyIntegrationDashboard() {
         <TabsList className="w-full justify-start mb-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pricing">Price Management</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          <TabsTrigger value="scripts">Scripts</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
           <TabsTrigger value="plus">Shopify Plus</TabsTrigger>
+          {!isShopifyConnected && <TabsTrigger value="connect">Connect</TabsTrigger>}
         </TabsList>
         
         <TabsContent value="dashboard" className="mt-0">
@@ -96,16 +126,16 @@ export function ShopifyIntegrationDashboard() {
                               <CardTitle className="text-sm">API Version</CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 pt-0">
-                              <div className="font-medium">2024-04</div>
+                              <div className="font-medium">{shopifyContext?.apiVersion || '2024-04'}</div>
                             </CardContent>
                           </Card>
                           
                           <Card className="bg-gray-50">
                             <CardHeader className="p-4 pb-2">
-                              <CardTitle className="text-sm">Last Sync</CardTitle>
+                              <CardTitle className="text-sm">Plan</CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 pt-0">
-                              <div className="font-medium">3 hours ago</div>
+                              <div className="font-medium">{shopifyContext?.shopPlan || 'Basic'}</div>
                             </CardContent>
                           </Card>
                         </div>
@@ -142,7 +172,7 @@ export function ShopifyIntegrationDashboard() {
                           Connect to your Escentual.com Shopify store to enable pricing synchronization, 
                           automated price updates, and competitor analysis.
                         </p>
-                        <Button>
+                        <Button onClick={() => setActiveTab("connect")}>
                           <Settings className="h-4 w-4 mr-2" />
                           Connect to Shopify
                         </Button>
@@ -251,12 +281,85 @@ export function ShopifyIntegrationDashboard() {
           </Card>
         </TabsContent>
         
+        <TabsContent value="bulk" className="mt-0">
+          <ShopifyBulkOperations />
+        </TabsContent>
+        
+        <TabsContent value="scripts" className="mt-0">
+          <ShopifyScriptsManager />
+        </TabsContent>
+        
         <TabsContent value="insights" className="mt-0">
           <AiMarketInsights competitorItems={mockCompetitorData} />
         </TabsContent>
         
         <TabsContent value="plus" className="mt-0">
           <ShopifyPlusFeatures />
+        </TabsContent>
+        
+        <TabsContent value="connect" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Connect to Shopify</CardTitle>
+              <CardDescription>
+                Enter your Shopify store URL and access token to connect
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="shop-url" className="text-sm font-medium">
+                      Shopify Store URL
+                    </label>
+                    <input
+                      id="shop-url"
+                      type="text"
+                      placeholder="your-store.myshopify.com"
+                      className="w-full px-3 py-2 border rounded-md"
+                      value={shopUrl}
+                      onChange={(e) => setShopUrl(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="access-token" className="text-sm font-medium">
+                      Access Token
+                    </label>
+                    <input
+                      id="access-token"
+                      type="password"
+                      placeholder="shpat_..."
+                      className="w-full px-3 py-2 border rounded-md"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 p-4 rounded-md text-sm text-blue-700">
+                  <p className="font-medium mb-1">How to get your access token:</p>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Go to your Shopify admin</li>
+                    <li>Navigate to Apps &gt; App and sales channel settings</li>
+                    <li>Scroll to the bottom and click "Develop apps for your store"</li>
+                    <li>Create a new app or select an existing one</li>
+                    <li>Under API credentials, create an admin API access token</li>
+                    <li>Select the necessary scopes (read_products, write_products)</li>
+                    <li>Copy the access token (it will only be shown once)</li>
+                  </ol>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button 
+                onClick={handleConnect}
+                disabled={isConnecting || !shopUrl || !accessToken}
+              >
+                {isConnecting ? "Connecting..." : "Connect to Shopify"}
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
       </Tabs>
       

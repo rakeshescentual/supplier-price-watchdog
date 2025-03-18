@@ -23,17 +23,19 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
     <div>
       <ScrollArea className="h-[calc(100vh-280px)] pr-4">
         <div className="max-w-3xl mx-auto">
-          <DocumentationContent 
-            content={content}
-            type={activeTab as 'technical' | 'gadget'}
-          />
-          
-          {activeTab === "gadget" && (
-            <>
-              <Separator className="my-8" />
-              <DocumentationFAQ items={faqItems} />
-            </>
-          )}
+          <div className="prose prose-slate max-w-none">
+            <DocumentationContent 
+              content={content}
+              type={activeTab as 'technical' | 'gadget'}
+            />
+            
+            {activeTab === "gadget" && (
+              <>
+                <Separator className="my-8" />
+                <DocumentationFAQ items={faqItems} />
+              </>
+            )}
+          </div>
         </div>
       </ScrollArea>
     </div>

@@ -36,11 +36,11 @@ export const Changelog: React.FC<ChangelogProps> = ({ initialVersion }) => {
   };
 
   return (
-    <Card className="border shadow-sm p-4 md:p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+    <Card className="border rounded-lg shadow-sm p-4 md:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8">
         <div className="lg:col-span-1">
           <h3 className="text-lg font-medium mb-4 lg:hidden">Version History</h3>
-          <div className="bg-muted/30 rounded-md p-4 h-[calc(100vh-300px)] overflow-y-auto">
+          <div className="bg-gray-50 rounded-md p-4 h-[calc(100vh-300px)] overflow-y-auto">
             <ChangelogTimeline 
               items={changelogData as ChangelogItem[]}
               activeVersion={selectedVersion}
@@ -48,8 +48,8 @@ export const Changelog: React.FC<ChangelogProps> = ({ initialVersion }) => {
             />
           </div>
         </div>
-        <div className="lg:col-span-3">
-          <div className="animate-fade-in">
+        <div className="lg:col-span-4">
+          <div className="animate-fade-in prose prose-slate max-w-none">
             <ChangelogContent item={selectedItem} />
           </div>
         </div>

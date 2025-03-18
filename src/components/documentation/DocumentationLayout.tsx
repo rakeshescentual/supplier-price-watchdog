@@ -27,10 +27,10 @@ export const DocumentationLayout: React.FC<DocumentationLayoutProps> = ({
   };
   
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {isInitialized && <GadgetStatusBar />}
       
-      <div className="container mx-auto py-6 md:py-8 px-4 flex-1">
+      <div className="max-w-7xl mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-8 flex-1">
         <DocumentationHeader 
           onToggleSearch={() => setShowSearch(!showSearch)} 
           onToggleQuickRef={() => setQuickRefOpen(!quickRefOpen)}

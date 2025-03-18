@@ -23,10 +23,10 @@ export const DocumentationGrid: React.FC<DocumentationGridProps> = ({
   faqItems
 }) => {
   return (
-    <div className="mt-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Sidebar with Table of Contents */}
-      <div className="hidden lg:block">
-        <Card className="border shadow-sm h-[calc(100vh-220px)] overflow-hidden">
+      <div className="hidden lg:block lg:col-span-1">
+        <Card className="border shadow-sm h-[calc(100vh-220px)] overflow-hidden rounded-md">
           <TableOfContents 
             content={content} 
             activeSection={activeSection}
@@ -36,8 +36,8 @@ export const DocumentationGrid: React.FC<DocumentationGridProps> = ({
       </div>
       
       {/* Main content area */}
-      <div className="lg:col-span-3">
-        <Card className="border shadow-sm p-4 md:p-6">
+      <div className="lg:col-span-4">
+        <Card className="border shadow-sm p-4 md:p-6 rounded-md">
           <DocumentationMainContent 
             activeTab={activeTab}
             content={content}

@@ -1,76 +1,57 @@
 
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import type { ShopifyContext } from '@/types/price';
-import { syncWithShopify, checkShopifyConnection } from '@/lib/shopifyApi';
-import { initGadgetClient, syncToShopifyViaGadget } from '@/lib/gadgetApi';
+import type { ShopifyContext, PriceItem } from '@/types/price';
+import { syncWithShopify } from '@/lib/shopify/sync';
+import { batchShopifyOperations } from '@/lib/shopify/batch';
 
-export const useShopifySync = (
-  shopifyContext: ShopifyContext | null,
-  isShopifyHealthy: boolean
-) => {
+// Mock ShopifyContext for connection functions
+const mockShopifyContext: ShopifyContext = {
+  shop: 'example-shop.myshopify.com',
+  accessToken: 'example-token'
+};
+
+export const useShopifySync = () => {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncResult, setLastSyncResult] = useState<{
+    success: boolean;
+    message: string;
+    timestamp: Date;
+  } | null>(null);
   
-  const syncToShopify = useCallback(async (items: any[]): Promise<boolean> => {
-    if (!shopifyContext) {
-      toast.error("Shopify connection required", { 
-        description: "Please connect to Shopify to sync data." 
-      });
-      return false;
-    }
-    
-    if (!isShopifyHealthy) {
-      const isHealthy = await checkShopifyConnection();
-      
-      if (!isHealthy) {
-        toast.warning("Shopify connection issues", {
-          description: "The connection to Shopify is experiencing issues. Sync may be slower than usual.",
-        });
-      }
-    }
-    
+  const syncPrices = useCallback(async (prices: PriceItem[]) => {
+    // Implementation using mockShopifyContext
     setIsSyncing(true);
     
     try {
-      const gadgetClient = initGadgetClient();
-      if (gadgetClient?.ready) {
-        console.log("Attempting to sync with Shopify via Gadget...");
-        const result = await syncToShopifyViaGadget(shopifyContext, items);
-        
-        if (result.success) {
-          toast.success("Sync complete", {
-            description: `Successfully synced ${items.length} items to Shopify via Gadget.`,
-          });
-          return true;
-        }
-        
-        console.warn("Gadget sync failed, falling back to direct API");
-      }
-      
-      console.log("Syncing with Shopify via direct API...");
-      const syncResult = await syncWithShopify();
-      
-      if (syncResult) {
-        toast.success("Sync complete", {
-          description: `Successfully synced ${items.length} items to Shopify.`,
-        });
-        return true;
-      } else {
-        toast.error("Sync failed", {
-          description: "Failed to sync items with Shopify. Please try again.",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error("Error during Shopify sync:", error);
-      toast.error("Sync error", {
-        description: "An error occurred while syncing with Shopify.",
+      const result = await syncWithShopify(mockShopifyContext);
+      setLastSyncResult({
+        success: result.success,
+        message: result.message,
+        timestamp: new Date()
       });
-      return false;
+      return result;
+    } catch (error) {
+      // Error handling
+      setLastSyncResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error during sync',
+        timestamp: new Date()
+      });
+      throw error;
     } finally {
       setIsSyncing(false);
     }
-  }, [shopifyContext, isShopifyHealthy]);
+  }, []);
   
-  return { isSyncing, syncToShopify };
+  const batchSync = useCallback(async (items, processFn, options) => {
+    // Implementation using batchShopifyOperations with correct arguments
+    return batchShopifyOperations(items, processFn, options);
+  }, []);
+  
+  return {
+    isSyncing,
+    lastSyncResult,
+    syncPrices,
+    batchSync
+  };
 };

@@ -19,3 +19,6 @@ export * from './products';
 export * from './sync';
 export * from './init';
 export * from './batch';
+
+// Explicitly export getShopifySyncHistory to resolve ambiguity
+export { getShopifySyncHistory } from './products';

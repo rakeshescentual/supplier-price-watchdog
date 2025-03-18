@@ -1,10 +1,11 @@
 
 /**
  * Gadget Live Query functionality
- * This implements Gadget's real-time data subscription capabilities
+ * This implements Gadget's real-time data subscription capabilities with improved error handling
  */
 import { logInfo, logError } from './logging';
 import { initGadgetClient } from './client';
+import { toast } from 'sonner';
 
 /**
  * Options for creating a live query
@@ -44,6 +45,20 @@ export interface LiveQueryOptions<T> {
    * Callback for errors
    */
   onError?: (error: any) => void;
+  
+  /**
+   * Show toast notifications for updates
+   */
+  showNotifications?: boolean;
+  
+  /**
+   * Custom notification messages
+   */
+  notifications?: {
+    connected?: string;
+    updated?: string;
+    error?: string;
+  };
 }
 
 /**
@@ -69,6 +84,21 @@ export interface LiveQuerySubscription {
    * Current status
    */
   status: 'connected' | 'disconnected' | 'error';
+  
+  /**
+   * Last update timestamp
+   */
+  lastUpdated?: Date;
+  
+  /**
+   * Pause subscription
+   */
+  pause: () => void;
+  
+  /**
+   * Resume subscription
+   */
+  resume: () => void;
 }
 
 // Store active subscriptions
@@ -76,7 +106,7 @@ const activeSubscriptions = new Map<string, any>();
 
 /**
  * Create a live query subscription to Gadget data
- * Uses Gadget's real-time subscription capabilities
+ * Uses Gadget's real-time subscription capabilities with enhanced error handling
  */
 export function createLiveQuery<T>(
   options: LiveQueryOptions<T>
@@ -87,12 +117,21 @@ export function createLiveQuery<T>(
   }
   
   const subscriptionId = `${options.model}-${Date.now()}`;
+  let isPaused = false;
+  let lastUpdated: Date | undefined = undefined;
   
   try {
     logInfo(`Creating live query for ${options.model}`, {
       filter: options.filter,
       limit: options.limit
     }, 'liveQuery');
+    
+    // Show connection toast if enabled
+    if (options.showNotifications && options.notifications?.connected) {
+      toast.success('Connected', {
+        description: options.notifications.connected
+      });
+    }
     
     // In production with actual Gadget SDK:
     //
@@ -103,9 +142,29 @@ export function createLiveQuery<T>(
     //   sort: options.sort,
     //   limit: options.limit
     // }).subscribe({
-    //   next: (data) => options.onData(data),
+    //   next: (data) => {
+    //     if (!isPaused) {
+    //       lastUpdated = new Date();
+    //       options.onData(data);
+    //       
+    //       // Show update toast if enabled
+    //       if (options.showNotifications && options.notifications?.updated) {
+    //         toast.info('Updated', {
+    //           description: options.notifications.updated
+    //         });
+    //       }
+    //     }
+    //   },
     //   error: (error) => {
     //     logError(`Live query error for ${options.model}`, { error }, 'liveQuery');
+    //     
+    //     // Show error toast if enabled
+    //     if (options.showNotifications && options.notifications?.error) {
+    //       toast.error('Error', {
+    //         description: options.notifications.error
+    //       });
+    //     }
+    //     
     //     if (options.onError) {
     //       options.onError(error);
     //     }
@@ -123,18 +182,25 @@ export function createLiveQuery<T>(
     //   refresh: async () => {
     //     await subscription.refresh();
     //   },
-    //   status: 'connected'
+    //   status: 'connected',
+    //   lastUpdated,
+    //   pause: () => { isPaused = true; },
+    //   resume: () => { isPaused = false; }
     // };
     
     // Mock for development
     // Simulate initial data load
     setTimeout(() => {
-      options.onData([] as unknown as T[]);
+      if (!isPaused) {
+        lastUpdated = new Date();
+        options.onData([] as unknown as T[]);
+      }
     }, 100);
     
     // Store mock subscription
     activeSubscriptions.set(subscriptionId, {
-      status: 'connected'
+      status: 'connected',
+      isPaused: false
     });
     
     // Return mock subscription interface
@@ -145,12 +211,33 @@ export function createLiveQuery<T>(
       },
       refresh: async () => {
         // Simulate refresh
-        options.onData([] as unknown as T[]);
+        if (!isPaused) {
+          lastUpdated = new Date();
+          options.onData([] as unknown as T[]);
+          
+          // Show update toast if enabled
+          if (options.showNotifications && options.notifications?.updated) {
+            toast.info('Updated', {
+              description: options.notifications.updated
+            });
+          }
+        }
       },
-      status: 'connected'
+      status: 'connected',
+      lastUpdated,
+      pause: () => { isPaused = true; },
+      resume: () => { isPaused = false; }
     };
   } catch (error) {
     logError(`Error creating live query for ${options.model}`, { error }, 'liveQuery');
+    
+    // Show error toast if enabled
+    if (options.showNotifications && options.notifications?.error) {
+      toast.error('Error', {
+        description: options.notifications.error
+      });
+    }
+    
     if (options.onError) {
       options.onError(error);
     }
@@ -160,7 +247,9 @@ export function createLiveQuery<T>(
       id: subscriptionId,
       unsubscribe: () => {},
       refresh: async () => {},
-      status: 'error'
+      status: 'error',
+      pause: () => {},
+      resume: () => {}
     };
   }
 }
@@ -181,4 +270,11 @@ export function cleanupAllLiveQueries(): void {
       logError(`Error cleaning up live query ${id}`, { error }, 'liveQuery');
     }
   }
+}
+
+/**
+ * Get the count of active subscriptions
+ */
+export function getActiveSubscriptionCount(): number {
+  return activeSubscriptions.size;
 }

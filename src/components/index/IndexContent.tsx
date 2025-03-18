@@ -9,6 +9,7 @@ import { IndexTabs } from "./IndexTabs";
 import { HowItWorks } from "./HowItWorks";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { toast } from "sonner";
+import { GadgetStatusBar } from "@/components/gadget/GadgetStatusBar";
 
 export const IndexContent = () => {
   const { 
@@ -19,6 +20,7 @@ export const IndexContent = () => {
     handleFileAccepted
   } = useFileAnalysis();
 
+  const { isGadgetInitialized } = useShopify();
   const { savedAnalyses, saveAnalysis } = useAnalysisHistory();
 
   useEffect(() => {
@@ -47,28 +49,32 @@ export const IndexContent = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      <Header />
-
-      <div className="max-w-2xl mx-auto">
-        <FileUpload onFileAccepted={handleFileAcceptedWithToast} />
-      </div>
-
-      {isProcessing && (
-        <div className="text-center text-muted-foreground animate-pulse">
-          <div className="inline-block w-6 h-6 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          Processing file...
-        </div>
-      )}
-
-      {file && items.length > 0 && (
-        <>
-          <FileStats />
-          <IndexTabs />
-        </>
-      )}
+    <div className="space-y-8">
+      {isGadgetInitialized && <GadgetStatusBar />}
       
-      {!file && <HowItWorks savedAnalyses={savedAnalyses} />}
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <Header />
+
+        <div className="max-w-2xl mx-auto">
+          <FileUpload onFileAccepted={handleFileAcceptedWithToast} />
+        </div>
+
+        {isProcessing && (
+          <div className="text-center text-muted-foreground animate-pulse">
+            <div className="inline-block w-6 h-6 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            Processing file...
+          </div>
+        )}
+
+        {file && items.length > 0 && (
+          <>
+            <FileStats />
+            <IndexTabs />
+          </>
+        )}
+        
+        {!file && <HowItWorks savedAnalyses={savedAnalyses} />}
+      </div>
     </div>
   );
 };

@@ -60,14 +60,14 @@ export const useShopifyConnection = () => {
     lastChecked,
     shopDetails,
     testConnection,
-    // Add missing properties that ShopifyProvider expects
+    // For compatibility with ShopifyProvider expectations
     isShopifyConnected: isConnected,
     isShopifyHealthy: isConnected && !error,
     lastConnectionCheck: lastChecked,
     connectionCheckInterval: null,
-    loadShopifyData: async () => [], // Implement if needed
-    batchProcessShopifyItems: async () => [], // Implement if needed
-    connectToShopify: async () => false, // Implement if needed
-    disconnectShopify: () => {}, // Implement if needed
+    loadShopifyData: async () => [], 
+    batchProcessShopifyItems: async () => [], 
+    connectToShopify: async () => false, 
+    disconnectShopify: () => {}, 
   };
 };

@@ -123,6 +123,7 @@ export interface ShopifyContext {
   accessToken: string;
 }
 
+// Adding ShopifyConnectionResult export
 export interface ShopifyConnectionResult {
   success: boolean;
   message?: string;
@@ -133,6 +134,7 @@ export interface ShopifyConnectionResult {
   };
 }
 
+// Adding ShopifyFileUploadResult export
 export interface ShopifyFileUploadResult {
   success: boolean;
   fileUrl?: string;

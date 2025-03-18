@@ -369,3 +369,21 @@ export interface CompetitorAnalysisData {
   lastUpdate: string | null;
   nextUpdate: string | null;
 }
+
+// Adding ShopifyConnectionResult export
+export interface ShopifyConnectionResult {
+  success: boolean;
+  message?: string;
+  shopDetails?: {
+    name: string;
+    domain: string;
+    plan: string;
+  };
+}
+
+// Adding ShopifyFileUploadResult export
+export interface ShopifyFileUploadResult {
+  success: boolean;
+  fileUrl?: string;
+  message?: string;
+}

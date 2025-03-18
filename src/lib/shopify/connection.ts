@@ -1,4 +1,3 @@
-
 import { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
 import { shopifyCache } from '../api-cache';
 

@@ -1,3 +1,4 @@
+
 /**
  * Enhanced Shopify Service for Enterprise-level Integration
  * Compliant with Shopify Plus and Built for Shopify standards
@@ -28,7 +29,7 @@ const convertToShopifyPriceItems = (items: PriceItem[]): ShopifyPriceItem[] => {
     shopifyProductId: item.productId,
     shopifyVariantId: item.variantId,
     category: item.category,
-    supplier: item.vendor || item.supplier,
+    supplier: item.vendor, // Fixed: Only use vendor as supplier
     // Include other properties as needed
     ...item
   }));

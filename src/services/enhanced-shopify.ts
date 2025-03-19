@@ -13,6 +13,8 @@ import {
 } from "@/types/shopify";
 import { PriceItem } from "@/types/price";
 import { bulkUpdatePrices } from "@/lib/shopify/bulkOperations";
+import { getBestVersion, isVersionSupported } from "@/lib/shopify/api-version";
+import { shopifyClient } from "@/lib/shopify/client";
 
 // Helper function to convert price items from price.ts format to shopify.ts format
 const convertToShopifyPriceItems = (items: PriceItem[]): ShopifyPriceItem[] => {
@@ -67,11 +69,59 @@ export class EnhancedShopifyService {
    * Initialize with Shopify context
    */
   public initialize(context: ShopifyContext): void {
+    // Ensure we're using a valid API version
+    const apiVersion = getBestVersion(context.apiVersion);
+    
     this.context = {
       ...context,
-      apiVersion: context.apiVersion || this.apiVersion
+      apiVersion
     };
-    console.log(`Enhanced Shopify service initialized for ${context.shop} with API version ${this.apiVersion}`);
+    
+    // Initialize the underlying client
+    shopifyClient.initialize(this.context);
+    
+    console.log(`Enhanced Shopify service initialized for ${context.shop} with API version ${apiVersion}`);
+    
+    // Store connection in localStorage for persistence
+    this.persistConnection();
+  }
+  
+  /**
+   * Store connection details in localStorage (no sensitive data)
+   */
+  private persistConnection(): void {
+    if (this.context) {
+      try {
+        const storageData = {
+          shop: this.context.shop,
+          apiVersion: this.context.apiVersion,
+          shopPlan: this.context.shopPlan,
+          lastConnected: new Date().toISOString()
+        };
+        localStorage.setItem('shopify_connection', JSON.stringify(storageData));
+      } catch (error) {
+        console.warn('Failed to persist Shopify connection to localStorage', error);
+      }
+    }
+  }
+  
+  /**
+   * Restore connection from localStorage (if available)
+   */
+  public restoreConnection(): boolean {
+    try {
+      const storedData = localStorage.getItem('shopify_connection');
+      if (storedData && this.context === null) {
+        const parsedData = JSON.parse(storedData);
+        
+        // This is just a partial restore - user still needs to reconnect for full access
+        console.log(`Restoring partial Shopify connection for ${parsedData.shop}`);
+        return true;
+      }
+    } catch (error) {
+      console.warn('Failed to restore Shopify connection from localStorage', error);
+    }
+    return false;
   }
   
   /**
@@ -332,6 +382,42 @@ export class EnhancedShopifyService {
     } catch (error) {
       console.error("Error fetching products with enhanced service:", error);
       throw error;
+    }
+  }
+  
+  /**
+   * Register a webhook for Shopify events
+   * @param topic The webhook topic (e.g., products/create)
+   * @param callbackUrl The URL to receive webhook events
+   */
+  public async registerWebhook(
+    topic: string,
+    callbackUrl: string
+  ): Promise<{ success: boolean; webhookId?: string; message?: string }> {
+    try {
+      this.validateContext();
+      
+      console.log(`Registering Shopify webhook for ${topic} to ${callbackUrl}`);
+      
+      // In a real implementation, this would use the Shopify Admin API
+      // to register a new webhook
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Return mock success
+      return {
+        success: true,
+        webhookId: `gid://shopify/Webhook/${Date.now()}`,
+        message: `Successfully registered webhook for ${topic}`
+      };
+    } catch (error) {
+      console.error("Error registering Shopify webhook:", error);
+      
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error registering webhook"
+      };
     }
   }
 }

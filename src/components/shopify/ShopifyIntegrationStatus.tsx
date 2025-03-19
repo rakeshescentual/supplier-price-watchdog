@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +19,6 @@ export function ShopifyIntegrationStatus() {
   const [apiVersion, setApiVersion] = useState(shopifyContext?.apiVersion || getBestVersion());
   
   useEffect(() => {
-    // Update API version if context changes
     if (shopifyContext?.apiVersion) {
       setApiVersion(shopifyContext.apiVersion);
     }

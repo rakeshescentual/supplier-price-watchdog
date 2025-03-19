@@ -40,16 +40,18 @@ export const enhancedShopifyClient = {
     return enhancedShopifyClient;
   },
   
-  // Adding registerWebhook method for ShopifyWebhookManager
+  // Adding registerWebhook method for ShopifyWebhookManager with the required properties
   registerWebhook: async (
     topic: string, 
     address: string, 
     format = 'json'
-  ): Promise<{id: string; success: boolean}> => {
+  ): Promise<{id: string; webhookId: string; success: boolean; message?: string}> => {
     console.log(`Registering webhook for topic ${topic} at ${address}`);
     return {
       id: `webhook-${Date.now()}`,
-      success: true
+      webhookId: `webhook-${Date.now()}`,
+      success: true,
+      message: "Webhook registered successfully"
     };
   }
 };

@@ -20,7 +20,7 @@ export interface CompetitorPriceItem {
   }[];
 }
 
-// Adding missing types referenced in components
+// Updating CompetitorInsight to ensure all used properties are properly typed
 export interface CompetitorInsight {
   id: string;
   title: string;
@@ -36,6 +36,7 @@ export interface CompetitorInsight {
   recommendations?: string[];
   metrics?: Record<string, string | number>;
   affectedProducts?: string[];
+  date?: string; // Used in some places
 }
 
 export interface PriceOptimizationSuggestion {
@@ -50,16 +51,17 @@ export interface PriceOptimizationSuggestion {
   competitorContext: string;
   
   // Additional fields used in AICompetitorInsights component
-  name: string;
+  name: string; 
   change: number;
   recommendedPrice: number;
   reason: string;
 }
 
+// Update ScrapingSchedule to align frequency values between form and interface
 export interface ScrapingSchedule {
   id: string;
   name: string; 
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'custom';
   startDate: Date;
   nextRun: Date;
   lastRun: Date | null;

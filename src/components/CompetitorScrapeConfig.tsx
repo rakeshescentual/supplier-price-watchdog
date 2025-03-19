@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -70,11 +69,10 @@ import {
   FileJson
 } from "lucide-react";
 
-// Schema for scraping configuration
 const ScrapeConfigSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   url: z.string().url("Please enter a valid URL"),
-  frequency: z.enum(["daily", "weekly", "bi-weekly", "monthly"]),
+  frequency: z.enum(["daily", "weekly", "bi-weekly", "monthly", "custom"]),
   times: z.array(z.string()).min(1, "At least one time must be specified"),
   active: z.boolean().default(true),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
@@ -102,7 +100,6 @@ export function CompetitorScrapeConfig() {
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [jsonContent, setJsonContent] = useState("");
 
-  // Initialize the form with default values or editing values
   const form = useForm<ScrapeConfigFormValues>({
     resolver: zodResolver(ScrapeConfigSchema),
     defaultValues: {
@@ -121,7 +118,6 @@ export function CompetitorScrapeConfig() {
     },
   });
 
-  // Load schedules on initial render
   const loadSchedules = async () => {
     setIsLoading(true);
     try {
@@ -137,12 +133,10 @@ export function CompetitorScrapeConfig() {
     }
   };
 
-  // Load schedules on mount
   React.useEffect(() => {
     loadSchedules();
   }, []);
 
-  // Update form when editing a schedule
   React.useEffect(() => {
     if (editingSchedule) {
       form.reset({
@@ -165,7 +159,6 @@ export function CompetitorScrapeConfig() {
     }
   }, [editingSchedule, form]);
 
-  // Handle form submission
   const onSubmit = async (values: ScrapeConfigFormValues) => {
     try {
       const schedule: Partial<ScrapingSchedule> & { url: string } = {
@@ -207,7 +200,6 @@ export function CompetitorScrapeConfig() {
     }
   };
 
-  // Handle running an immediate scrape
   const handleRunNow = async (scheduleId: string) => {
     try {
       await CompetitorScrapingService.runImmediateScrape(scheduleId);
@@ -222,11 +214,9 @@ export function CompetitorScrapeConfig() {
     }
   };
 
-  // Handle deleting a schedule
   const handleDelete = async (scheduleId: string) => {
     if (confirm("Are you sure you want to delete this schedule?")) {
       try {
-        // In a real implementation, call your API to delete the schedule
         await new Promise(resolve => setTimeout(resolve, 500));
         
         setSchedules(schedules.filter(s => s.id !== scheduleId));
@@ -242,15 +232,12 @@ export function CompetitorScrapeConfig() {
     }
   };
 
-  // Handle editing a schedule
   const handleEdit = (schedule: ScrapingSchedule) => {
     setEditingSchedule(schedule);
   };
 
-  // Toggle JSON editor
   const toggleJsonEditor = () => {
     if (!showJsonEditor) {
-      // When switching to JSON editor, convert form selectors to JSON
       const selectors = form.getValues().selectors || {};
       setJsonContent(JSON.stringify(selectors, null, 2));
     }
@@ -590,7 +577,6 @@ export function CompetitorScrapeConfig() {
         </TabsContent>
       </Tabs>
 
-      {/* Schedule Editor Dialog */}
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -653,6 +639,7 @@ export function CompetitorScrapeConfig() {
                           <SelectItem value="weekly">Weekly</SelectItem>
                           <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
                           <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

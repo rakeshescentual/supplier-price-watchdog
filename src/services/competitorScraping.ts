@@ -1,4 +1,3 @@
-
 /**
  * Enhanced Competitor Scraping Service with AI capabilities
  * Compliant with Shopify App Store standards
@@ -326,7 +325,7 @@ export class CompetitorScrapingService {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // For now, return the original items with mock insights
-      const insights = [
+      const insights: CompetitorInsight[] = [
         {
           id: "insight-1",
           type: "opportunity",

@@ -22,14 +22,18 @@ export const generateAIInsights = async (
   try {
     // Start progress animation
     const interval = setInterval(() => {
-      // Fix: Change the callback function to directly calculate and return the new progress value
-      // instead of calling setState with a callback function
       const currentProgress = Math.random() * 5;
-      setGenerationProgress(prev => {
-        const newProgress = prev + currentProgress;
-        return newProgress >= 100 ? 100 : newProgress;
-      });
+      // Instead of using a function callback, calculate the new progress here
+      // and call setGenerationProgress with the direct number value
+      const newProgress = Math.min(generationProgress + currentProgress, 100);
+      setGenerationProgress(newProgress);
+      
+      // Track the current progress in a variable
+      generationProgress = newProgress;
     }, 200);
+    
+    // Variable to track progress
+    let generationProgress = 0;
     
     // Generate market opportunity report
     const report = await generateMarketOpportunityReport(competitorItems);

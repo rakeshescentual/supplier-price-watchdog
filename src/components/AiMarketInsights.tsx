@@ -27,9 +27,10 @@ import { CompetitorPriceItem } from "@/types/price";
 interface AiMarketInsightsProps {
   competitorItems: CompetitorPriceItem[];
   isLoading?: boolean;
+  onRefresh?: () => void; // Added the onRefresh prop to the interface
 }
 
-export function AiMarketInsights({ competitorItems, isLoading = false }: AiMarketInsightsProps) {
+export function AiMarketInsights({ competitorItems, isLoading = false, onRefresh }: AiMarketInsightsProps) {
   const [activeTab, setActiveTab] = useState("opportunities");
   const [isGenerating, setIsGenerating] = useState(false);
   const [opportunityReport, setOpportunityReport] = useState<any | null>(null);
@@ -72,6 +73,11 @@ export function AiMarketInsights({ competitorItems, isLoading = false }: AiMarke
       toast.success("AI insights generated", {
         description: "Market analysis and price optimizations are ready.",
       });
+      
+      // Call onRefresh if provided
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error("Error generating AI insights:", error);
       toast.error("Failed to generate insights", {

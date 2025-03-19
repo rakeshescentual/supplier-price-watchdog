@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useShopify } from "@/contexts/shopify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -27,7 +26,6 @@ export function ShopifyIntegrationDashboard() {
   const [accessToken, setAccessToken] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // This could be expanded to fetch real data from the API in a production app
   const fetchMockData = () => {
     toast.success("Data refreshed", {
       description: "Latest Shopify data has been loaded"
@@ -113,7 +111,7 @@ export function ShopifyIntegrationDashboard() {
         </TabsContent>
         
         <TabsContent value="insights">
-          <AiMarketInsights data={mockCompetitorData} onRefresh={fetchMockData} />
+          <AiMarketInsights competitorItems={mockCompetitorData} onRefresh={fetchMockData} />
         </TabsContent>
         
         <TabsContent value="webhooks">

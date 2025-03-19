@@ -1,4 +1,3 @@
-
 /**
  * Enhanced Shopify Service for Enterprise-level Integration
  * Compliant with Shopify Plus and Built for Shopify standards
@@ -95,7 +94,7 @@ export class EnhancedShopifyService {
         const storageData = {
           shop: this.context.shop,
           apiVersion: this.context.apiVersion,
-          shopPlan: this.context.shopPlan,
+          shopPlan: (this.context as any).shopPlan,
           lastConnected: new Date().toISOString()
         };
         localStorage.setItem('shopify_connection', JSON.stringify(storageData));

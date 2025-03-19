@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -45,7 +44,7 @@ import {
   Clock 
 } from "lucide-react";
 import { toast } from "sonner";
-import { CompetitorPriceItem } from "@/types/price";
+import { CompetitorPriceItem } from "@/types/competitor";
 
 // Mock data for competitive prices
 const mockCompetitors = [
@@ -63,25 +62,38 @@ const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
     
     // Generate competitor prices with some variation
     const competitorPrices: Record<string, number> = {};
+    const competitorDiffs: Record<string, number> = {};
+    
     mockCompetitors.forEach(competitor => {
       // 10% chance of not having this item
       if (Math.random() > 0.1) {
         // Competitor price usually between 80% and 120% of our price
-        competitorPrices[competitor] = Math.round((ourPrice * (0.8 + Math.random() * 0.4)) * 100) / 100;
+        const price = Math.round((ourPrice * (0.8 + Math.random() * 0.4)) * 100) / 100;
+        competitorPrices[competitor] = price;
+        competitorDiffs[competitor] = parseFloat(((price / ourPrice - 1) * 100).toFixed(1));
       }
     });
+    
+    // Calculate average difference
+    const diffs = Object.values(competitorDiffs);
+    const averageDiff = diffs.length > 0 
+      ? parseFloat((diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1)) 
+      : 0;
     
     return {
       id: `cp-${index + 1}`,
       sku: `SKU-${10000 + index}`,
       name: `Competitor Product ${index + 1}`,
-      oldPrice: ourPrice,
-      newPrice: ourPrice,
+      retailPrice: ourPrice,
+      newPrice: ourPrice, // For compatibility
+      oldPrice: ourPrice, // For compatibility
       status: "unchanged",
       difference: 0,
       isMatched: true,
       competitorPrices,
-      lastUpdated: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+      competitorDiffs,
+      averageDiff,
+      lastUpdated: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       priceHistory: Array(5).fill(0).map((_, i) => ({
         date: new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000),
         price: Math.round((ourPrice * (0.9 + Math.random() * 0.2)) * 100) / 100

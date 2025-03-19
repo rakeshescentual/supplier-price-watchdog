@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, TrendingDown, TrendingUp } from "lucide-react";
-import { CompetitorPriceItem } from "@/types/price";
+import { CompetitorPriceItem } from "@/types/competitor";
 
 interface CompetitorPriceHistoryProps {
   item: CompetitorPriceItem;
@@ -21,7 +21,7 @@ interface CompetitorPriceHistoryProps {
 export function CompetitorPriceHistory({ item, competitors }: CompetitorPriceHistoryProps) {
   // This would be real history data in a production app
   const generateMockHistory = (competitor: string) => {
-    const basePrice = item.competitorPrices?.[competitor] || item.newPrice;
+    const basePrice = item.competitorPrices?.[competitor] || item.retailPrice;
     return Array(6).fill(0).map((_, i) => ({
       date: new Date(Date.now() - (i + 1) * 30 * 24 * 60 * 60 * 1000),
       price: Math.round((basePrice * (0.9 + Math.random() * 0.2)) * 100) / 100
@@ -36,8 +36,8 @@ export function CompetitorPriceHistory({ item, competitors }: CompetitorPriceHis
   }, {} as Record<string, { date: Date; price: number }[]>);
 
   // Calculate min and max prices for consistent visualizations
-  let minPrice = item.newPrice;
-  let maxPrice = item.newPrice;
+  let minPrice = item.retailPrice;
+  let maxPrice = item.retailPrice;
   
   Object.values(priceHistories).forEach(history => {
     history.forEach(entry => {
@@ -63,7 +63,7 @@ export function CompetitorPriceHistory({ item, competitors }: CompetitorPriceHis
           <div>
             <CardTitle className="text-xl">{item.name}</CardTitle>
             <CardDescription>
-              SKU: {item.sku} | Current Price: £{item.newPrice.toFixed(2)}
+              SKU: {item.sku} | Current Price: £{item.retailPrice.toFixed(2)}
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" className="flex items-center gap-1">
@@ -83,15 +83,15 @@ export function CompetitorPriceHistory({ item, competitors }: CompetitorPriceHis
                   Current: £{item.competitorPrices?.[competitor].toFixed(2) || "N/A"} |  
                   Compared to Escentual: {" "}
                   {item.competitorPrices?.[competitor] !== undefined && (
-                    item.competitorPrices[competitor] < item.newPrice ? (
+                    item.competitorPrices[competitor] < item.retailPrice ? (
                       <Badge variant="destructive" className="ml-1">
                         <TrendingDown className="h-3 w-3 mr-1" />
-                        {(100 - (item.competitorPrices[competitor] / item.newPrice * 100)).toFixed(1)}% lower
+                        {(100 - (item.competitorPrices[competitor] / item.retailPrice * 100)).toFixed(1)}% lower
                       </Badge>
-                    ) : item.competitorPrices[competitor] > item.newPrice ? (
+                    ) : item.competitorPrices[competitor] > item.retailPrice ? (
                       <Badge variant="success" className="ml-1">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        {((item.competitorPrices[competitor] / item.newPrice * 100) - 100).toFixed(1)}% higher
+                        {((item.competitorPrices[competitor] / item.retailPrice * 100) - 100).toFixed(1)}% higher
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="ml-1">Equal</Badge>

@@ -19,7 +19,7 @@ import {
   Download,
   RefreshCw 
 } from "lucide-react";
-import { CompetitorPriceItem } from "@/types/price";
+import { CompetitorPriceItem } from "@/types/competitor";
 import { toast } from "sonner";
 
 interface MarketAnalysisDashboardProps {
@@ -55,9 +55,9 @@ export function MarketAnalysisDashboard({
       
       acc[competitor].totalProducts++;
       
-      if (price < item.newPrice) {
+      if (price < item.retailPrice) {
         acc[competitor].lowerPrice++;
-      } else if (price > item.newPrice) {
+      } else if (price > item.retailPrice) {
         acc[competitor].higherPrice++;
       } else {
         acc[competitor].samePrice++;

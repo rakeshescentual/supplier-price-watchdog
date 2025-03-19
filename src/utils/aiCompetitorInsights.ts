@@ -1,5 +1,4 @@
-
-import { CompetitorPriceItem } from "@/types/price";
+import { CompetitorPriceItem } from "@/types/competitor";
 
 /**
  * Generate a market opportunity report based on competitor price data
@@ -26,13 +25,13 @@ export const generateMarketOpportunityReport = async (
   };
   
   items.forEach(item => {
-    const competitorPrices = Object.values(item.competitorPrices || {});
+    const competitorPrices = Object.values(item.competitorPrices || {}).filter(p => p !== null) as number[];
     if (competitorPrices.length > 0) {
       const minCompetitorPrice = Math.min(...competitorPrices);
       
-      if (item.newPrice < minCompetitorPrice) {
+      if (item.retailPrice < minCompetitorPrice) {
         positionData.lowestPrice++;
-      } else if (item.newPrice > minCompetitorPrice * 1.15) {
+      } else if (item.retailPrice > minCompetitorPrice * 1.15) {
         positionData.premiumPrice++;
       } else {
         positionData.averagePrice++;
@@ -117,20 +116,20 @@ export const generatePriceOptimizations = async (
   return items
     .slice(0, Math.min(items.length, 20))
     .map(item => {
-      const competitorPrices = Object.values(item.competitorPrices || {});
+      const competitorPrices = Object.values(item.competitorPrices || {}).filter(p => p !== null) as number[];
       const hasCompetitors = competitorPrices.length > 0;
       
       const competitorAvg = hasCompetitors 
         ? competitorPrices.reduce((sum, price) => sum + price, 0) / competitorPrices.length 
-        : item.newPrice;
+        : item.retailPrice;
       
       const competitorMin = hasCompetitors 
         ? Math.min(...competitorPrices) 
-        : item.newPrice * 0.9;
+        : item.retailPrice * 0.9;
       
       const competitorMax = hasCompetitors 
         ? Math.max(...competitorPrices) 
-        : item.newPrice * 1.1;
+        : item.retailPrice * 1.1;
       
       // Different optimization strategies
       const strategies = [
@@ -157,10 +156,10 @@ export const generatePriceOptimizations = async (
       // Select a strategy based on the item's current competitive position
       let recommendedStrategy;
       
-      if (item.newPrice < competitorMin * 0.95) {
+      if (item.retailPrice < competitorMin * 0.95) {
         // Currently priced very low
         recommendedStrategy = strategies[2]; // Premium strategy
-      } else if (item.newPrice > competitorMax * 0.95) {
+      } else if (item.retailPrice > competitorMax * 0.95) {
         // Currently priced very high
         recommendedStrategy = strategies[1]; // Optimal strategy
       } else {
@@ -169,16 +168,16 @@ export const generatePriceOptimizations = async (
       }
       
       const currentMargin = 0.35; // Assume 35% margin for example
-      const proposedMargin = 1 - ((item.newPrice * 0.65) / recommendedStrategy.price);
+      const proposedMargin = 1 - ((item.retailPrice * 0.65) / recommendedStrategy.price);
       
       return {
         id: item.id,
         sku: item.sku,
         name: item.name,
-        currentPrice: item.newPrice,
+        currentPrice: item.retailPrice,
         suggestedPrice: recommendedStrategy.price,
-        priceDifference: Math.round((recommendedStrategy.price - item.newPrice) * 100) / 100,
-        percentChange: Math.round(((recommendedStrategy.price / item.newPrice) - 1) * 1000) / 10,
+        priceDifference: Math.round((recommendedStrategy.price - item.retailPrice) * 100) / 100,
+        percentChange: Math.round(((recommendedStrategy.price / item.retailPrice) - 1) * 1000) / 10,
         reason: recommendedStrategy.reason,
         impact: recommendedStrategy.impact,
         marketPosition: {
@@ -220,11 +219,11 @@ export const generateMarketAnalysis = async (
     
     items.forEach(item => {
       const competitorPrice = item.competitorPrices?.[competitor];
-      if (competitorPrice !== undefined) {
+      if (competitorPrice !== undefined && competitorPrice !== null) {
         totalItems++;
-        if (competitorPrice < item.newPrice) {
+        if (competitorPrice < item.retailPrice) {
           lowerCount++;
-        } else if (competitorPrice > item.newPrice) {
+        } else if (competitorPrice > item.retailPrice) {
           higherCount++;
         } else {
           matchCount++;
@@ -241,8 +240,8 @@ export const generateMarketAnalysis = async (
       averagePriceDifference: totalItems > 0 
         ? Math.round(items.reduce((sum, item) => {
             const price = item.competitorPrices?.[competitor];
-            return price !== undefined 
-              ? sum + ((price - item.newPrice) / item.newPrice) 
+            return price !== undefined && price !== null
+              ? sum + ((price - item.retailPrice) / item.retailPrice) 
               : sum;
           }, 0) / totalItems * 1000) / 10
         : 0
@@ -284,16 +283,16 @@ export const generateMarketAnalysis = async (
       totalCompetitors: competitors.length,
       pricePosition: {
         lowest: items.filter(item => 
-          Object.values(item.competitorPrices || {}).every(price => price >= item.newPrice)
+          Object.values(item.competitorPrices || {}).every(price => price >= item.retailPrice)
         ).length,
         average: items.filter(item => {
-          const prices = Object.values(item.competitorPrices || {});
+          const prices = Object.values(item.competitorPrices || {}).filter(p => p !== null) as number[];
           if (prices.length === 0) return false;
           const competitorAvg = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-          return item.newPrice >= competitorAvg * 0.95 && item.newPrice <= competitorAvg * 1.05;
+          return item.retailPrice >= competitorAvg * 0.95 && item.retailPrice <= competitorAvg * 1.05;
         }).length,
         premium: items.filter(item => 
-          Object.values(item.competitorPrices || {}).every(price => price <= item.newPrice)
+          Object.values(item.competitorPrices || {}).every(price => price <= item.retailPrice)
         ).length
       }
     },

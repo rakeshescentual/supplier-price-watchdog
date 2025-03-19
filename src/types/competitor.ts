@@ -1,4 +1,3 @@
-
 /**
  * Competitor Analysis Types
  */
@@ -8,6 +7,11 @@ export interface CompetitorPriceItem {
   sku: string;
   name: string;
   retailPrice: number;
+  newPrice?: number; // Added for compatibility
+  oldPrice?: number; // Added for compatibility
+  status?: string; // Added for compatibility
+  difference?: number; // Added for compatibility
+  isMatched?: boolean; // Added for compatibility
   competitorPrices: {
     [key: string]: number | null; // e.g., "Boots": 19.99, "Harrods": null (not available)
   };
@@ -22,6 +26,7 @@ export interface CompetitorPriceItem {
   imageUrl?: string;
   url?: string;
   inStock?: boolean;
+  priceHistory?: Array<{ date: Date; price: number }>; // Added for compatibility
 }
 
 export interface ScrapingSchedule {

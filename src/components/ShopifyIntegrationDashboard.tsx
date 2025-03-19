@@ -6,11 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ShopifyConnectionStatus } from "@/components/ShopifyConnectionStatus";
-import { ShopifyApiHealthCheck } from "@/components/ShopifyApiHealthCheck";
-import { ShopifyPlusFeatures } from "@/components/ShopifyPlusFeatures";
+import { ShopifyApiHealthCheck } from "@/components/shopify/ShopifyApiHealthCheck";
+import { ShopifyPlusFeatures } from "@/components/shopify/ShopifyPlusFeatures";
 import { AiMarketInsights } from "@/components/AiMarketInsights";
 import { ShopifyBulkOperations } from "@/components/shopify/ShopifyBulkOperations";
 import { ShopifyScriptsManager } from "@/components/shopify/ShopifyScriptsManager";
+import { ShopifyWebhooks } from "@/components/shopify/ShopifyWebhooks"; // Import our new component
+import { ShopifyIntegrationStatus } from "@/components/shopify/ShopifyIntegrationStatus"; // Import our new component
 import { ExternalLink, AlertTriangle, Settings, Store } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +93,7 @@ export function ShopifyIntegrationDashboard() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pricing">Price Management</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="scripts">Scripts</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
           <TabsTrigger value="plus">Shopify Plus</TabsTrigger>
@@ -184,7 +187,7 @@ export function ShopifyIntegrationDashboard() {
             </div>
             
             <div>
-              <ShopifyApiHealthCheck />
+              <ShopifyIntegrationStatus />
             </div>
           </div>
         </TabsContent>
@@ -283,6 +286,10 @@ export function ShopifyIntegrationDashboard() {
         
         <TabsContent value="bulk" className="mt-0">
           <ShopifyBulkOperations />
+        </TabsContent>
+
+        <TabsContent value="webhooks" className="mt-0">
+          <ShopifyWebhooks />
         </TabsContent>
         
         <TabsContent value="scripts" className="mt-0">

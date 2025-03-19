@@ -1,14 +1,22 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import type { ShopifyContextType, ShopifyProviderContextType, PriceItem as ShopifyPriceItem } from '@/types/shopify';
+import type { 
+  ShopifyContextType, 
+  ShopifyProviderContextType,
+  ShopifyConnectionResult,
+  PriceItem as ShopifyPriceItem
+} from '@/types/shopify';
 import { useShopifyConnection } from './hooks/useShopifyConnection';
 import { useShopifySync } from './hooks/useShopifySync';
 import { ensureCompatibility } from '@/lib/compatibility';
 import { initializeShopifyApp } from '@/lib/shopifyApi';
-import { bulkUpdatePrices } from '@/lib/shopify/bulkOperations';
+import { bulkUpdatePrices, getBulkOperationHistory, clearBulkOperationHistory } from '@/lib/shopify/bulkOperations';
 import { checkShopifyConnection } from '@/lib/shopify/connection';
 import { getShopifyProducts } from '@/lib/shopify/products';
 import { batchShopifyOperations } from '@/lib/shopify/batch';
+import { shopifyClient, initializeShopifyClient, resetShopifyClient } from '@/lib/shopify/client';
+import { getBestVersion } from '@/lib/shopify/api-version';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
@@ -28,12 +36,50 @@ export const useShopify = () => {
 export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) => {
   const [shopifyContext, setShopifyContext] = useState<ShopifyContextType | null>(null);
   const [isGadgetInitialized, setIsGadgetInitialized] = useState(false);
-  const [apiVersion, setApiVersion] = useState('2024-04'); // Use current API version
+  const [apiVersion, setApiVersion] = useState(getBestVersion());
   const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Call the compatibility function to ensure 'require' is defined
   useEffect(() => {
     ensureCompatibility();
+  }, []);
+  
+  // Load saved shopify context from localStorage on initialization
+  useEffect(() => {
+    try {
+      const savedContext = localStorage.getItem('shopify_context');
+      if (savedContext) {
+        const parsedContext = JSON.parse(savedContext) as ShopifyContextType;
+        // Validate that the saved context has the required fields
+        if (parsedContext.shop && parsedContext.accessToken) {
+          // Initialize the Shopify client
+          initializeShopifyClient(parsedContext);
+          setShopifyContext(parsedContext);
+          
+          // Verify the connection is still valid
+          checkShopifyConnection(parsedContext).then((result) => {
+            if (!result.success) {
+              toast.error("Saved Shopify connection is invalid", {
+                description: "Please reconnect to your Shopify store."
+              });
+              disconnectShopify();
+            } else {
+              toast.success("Reconnected to Shopify", {
+                description: `Connected to ${parsedContext.shop}`
+              });
+            }
+          }).catch(err => {
+            console.error("Error checking saved connection:", err);
+            disconnectShopify();
+            toast.error("Error checking saved connection", {
+              description: "Please reconnect to your Shopify store."
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading saved Shopify context:", error);
+    }
   }, []);
   
   const shopifyConnection = useShopifyConnection();
@@ -84,22 +130,40 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
         shop = `${shop}.myshopify.com`;
       }
       
+      // Validate the token format
+      if (!accessToken.startsWith('shpat_') && !accessToken.startsWith('shpca_')) {
+        toast.warning("Token format warning", {
+          description: "Access token should typically start with 'shpat_' or 'shpca_'"
+        });
+      }
+      
+      // Use the best API version
+      const version = getBestVersion();
+      
       const newContext: ShopifyContextType = {
         shop,
         accessToken,
-        apiVersion
+        apiVersion: version
       };
       
       // Test connection before saving
       const connectionResult = await checkShopifyConnection(newContext);
       
       if (connectionResult.success) {
-        setShopifyContext({
+        // Initialize the Shopify client
+        initializeShopifyClient(newContext);
+        
+        // Update the context with additional details
+        const updatedContext: ShopifyContextType = {
           ...newContext,
           isActive: true,
           shopPlan: connectionResult.shopDetails?.plan || 'Basic',
           scopes: ['read_products', 'write_products', 'read_inventory', 'write_inventory']
-        });
+        };
+        
+        // Save to state and localStorage
+        setShopifyContext(updatedContext);
+        localStorage.setItem('shopify_context', JSON.stringify(updatedContext));
         
         toast.success("Connected to Shopify", {
           description: `Successfully connected to ${shop}`
@@ -122,7 +186,13 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
   };
 
   const disconnectShopify = () => {
+    // Reset the Shopify client
+    resetShopifyClient();
+    
+    // Clear context and localStorage
     setShopifyContext(null);
+    localStorage.removeItem('shopify_context');
+    
     toast.info("Disconnected from Shopify");
     
     // Clear health check interval
@@ -131,6 +201,25 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
       healthCheckIntervalRef.current = null;
     }
   };
+
+  const testConnection = useCallback(async (): Promise<ShopifyConnectionResult> => {
+    if (!shopifyContext) {
+      return {
+        success: false,
+        message: "Not connected to Shopify"
+      };
+    }
+    
+    try {
+      return await checkShopifyConnection(shopifyContext);
+    } catch (error) {
+      console.error("Error testing connection:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error testing connection"
+      };
+    }
+  }, [shopifyContext]);
 
   const loadShopifyData = async () => {
     if (!shopifyContext) {
@@ -182,7 +271,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
 
   const value: ShopifyProviderContextType = {
     shopifyContext,
-    isShopifyConnected: shopifyConnection.isConnected,
+    isShopifyConnected: !!shopifyContext,
     isShopifyHealthy: shopifyConnection.isConnected && !shopifyConnection.error,
     lastConnectionCheck: shopifyConnection.lastChecked || null,
     connectionCheckInterval: shopifyConnection.connectionCheckInterval || null,
@@ -193,6 +282,7 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
     syncToShopify: shopifySync.syncToShopify,
     loadShopifyData,
     batchProcessShopifyItems,
+    testConnection,
     bulkOperations: {
       updatePrices: (items, options) => {
         if (!shopifyContext) {
@@ -206,7 +296,9 @@ export const ShopifyProvider: React.FC<ShopifyProviderProps> = ({ children }) =>
         // Convert items to ensure they match the expected type
         const shopifyItems = convertToShopifyPriceItems(items);
         return bulkUpdatePrices(shopifyContext, shopifyItems, options);
-      }
+      },
+      getBulkOperationHistory,
+      clearBulkOperationHistory
     }
   };
 

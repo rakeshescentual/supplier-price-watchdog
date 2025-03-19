@@ -52,8 +52,10 @@ export interface ShopifyProviderContextType {
       updatedCount: number;
       failedCount: number;
     }>;
+    getBulkOperationHistory: () => any[];
+    clearBulkOperationHistory: () => void;
   };
-  testConnection?: () => Promise<ShopifyConnectionResult>;
+  testConnection: () => Promise<ShopifyConnectionResult>;
 }
 
 // Webhook subscription

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { BrainCircuit, RefreshCw, TrendingUp, BarChart4, ArrowRightLeft } from "lucide-react";
+import { BrainCircuit, RefreshCw, TrendingUp, BarChart4, ArrowRightLeft, ChartPie } from "lucide-react";
 import { CompetitorPriceItem } from "@/types/price";
 import { generateAIInsights } from "./ai-market-insights/aiInsightsUtils";
 import { OpportunitiesTab } from "./ai-market-insights/OpportunitiesTab";
@@ -24,6 +24,7 @@ import { PricingTab } from "./ai-market-insights/PricingTab";
 import { TrendsTab } from "./ai-market-insights/TrendsTab";
 import { LoadingState } from "./ai-market-insights/LoadingState";
 import { NoDataState } from "./ai-market-insights/NoDataState";
+import { MarketAnalysisDashboard } from "./ai-market-insights/MarketAnalysisDashboard";
 
 interface AiMarketInsightsProps {
   competitorItems: CompetitorPriceItem[];
@@ -37,6 +38,7 @@ export function AiMarketInsights({ competitorItems, isLoading = false, onRefresh
   const [opportunityReport, setOpportunityReport] = useState<any | null>(null);
   const [priceOptimizations, setPriceOptimizations] = useState<any[] | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   // Generate insights when competitor items change
   useEffect(() => {
@@ -62,6 +64,26 @@ export function AiMarketInsights({ competitorItems, isLoading = false, onRefresh
     return <LoadingState />;
   }
 
+  if (showDashboard) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowDashboard(false)}
+          >
+            Return to Insights
+          </Button>
+        </div>
+        <MarketAnalysisDashboard 
+          competitorItems={competitorItems}
+          onRefresh={onRefresh}
+        />
+      </div>
+    );
+  }
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
@@ -70,24 +92,34 @@ export function AiMarketInsights({ competitorItems, isLoading = false, onRefresh
             <BrainCircuit className="h-5 w-5 mr-2 text-purple-500" />
             <CardTitle>AI Market Insights</CardTitle>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={generateInsights}
-            disabled={isGenerating || competitorItems.length === 0}
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                Refresh
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDashboard(true)}
+            >
+              <ChartPie className="h-3.5 w-3.5 mr-2" />
+              Advanced Dashboard
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={generateInsights}
+              disabled={isGenerating || competitorItems.length === 0}
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                  Refresh
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         <CardDescription>
           Advanced market analysis powered by AI

@@ -2,138 +2,134 @@
 import React from "react";
 import { 
   Card, 
+  CardContent, 
+  CardDescription, 
   CardHeader, 
-  CardTitle, 
-  CardContent 
+  CardTitle 
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
+import { 
+  Lightbulb, 
+  TrendingUp, 
+  Users, 
+  ShoppingBag, 
+  CircleDollarSign 
+} from "lucide-react";
 
 interface OpportunitiesTabProps {
-  opportunityReport: any | null;
+  opportunityReport: any; // Consider creating a specific type for this
   isGenerating: boolean;
 }
 
 export function OpportunitiesTab({ opportunityReport, isGenerating }: OpportunitiesTabProps) {
-  if (!opportunityReport) {
+  if (isGenerating || !opportunityReport) {
     return (
-      <div className="flex items-center justify-center p-6 h-[400px]">
-        <div className="text-center">
-          <RefreshCw className="h-10 w-10 text-gray-400 mx-auto mb-4 animate-spin" />
-          <h3 className="text-lg font-medium mb-2">Generating Analysis</h3>
-          <p className="text-muted-foreground">
-            AI is analyzing market data to identify opportunities...
-          </p>
+      <div className="px-6 pb-6 space-y-6">
+        <div className="h-[300px] flex items-center justify-center">
+          <div className="animate-pulse space-y-6 w-full">
+            <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-[200px] bg-gray-200 rounded w-full"></div>
+          </div>
         </div>
       </div>
     );
   }
 
+  const { opportunities, categoryInsights, brandOpportunities } = opportunityReport;
+
   return (
-    <div className="px-6 pb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="bg-gray-50">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm">Categories Analyzed</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <div className="text-2xl font-bold">{opportunityReport.summary.categoriesAnalyzed}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-50">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm">Top Opportunity</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <div className="text-2xl font-bold">{opportunityReport.summary.topOpportunities}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-50">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm">Highest Threat</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <div className="text-2xl font-bold">{opportunityReport.summary.highestThreats}</div>
-          </CardContent>
-        </Card>
+    <div className="px-6 pb-6 space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-2">Market Opportunities</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          AI-identified opportunities based on competitive analysis
+        </p>
       </div>
       
-      <h3 className="text-lg font-medium mb-4">Category Analysis</h3>
-      
-      <div className="space-y-6">
-        {opportunityReport.categoryReports.map((report: any, index: number) => (
-          <div key={index} className="border rounded-lg p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium">{report.category}</h4>
-              <Badge variant={
-                report.competitiveness === 'high' ? 'success' : 
-                report.competitiveness === 'low' ? 'destructive' : 'outline'
-              }>
-                {report.competitiveness === 'high' ? 'Highly Competitive' : 
-                 report.competitiveness === 'low' ? 'Low Competitiveness' : 
-                 'Average Competitiveness'}
-              </Badge>
-            </div>
-            
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="text-sm text-muted-foreground">Price difference:</div>
-              <div className={`font-medium ${
-                report.avgPriceDifference > 0 ? 'text-green-600' : 
-                report.avgPriceDifference < 0 ? 'text-red-600' : ''
-              }`}>
-                {report.avgPriceDifference > 0 ? '+' : ''}{report.avgPriceDifference}%
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {opportunities.map((opportunity: any, index: number) => (
+          <Card key={index}>
+            <CardHeader className="py-4">
+              <div className="flex items-start justify-between">
+                <CardTitle className="text-base flex items-center">
+                  <Lightbulb className="h-4 w-4 text-amber-500 mr-2" />
+                  {opportunity.title}
+                </CardTitle>
+                
+                <Badge className={
+                  opportunity.impact === 'high' ? 'bg-green-100 text-green-800' :
+                  opportunity.impact === 'medium' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'
+                }>
+                  {opportunity.impact} impact
+                </Badge>
               </div>
-              <div className="text-sm text-muted-foreground ml-auto">
-                {report.itemCount} items analyzed
-              </div>
-            </div>
+            </CardHeader>
             
-            <Separator className="my-3" />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h5 className="text-sm font-medium mb-2 flex items-center">
-                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" /> 
-                  Opportunities
-                </h5>
-                {report.opportunities.length > 0 ? (
-                  <ul className="text-sm space-y-1">
-                    {report.opportunities.map((opp: any, idx: number) => (
-                      <li key={idx} className="flex justify-between">
-                        <span className="truncate">{opp.name}</span>
-                        <span className="text-green-600 ml-2">+{opp.priceDifference.toFixed(1)}%</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No significant opportunities found</p>
-                )}
-              </div>
+            <CardContent className="py-0 text-sm">
+              <p>{opportunity.description}</p>
               
-              <div>
-                <h5 className="text-sm font-medium mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mr-1" /> 
-                  Threats
-                </h5>
-                {report.threats.length > 0 ? (
-                  <ul className="text-sm space-y-1">
-                    {report.threats.map((threat: any, idx: number) => (
-                      <li key={idx} className="flex justify-between">
-                        <span className="truncate">{threat.name}</span>
-                        <span className="text-red-600 ml-2">{threat.priceDifference.toFixed(1)}%</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No significant threats found</p>
-                )}
-              </div>
-            </div>
-          </div>
+              {opportunity.potentialRevenue && (
+                <div className="mt-3 flex items-center gap-1 text-green-600">
+                  <CircleDollarSign className="h-4 w-4" />
+                  <span>Potential revenue: {opportunity.potentialRevenue}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ))}
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2 text-blue-500" />
+              Category Growth Insights
+            </CardTitle>
+            <CardDescription>
+              Pricing trends by product category
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="py-0">
+            <ul className="space-y-2">
+              {categoryInsights.map((insight: any, index: number) => (
+                <li key={index} className="flex items-center justify-between p-2 border-b last:border-0">
+                  <span className="font-medium">{insight.category}</span>
+                  <Badge variant={insight.growth > 0 ? "success" : "destructive"}>
+                    {insight.growth > 0 ? "+" : ""}{insight.growth}%
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center">
+              <ShoppingBag className="h-4 w-4 mr-2 text-purple-500" />
+              Brand-Specific Opportunities
+            </CardTitle>
+            <CardDescription>
+              Competitive positioning by brand
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="py-0">
+            <ul className="space-y-2">
+              {brandOpportunities.map((brand: any, index: number) => (
+                <li key={index} className="flex items-center justify-between p-2 border-b last:border-0">
+                  <span className="font-medium">{brand.name}</span>
+                  <Badge variant="outline" className="whitespace-nowrap">
+                    {brand.status}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

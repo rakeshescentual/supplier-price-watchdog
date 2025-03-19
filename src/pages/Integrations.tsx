@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
-import { useShopify } from "@/contexts/ShopifyContext";
+import { useShopify } from "@/contexts/shopify";
 import { toast } from "sonner";
 import { initGA4, trackPriceChange, GA4EventType } from "@/lib/integrations/googleAnalytics4";
 import { prepareKlaviyoSegmentData } from "@/utils/marketDataUtils";
+import { gadgetAnalytics } from "@/lib/gadget/analytics";
 
 // Import the refactored components
 import { IntegrationsHeader } from "@/components/integrations/IntegrationsHeader";
@@ -18,6 +19,11 @@ import { IntegrationsFooter } from "@/components/integrations/IntegrationsFooter
 import { MarketingIntegrations } from "@/components/integrations/MarketingIntegrations";
 import { PriceAlertChannels } from "@/components/integrations/PriceAlertChannels";
 import { KlaviyoIntegration } from "@/components/integrations/KlaviyoIntegration";
+import { ShopifyPlusIntegration } from "@/components/shopify/ShopifyPlusIntegration";
+import { ShopifyCompliance } from "@/components/shopify/ShopifyCompliance";
+
+// Create a usage tracker for this page
+const usageTracker = gadgetAnalytics.createUsageTracker('integrations');
 
 export default function Integrations() {
   const [activeTab, setActiveTab] = useState("marketing");
@@ -34,6 +40,9 @@ export default function Integrations() {
   const hasItems = items.length > 0;
   
   useEffect(() => {
+    // Track page view
+    usageTracker.trackView('page');
+    
     // Initialize Google Analytics 4 when the page loads
     const ga4Result = initGA4();
     if (ga4Result) {
@@ -63,8 +72,14 @@ export default function Integrations() {
     }
   }, [hasItems, items, isShopifyConnected, shopifyContext, isGadgetInitialized]);
   
+  // Track tab changes
+  useEffect(() => {
+    usageTracker.trackUse(`tab_${activeTab}`);
+  }, [activeTab]);
+  
   const testAllConnections = async () => {
     setIsTestingAll(true);
+    usageTracker.trackUse('test_connections');
     
     try {
       // Wait a moment to simulate testing connections
@@ -106,10 +121,22 @@ export default function Integrations() {
         const klaviyoData = prepareKlaviyoSegmentData(items);
         console.log("Klaviyo segment data prepared:", klaviyoData);
       }
+      
+      // Track this business metric
+      gadgetAnalytics.trackBusinessMetric('integration_health', connectedCount / 4, {
+        connectedServices: Object.entries(results)
+          .filter(([_, isConnected]) => isConnected)
+          .map(([service]) => service)
+      });
     } catch (error) {
       console.error("Error testing connections:", error);
       toast.error("Error testing connections", {
         description: "Could not verify all connections. See console for details."
+      });
+      
+      // Track the error
+      gadgetAnalytics.trackError(error instanceof Error ? error : String(error), { 
+        action: 'test_connections'
       });
     } finally {
       setIsTestingAll(false);
@@ -154,11 +181,19 @@ export default function Integrations() {
         </TabsContent>
         
         <TabsContent value="shopify" className="mt-0">
-          <ShopifyTab 
-            integrationStatus={integrationStatus}
-            hasItems={hasItems}
-            items={items}
-          />
+          <div className="space-y-8">
+            <ShopifyTab 
+              integrationStatus={integrationStatus}
+              hasItems={hasItems}
+              items={items}
+            />
+            
+            {/* Add new Shopify Plus integration component */}
+            <ShopifyPlusIntegration />
+            
+            {/* Add Shopify Compliance component */}
+            <ShopifyCompliance />
+          </div>
         </TabsContent>
       </Tabs>
       

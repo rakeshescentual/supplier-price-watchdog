@@ -1,5 +1,7 @@
+
 // Core Price Item Interface
 export interface PriceItem {
+  id?: string; // Added to fix compatibility with ShopifyBulkOperationsPanel
   sku: string;
   name: string;
   oldPrice: number;
@@ -24,6 +26,9 @@ export interface PriceItem {
   // Shopify-specific fields
   productId?: string;
   variantId?: string;
+  shopifyProductId?: string; // Added for compatibility with ShopifyBulkOperationsPanel
+  shopifyVariantId?: string; // Added for compatibility with ShopifyBulkOperationsPanel
+  percentChange?: number; // Added for compatibility with ShopifyBulkOperationsPanel
   inventoryItemId?: string;
   inventoryItemIds?: string[]; // For multi-location inventory
   inventoryLevel?: number;

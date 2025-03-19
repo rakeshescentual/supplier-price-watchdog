@@ -24,11 +24,21 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FileEdit, Upload, AlertTriangle, CheckCircle, Layers } from "lucide-react";
 import { useShopify } from "@/contexts/shopify";
-import { PriceItem } from "@/types/price";
+import { PriceItem as PriceFromPriceTs } from "@/types/price";
+import { PriceItem as PriceFromShopifyTs } from "@/types/shopify";
 
 interface ShopifyBulkOperationsPanelProps {
-  items?: PriceItem[];
+  items?: PriceFromPriceTs[];
 }
+
+// Adapter function to convert PriceItem from price.ts to PriceItem from shopify.ts
+const adaptPriceItems = (items: PriceFromPriceTs[]): PriceFromShopifyTs[] => {
+  return items.map(item => ({
+    ...item,
+    id: item.id || item.sku, // Ensure id exists
+    percentChange: item.percentChange || ((item.newPrice - item.oldPrice) / item.oldPrice) * 100
+  })) as PriceFromShopifyTs[];
+};
 
 export function ShopifyBulkOperationsPanel({ items = [] }: ShopifyBulkOperationsPanelProps) {
   const { isShopifyConnected, bulkOperations, shopifyContext } = useShopify();
@@ -61,7 +71,10 @@ export function ShopifyBulkOperationsPanel({ items = [] }: ShopifyBulkOperations
     try {
       // Different operations based on selected type
       if (operationType === "price-update") {
-        const result = await bulkOperations.updatePrices(items, {
+        // Use the adapter function to convert items to the expected type
+        const adaptedItems = adaptPriceItems(items);
+        
+        const result = await bulkOperations.updatePrices(adaptedItems, {
           dryRun,
           notifyCustomers,
           onProgress: setProgress

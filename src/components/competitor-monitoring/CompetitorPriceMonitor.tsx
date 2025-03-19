@@ -46,7 +46,6 @@ import {
 import { toast } from "sonner";
 import { CompetitorPriceItem } from "@/types/competitor";
 
-// Mock data for competitive prices
 const mockCompetitors = [
   "Boots", 
   "LookFantastic", 
@@ -94,6 +93,8 @@ const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
       competitorDiffs,
       averageDiff,
       lastUpdated: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      crawlId: `crawl-${index}`,
+      category: `Category ${Math.floor(Math.random() * 5) + 1}`,
       priceHistory: Array(5).fill(0).map((_, i) => ({
         date: new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000),
         price: Math.round((ourPrice * (0.9 + Math.random() * 0.2)) * 100) / 100
@@ -185,6 +186,14 @@ export function CompetitorPriceMonitor() {
         description: "Latest competitor prices have been loaded."
       });
     }, 1500);
+  };
+
+  const formattedDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return "Unknown";
+    }
   };
 
   return (
@@ -314,7 +323,7 @@ export function CompetitorPriceMonitor() {
                             <TableCell className="text-right text-muted-foreground text-sm">
                               <div className="flex items-center justify-end gap-1">
                                 <Clock className="h-3 w-3" />
-                                {item.lastUpdated?.toLocaleDateString() || "Unknown"}
+                                {formattedDate(item.lastUpdated)}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -418,7 +427,6 @@ export function CompetitorPriceMonitor() {
   );
 }
 
-// Placeholder icons for elements not from lucide-react
 function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg

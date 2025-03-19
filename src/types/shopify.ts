@@ -8,20 +8,11 @@ export interface ShopifyContext {
   shop: string;
   accessToken: string;
   apiVersion?: string;
+  shopPlan?: string;
 }
 
 // Extended context with additional properties
-export interface ShopifyContextType extends ShopifyContext {
-  isActive?: boolean;
-  shopPlan?: string;
-  scopes?: string[];
-  webhookSubscriptions?: WebhookSubscription[];
-  themeId?: string;
-}
-
-// Context provider type for the ShopifyProvider
-export interface ShopifyProviderContextType {
-  shopifyContext: ShopifyContextType | null;
+export interface ShopifyContextType {
   isShopifyConnected: boolean;
   isShopifyHealthy: boolean;
   lastConnectionCheck: Date | null;
@@ -56,6 +47,7 @@ export interface ShopifyProviderContextType {
     clearBulkOperationHistory: () => void;
   };
   testConnection: () => Promise<ShopifyConnectionResult>;
+  shopifyContext: ShopifyContext | null;
 }
 
 // Webhook subscription
@@ -219,4 +211,11 @@ export interface PriceItem {
     locationName: string;
     available: number;
   }[];
+}
+
+// Add ShopifyClient type for enhanced-shopify.ts
+export interface ShopifyClient {
+  graphql: <T>(query: string, variables?: Record<string, any>) => Promise<T>;
+  rest: <T>(endpoint: string, method?: string, data?: any) => Promise<T>;
+  initialize: (shop: string, accessToken: string, apiVersion?: string) => ShopifyClient;
 }

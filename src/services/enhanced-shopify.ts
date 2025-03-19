@@ -1,4 +1,5 @@
-import { ShopifyClient } from '@/types/shopify';
+
+import { ShopifyContextType } from '@/types/shopify';
 
 /**
  * Enhanced Shopify service with additional features and optimizations
@@ -40,52 +41,33 @@ export const enhancedShopifyClient = {
   }
 };
 
+// Export as enhancedShopifyService for backward compatibility
+export const enhancedShopifyService = enhancedShopifyClient;
+
 export const enhancedBulkOperations = {
   createBulkOperation: async (query: string) => {
-    const response = await enhancedShopifyClient.graphql({
-      query: `
-        mutation {
-          bulkOperationRunQuery(
-            query: """
-              ${query}
-            """
-          ) {
-            bulkOperation {
-              id
-              status
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `
-    });
-    
+    const response = await enhancedShopifyClient.graphql(query);
     return response;
   },
   
   getBulkOperationStatus: async (id: string) => {
-    const response = await enhancedShopifyClient.graphql({
-      query: `
-        query {
-          node(id: "${id}") {
-            ... on BulkOperation {
-              id
-              status
-              errorCode
-              createdAt
-              completedAt
-              objectCount
-              fileSize
-              url
-              partialDataUrl
-            }
+    const response = await enhancedShopifyClient.graphql(`
+      query {
+        node(id: "${id}") {
+          ... on BulkOperation {
+            id
+            status
+            errorCode
+            createdAt
+            completedAt
+            objectCount
+            fileSize
+            url
+            partialDataUrl
           }
         }
-      `
-    });
+      }
+    `);
     
     return response;
   }
@@ -127,28 +109,24 @@ export const enhancedProductService = {
       }
     `;
     
-    return await enhancedShopifyClient.graphql({
-      query,
-      variables: { limit, cursor }
-    });
+    return await enhancedShopifyClient.graphql(query, { limit, cursor });
   },
   
   updateProductPrice: async (variantId: string, price: number) => {
-    return await enhancedShopifyClient.graphql({
-      query: `
-        mutation productVariantUpdate($input: ProductVariantInput!) {
-          productVariantUpdate(input: $input) {
-            productVariant {
-              id
-              price
-            }
-            userErrors {
-              field
-              message
-            }
+    return await enhancedShopifyClient.graphql(`
+      mutation productVariantUpdate($input: ProductVariantInput!) {
+        productVariantUpdate(input: $input) {
+          productVariant {
+            id
+            price
+          }
+          userErrors {
+            field
+            message
           }
         }
-      `,
+      }
+    `, {
       variables: {
         input: {
           id: variantId,

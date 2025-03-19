@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -50,7 +49,7 @@ const adaptPriceItems = (items: PriceFromPriceTs[]): PriceFromShopifyTs[] => {
     notes: item.suggestionReason,
     difference: item.difference,
     isMatched: item.isMatched
-  })) as PriceFromShopifyTs[];
+  }));
 };
 
 export function ShopifyBulkOperationsPanel({ items = [] }: ShopifyBulkOperationsPanelProps) {

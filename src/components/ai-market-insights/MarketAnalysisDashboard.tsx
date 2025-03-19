@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -139,7 +138,7 @@ export function MarketAnalysisDashboard({
                   <div className="text-2xl font-bold text-purple-700">
                     {totalProducts > 0 ? 
                       (competitorItems.filter(item => 
-                        Object.values(item.competitorPrices || {}).every(price => price >= item.newPrice)
+                        Object.values(item.competitorPrices || {}).every(price => price >= item.retailPrice)
                       ).length / totalProducts * 100).toFixed(1) + "%" 
                     : "N/A"}
                   </div>

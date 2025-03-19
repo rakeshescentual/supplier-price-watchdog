@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
-import type { ShopifyContextType, PriceItem, ShopifyConnectionResult } from "@/types/shopify";
+import type { ShopifyContextType, PriceItem, ShopifyConnectionResult, ShopifyContext } from "@/types/shopify";
 import { bulkUpdatePrices, getBulkOperationHistory, clearBulkOperationHistory } from "@/lib/shopify/bulkOperations";
 
 // Create the context with a default value
@@ -8,12 +8,7 @@ const ShopifyContext = createContext<ShopifyContextType | undefined>(undefined);
 
 // Provider component that wraps the app and provides the Shopify context
 export function ShopifyProvider({ children }: { children: React.ReactNode }) {
-  const [shopifyContext, setShopifyContext] = useState<{
-    shop: string;
-    accessToken: string;
-    apiVersion?: string;
-    shopPlan?: string;
-  } | null>(null);
+  const [shopifyContext, setShopifyContext] = useState<ShopifyContext | null>(null);
   const [isShopifyConnected, setIsShopifyConnected] = useState(false);
   const [isShopifyHealthy, setIsShopifyHealthy] = useState(false);
   const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
@@ -140,25 +135,26 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Create the context value object that matches ShopifyContextType
+  const contextValue: ShopifyContextType = {
+    isShopifyConnected,
+    isShopifyHealthy,
+    lastConnectionCheck,
+    connectionCheckInterval,
+    isGadgetInitialized,
+    isSyncing,
+    connectToShopify,
+    disconnectShopify,
+    syncToShopify,
+    loadShopifyData,
+    batchProcessShopifyItems,
+    bulkOperations,
+    testConnection,
+    shopifyContext
+  };
+
   return (
-    <ShopifyContext.Provider
-      value={{
-        isShopifyConnected,
-        isShopifyHealthy,
-        lastConnectionCheck,
-        connectionCheckInterval,
-        isGadgetInitialized,
-        isSyncing,
-        connectToShopify,
-        disconnectShopify,
-        syncToShopify,
-        loadShopifyData,
-        batchProcessShopifyItems,
-        bulkOperations,
-        testConnection,
-        shopifyContext
-      }}
-    >
+    <ShopifyContext.Provider value={contextValue}>
       {children}
     </ShopifyContext.Provider>
   );

@@ -20,20 +20,15 @@ export const generateAIInsights = async (
   setGenerationProgress(0);
   
   try {
+    // Track progress in a local variable
+    let generationProgress = 0;
+    
     // Start progress animation
     const interval = setInterval(() => {
-      const currentProgress = Math.random() * 5;
-      // Instead of using a function callback, calculate the new progress here
-      // and call setGenerationProgress with the direct number value
-      const newProgress = Math.min(generationProgress + currentProgress, 100);
-      setGenerationProgress(newProgress);
-      
-      // Track the current progress in a variable
-      generationProgress = newProgress;
+      // Calculate new progress and ensure it doesn't exceed 100
+      generationProgress = Math.min(generationProgress + Math.random() * 5, 100);
+      setGenerationProgress(generationProgress);
     }, 200);
-    
-    // Variable to track progress
-    let generationProgress = 0;
     
     // Generate market opportunity report
     const report = await generateMarketOpportunityReport(competitorItems);

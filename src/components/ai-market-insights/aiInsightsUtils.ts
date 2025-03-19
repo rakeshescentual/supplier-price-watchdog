@@ -22,8 +22,11 @@ export const generateAIInsights = async (
   try {
     // Start progress animation
     const interval = setInterval(() => {
+      // Fix: Change the callback function to directly calculate and return the new progress value
+      // instead of calling setState with a callback function
+      const currentProgress = Math.random() * 5;
       setGenerationProgress(prev => {
-        const newProgress = prev + Math.random() * 5;
+        const newProgress = prev + currentProgress;
         return newProgress >= 100 ? 100 : newProgress;
       });
     }, 200);

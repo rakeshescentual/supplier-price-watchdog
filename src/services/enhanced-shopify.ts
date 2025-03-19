@@ -38,6 +38,19 @@ export const enhancedShopifyClient = {
   initialize: (shop: string, accessToken: string, apiVersion = '2024-04') => {
     console.log(`Initializing enhanced Shopify client for ${shop} with API version ${apiVersion}`);
     return enhancedShopifyClient;
+  },
+  
+  // Adding registerWebhook method for ShopifyWebhookManager
+  registerWebhook: async (
+    topic: string, 
+    address: string, 
+    format = 'json'
+  ): Promise<{id: string; success: boolean}> => {
+    console.log(`Registering webhook for topic ${topic} at ${address}`);
+    return {
+      id: `webhook-${Date.now()}`,
+      success: true
+    };
   }
 };
 
@@ -127,11 +140,9 @@ export const enhancedProductService = {
         }
       }
     `, {
-      variables: {
-        input: {
-          id: variantId,
-          price: price.toString()
-        }
+      input: {
+        id: variantId,
+        price: price.toString()
       }
     });
   }

@@ -1,3 +1,4 @@
+
 /**
  * Enhanced Competitor Scraping Service with AI capabilities
  * Compliant with Shopify App Store standards
@@ -6,7 +7,8 @@ import { toast } from "sonner";
 import { 
   CompetitorPriceItem, 
   ScrapingSchedule, 
-  CompetitorScrapingJob 
+  CompetitorScrapingJob,
+  CompetitorInsight 
 } from "@/types/competitor";
 import { scheduleCompetitorCheck } from "@/lib/gadget/actions/competitor-actions";
 
@@ -53,7 +55,7 @@ export class CompetitorScrapingService {
         competitor: new URL(competitorUrl).hostname,
         url: competitorUrl,
         status: 'pending',
-        startTime: new Date().toISOString(),
+        startTime: new Date(),
         priority: options.priority || 'medium',
         productsFound: 0,
         productsScraped: 0
@@ -103,13 +105,16 @@ export class CompetitorScrapingService {
         selectors: schedule.selectors || {},
         times,
         active: schedule.active !== undefined ? schedule.active : true,
-        lastRun: schedule.lastRun || null,
-        nextRun: schedule.nextRun || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        lastRun: schedule.lastRun ? new Date(schedule.lastRun) : null,
+        nextRun: new Date(schedule.nextRun || Date.now() + 24 * 60 * 60 * 1000),
         frequency: schedule.frequency || 'daily',
         productCount: schedule.productCount || 0,
         lastSuccess: schedule.lastSuccess !== undefined ? schedule.lastSuccess : true,
         errorRate: schedule.errorRate || 0,
-        priority: schedule.priority || 'medium'
+        priority: schedule.priority || 'medium',
+        startDate: new Date(),
+        competitors: [],
+        status: 'active' 
       };
       
       toast.success('Scraping schedule saved', {
@@ -150,8 +155,8 @@ export class CompetitorScrapingService {
           url: "https://www.boots.com",
           times: ["09:00", "17:00"],
           active: true,
-          lastRun: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-          nextRun: new Date(Date.now() + 16 * 60 * 60 * 1000).toISOString(),
+          lastRun: new Date(Date.now() - 8 * 60 * 60 * 1000),
+          nextRun: new Date(Date.now() + 16 * 60 * 60 * 1000),
           frequency: "daily",
           productCount: 423,
           lastSuccess: true,
@@ -162,7 +167,10 @@ export class CompetitorScrapingService {
             productName: ".product-title",
             productPrice: ".product-price",
             productImage: ".product-image img"
-          }
+          },
+          startDate: new Date(),
+          competitors: [],
+          status: 'active'
         },
         {
           id: "schedule-2",
@@ -170,8 +178,8 @@ export class CompetitorScrapingService {
           url: "https://www.feelunique.com",
           times: ["08:00", "16:00"],
           active: true,
-          lastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          nextRun: new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString(),
+          lastRun: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          nextRun: new Date(Date.now() + 20 * 60 * 60 * 1000),
           frequency: "daily",
           productCount: 385,
           lastSuccess: true,
@@ -182,7 +190,10 @@ export class CompetitorScrapingService {
             productName: ".product-name",
             productPrice: ".product-price",
             productImage: ".product-image img"
-          }
+          },
+          startDate: new Date(),
+          competitors: [],
+          status: 'active'
         },
         {
           id: "schedule-3",
@@ -190,8 +201,8 @@ export class CompetitorScrapingService {
           url: "https://www.lookfantastic.com",
           times: ["10:00", "18:00"],
           active: true,
-          lastRun: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          nextRun: new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString(),
+          lastRun: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          nextRun: new Date(Date.now() + 22 * 60 * 60 * 1000),
           frequency: "daily",
           productCount: 402,
           lastSuccess: false,
@@ -202,7 +213,10 @@ export class CompetitorScrapingService {
             productName: ".productBlock_productName",
             productPrice: ".productBlock_priceBlock",
             productImage: ".productBlock_image img"
-          }
+          },
+          startDate: new Date(),
+          competitors: [],
+          status: 'active'
         }
       ];
     } catch (error) {
@@ -238,8 +252,8 @@ export class CompetitorScrapingService {
         id: `job-${Date.now()}`,
         competitor: 'Unknown',
         url: 'https://example.com',
-        status: 'in_progress',
-        startTime: new Date().toISOString(),
+        status: 'running',
+        startTime: new Date(),
         productsFound: 0,
         productsScraped: 0
       };
@@ -273,8 +287,8 @@ export class CompetitorScrapingService {
         id: jobId,
         competitor: 'Unknown',
         url: 'https://example.com',
-        status: 'in_progress',
-        startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+        status: 'running',
+        startTime: new Date(Date.now() - 5 * 60 * 1000),
         productsFound: 120,
         productsScraped: 78
       };
@@ -285,9 +299,9 @@ export class CompetitorScrapingService {
         competitor: 'Unknown',
         url: 'https://example.com',
         status: 'failed',
-        startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        endTime: new Date().toISOString(),
-        errors: [{ message: 'Failed to retrieve job status' }]
+        startTime: new Date(Date.now() - 5 * 60 * 1000),
+        endTime: new Date(),
+        errors: ['Failed to retrieve job status']
       };
     }
   }
@@ -300,7 +314,7 @@ export class CompetitorScrapingService {
    */
   static async analyzeWithAI(competitorItems: CompetitorPriceItem[]): Promise<{
     items: CompetitorPriceItem[];
-    insights: any[];
+    insights: CompetitorInsight[];
   }> {
     console.log(`Analyzing ${competitorItems.length} competitor items with AI`);
     
@@ -314,22 +328,44 @@ export class CompetitorScrapingService {
       // For now, return the original items with mock insights
       const insights = [
         {
-          type: 'opportunity',
-          title: 'Premium Pricing Opportunity',
-          description: 'Your luxury fragrances are priced 12% lower than competitors',
+          id: "insight-1",
+          type: "opportunity",
+          title: "Premium Pricing Opportunity",
+          description: "Your luxury fragrances are priced 12% lower than competitors",
           recommendations: [
-            'Consider increasing prices on premium fragrances',
-            'Maintain competitive edge with exclusive product bundles'
-          ]
+            "Consider increasing prices on premium fragrances",
+            "Maintain competitive edge with exclusive product bundles"
+          ],
+          metrics: {
+            potential_revenue: "£2,400",
+            affected_products: 15,
+            avg_price_difference: "12%"
+          },
+          affectedProducts: ["SKU001", "SKU002", "SKU003"],
+          category: "pricing",
+          impactScore: 8,
+          relatedProducts: ["SKU001", "SKU002"],
+          timestamp: new Date()
         },
         {
-          type: 'risk',
-          title: 'Competitive Pressure in Skincare',
-          description: 'Competitors are offering significant discounts on anti-aging products',
+          id: "insight-2",
+          type: "risk",
+          title: "Competitive Pressure in Skincare",
+          description: "Competitors are offering significant discounts on anti-aging products",
           recommendations: [
-            'Monitor skincare conversion rates closely',
-            'Consider targeted promotions for loyal skincare customers'
-          ]
+            "Monitor skincare conversion rates closely",
+            "Consider targeted promotions for loyal skincare customers"
+          ],
+          metrics: {
+            revenue_at_risk: "£5,600",
+            affected_products: 23,
+            avg_competitor_discount: "18%"
+          },
+          affectedProducts: ["SKU004", "SKU005", "SKU006"],
+          category: "trend",
+          impactScore: 7,
+          relatedProducts: ["SKU004", "SKU005"],
+          timestamp: new Date()
         }
       ];
       

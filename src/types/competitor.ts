@@ -30,6 +30,12 @@ export interface CompetitorInsight {
   relatedProducts: string[]; // SKUs
   timestamp: Date;
   isRead?: boolean;
+  
+  // Additional fields used in AICompetitorInsights component
+  type: 'opportunity' | 'risk' | 'trend' | 'alert';
+  recommendations?: string[];
+  metrics?: Record<string, string | number>;
+  affectedProducts?: string[];
 }
 
 export interface PriceOptimizationSuggestion {
@@ -42,6 +48,12 @@ export interface PriceOptimizationSuggestion {
   confidence: 'high' | 'medium' | 'low';
   reasoning: string;
   competitorContext: string;
+  
+  // Additional fields used in AICompetitorInsights component
+  name: string;
+  change: number;
+  recommendedPrice: number;
+  reason: string;
 }
 
 export interface ScrapingSchedule {
@@ -55,6 +67,16 @@ export interface ScrapingSchedule {
   status: 'active' | 'paused' | 'completed';
   productCategories?: string[];
   cronExpression?: string;
+  
+  // Additional fields used in components and services
+  url?: string;
+  times?: string[];
+  active?: boolean;
+  priority?: 'low' | 'medium' | 'high';
+  selectors?: Record<string, string>;
+  productCount?: number;
+  lastSuccess?: boolean;
+  errorRate?: number;
 }
 
 export interface CompetitorSelectors {
@@ -68,12 +90,19 @@ export interface CompetitorSelectors {
 
 export interface CompetitorScrapingJob {
   id: string;
-  scheduleId: string;
+  scheduleId?: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   startTime: Date;
-  endTime: Date | null;
-  itemsProcessed: number;
-  itemsTotal: number;
-  errorCount: number;
+  endTime?: Date | null;
+  itemsProcessed?: number;
+  itemsTotal?: number;
+  errorCount?: number;
   errors?: string[];
+  
+  // Additional fields used in services
+  competitor?: string;
+  url?: string;
+  priority?: 'low' | 'medium' | 'high';
+  productsFound?: number;
+  productsScraped?: number;
 }

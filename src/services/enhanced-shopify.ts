@@ -1,4 +1,3 @@
-
 /**
  * Enhanced Shopify Service for Enterprise-level Integration
  * Compliant with Shopify Plus and Built for Shopify standards
@@ -8,10 +7,32 @@ import {
   ShopifyContext, 
   ShopifyHealthcheckResult, 
   ShopifySyncResult,
-  ShopifyFileUploadResult 
+  ShopifyFileUploadResult,
+  PriceItem as ShopifyPriceItem
 } from "@/types/shopify";
 import { PriceItem } from "@/types/price";
 import { bulkUpdatePrices } from "@/lib/shopify/bulkOperations";
+
+// Helper function to convert price items from price.ts format to shopify.ts format
+const convertToShopifyPriceItems = (items: PriceItem[]): ShopifyPriceItem[] => {
+  return items.map(item => ({
+    id: item.sku, // Use SKU as ID if not present
+    sku: item.sku,
+    name: item.name,
+    oldPrice: item.oldPrice,
+    newPrice: item.newPrice,
+    status: item.status,
+    percentChange: ((item.newPrice - item.oldPrice) / item.oldPrice) * 100,
+    difference: item.difference,
+    isMatched: item.isMatched,
+    shopifyProductId: item.productId,
+    shopifyVariantId: item.variantId,
+    category: item.category,
+    supplier: item.vendor || item.supplier,
+    // Include other properties as needed
+    ...item
+  }));
+};
 
 /**
  * Enterprise-grade Shopify integration service
@@ -159,7 +180,10 @@ export class EnhancedShopifyService {
       
       if (shouldUseBulkOperations) {
         console.log("Using Bulk Operations API for large dataset");
-        const bulkResult = await bulkUpdatePrices(this.context!, prices, {
+        // Convert to Shopify-compatible price items
+        const shopifyPrices = convertToShopifyPriceItems(prices);
+        
+        const bulkResult = await bulkUpdatePrices(this.context!, shopifyPrices, {
           notifyCustomers: options.notifyOnPriceIncrease,
           onProgress: options.onProgress
         });

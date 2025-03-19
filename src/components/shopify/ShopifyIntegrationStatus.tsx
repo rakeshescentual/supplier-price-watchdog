@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowClockwise, CheckCircle, AlertTriangle, Gauge, Server, ShieldCheck, Lock } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertTriangle, Gauge, Server, ShieldCheck, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyHealthcheckResult } from '@/types/shopify';
 import { getBestVersion, getVersionStatusMessage } from '@/lib/shopify/api-version';
@@ -369,12 +369,12 @@ export function ShopifyIntegrationStatus() {
         >
           {isRunningTest ? (
             <>
-              <ArrowClockwise className="h-3 w-3 mr-2 animate-spin" />
+              <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
               Testing...
             </>
           ) : (
             <>
-              <ArrowClockwise className="h-3 w-3 mr-2" />
+              <RefreshCw className="h-3 w-3 mr-2" />
               Test Connection
             </>
           )}

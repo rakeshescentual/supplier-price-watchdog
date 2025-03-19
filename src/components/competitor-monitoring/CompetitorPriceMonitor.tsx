@@ -57,7 +57,7 @@ const mockCompetitors = [
 
 const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
   return Array(count).fill(0).map((_, index) => {
-    const ourPrice = Math.round((15 + Math.random() * 85) * 100) / 100;
+    const retailPrice = Math.round((15 + Math.random() * 85) * 100) / 100;
     
     // Generate competitor prices with some variation
     const competitorPrices: Record<string, number> = {};
@@ -67,9 +67,9 @@ const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
       // 10% chance of not having this item
       if (Math.random() > 0.1) {
         // Competitor price usually between 80% and 120% of our price
-        const price = Math.round((ourPrice * (0.8 + Math.random() * 0.4)) * 100) / 100;
+        const price = Math.round((retailPrice * (0.8 + Math.random() * 0.4)) * 100) / 100;
         competitorPrices[competitor] = price;
-        competitorDiffs[competitor] = parseFloat(((price / ourPrice - 1) * 100).toFixed(1));
+        competitorDiffs[competitor] = parseFloat(((price / retailPrice - 1) * 100).toFixed(1));
       }
     });
     
@@ -83,12 +83,7 @@ const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
       id: `cp-${index + 1}`,
       sku: `SKU-${10000 + index}`,
       name: `Competitor Product ${index + 1}`,
-      retailPrice: ourPrice,
-      newPrice: ourPrice, // For compatibility
-      oldPrice: ourPrice, // For compatibility
-      status: "unchanged",
-      difference: 0,
-      isMatched: true,
+      retailPrice: retailPrice,
       competitorPrices,
       competitorDiffs,
       averageDiff,
@@ -97,7 +92,7 @@ const generateMockPriceData = (count: number): CompetitorPriceItem[] => {
       category: `Category ${Math.floor(Math.random() * 5) + 1}`,
       priceHistory: Array(5).fill(0).map((_, i) => ({
         date: new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000),
-        price: Math.round((ourPrice * (0.9 + Math.random() * 0.2)) * 100) / 100
+        price: Math.round((retailPrice * (0.9 + Math.random() * 0.2)) * 100) / 100
       }))
     };
   });
@@ -301,7 +296,7 @@ export function CompetitorPriceMonitor() {
                               <div className="text-xs text-muted-foreground">{item.sku}</div>
                             </TableCell>
                             <TableCell className="text-right font-medium">
-                              £{item.newPrice.toFixed(2)}
+                              £{item.retailPrice.toFixed(2)}
                             </TableCell>
                             {selectedCompetitors.map(competitor => {
                               const price = item.competitorPrices?.[competitor];
@@ -311,7 +306,7 @@ export function CompetitorPriceMonitor() {
                                     <div>
                                       <div>£{price.toFixed(2)}</div>
                                       <div className="mt-1">
-                                        {getPriceStatusBadge(getPriceStatus(item.newPrice, price))}
+                                        {getPriceStatusBadge(getPriceStatus(item.retailPrice, price))}
                                       </div>
                                     </div>
                                   ) : (

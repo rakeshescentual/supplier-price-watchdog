@@ -67,7 +67,7 @@ export const validatePriceItemsForShopify = (
     }
     
     // Check for Shopify IDs if updating existing products
-    if (item.isMatched && (!item.shopifyProductId || !item.shopifyVariantId)) {
+    if (item.isMatched && (!item.productId && !item.shopifyProductId || !item.variantId && !item.shopifyVariantId)) {
       errors.push("Missing Shopify product or variant ID for matched product");
     }
     

@@ -34,9 +34,22 @@ interface ShopifyBulkOperationsPanelProps {
 // Adapter function to convert PriceItem from price.ts to PriceItem from shopify.ts
 const adaptPriceItems = (items: PriceFromPriceTs[]): PriceFromShopifyTs[] => {
   return items.map(item => ({
-    ...item,
     id: item.id || item.sku, // Ensure id exists
-    percentChange: item.percentChange || ((item.newPrice - item.oldPrice) / item.oldPrice) * 100
+    sku: item.sku,
+    name: item.name,
+    oldPrice: item.oldPrice,
+    newPrice: item.newPrice,
+    status: item.status,
+    percentChange: item.percentChange || ((item.newPrice - item.oldPrice) / item.oldPrice) * 100,
+    shopifyProductId: item.shopifyProductId || item.productId,
+    shopifyVariantId: item.shopifyVariantId || item.variantId,
+    // Copy any other required properties
+    category: item.category,
+    supplier: item.vendor,
+    lastUpdated: new Date(),
+    notes: item.suggestionReason,
+    difference: item.difference,
+    isMatched: item.isMatched
   })) as PriceFromShopifyTs[];
 };
 

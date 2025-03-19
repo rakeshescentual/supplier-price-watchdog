@@ -1,7 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { ShopifyContext, ShopifyContextType } from "@/types/shopify";
-import { PriceItem } from "@/types/shopify";
+import type { ShopifyContextType, PriceItem, ShopifyConnectionResult } from "@/types/shopify";
 import { bulkUpdatePrices, getBulkOperationHistory, clearBulkOperationHistory } from "@/lib/shopify/bulkOperations";
 
 // Create the context with a default value
@@ -9,7 +8,12 @@ const ShopifyContext = createContext<ShopifyContextType | undefined>(undefined);
 
 // Provider component that wraps the app and provides the Shopify context
 export function ShopifyProvider({ children }: { children: React.ReactNode }) {
-  const [shopifyContext, setShopifyContext] = useState<ShopifyContext | null>(null);
+  const [shopifyContext, setShopifyContext] = useState<{
+    shop: string;
+    accessToken: string;
+    apiVersion?: string;
+    shopPlan?: string;
+  } | null>(null);
   const [isShopifyConnected, setIsShopifyConnected] = useState(false);
   const [isShopifyHealthy, setIsShopifyHealthy] = useState(false);
   const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
@@ -20,7 +24,11 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
   // Connect to Shopify
   const connectToShopify = async (shop: string, accessToken: string): Promise<boolean> => {
     // In a real implementation, this would verify the connection
-    setShopifyContext({ shop, accessToken });
+    setShopifyContext({ 
+      shop, 
+      accessToken,
+      shopPlan: "Shopify Plus" // Mock plan for demo
+    });
     setIsShopifyConnected(true);
     setIsShopifyHealthy(true);
     setLastConnectionCheck(new Date());
@@ -73,7 +81,7 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Test the connection to Shopify
-  const testConnection = async () => {
+  const testConnection = async (): Promise<ShopifyConnectionResult> => {
     setLastConnectionCheck(new Date());
     return {
       success: isShopifyConnected,
@@ -81,7 +89,7 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
       shopDetails: isShopifyConnected ? {
         name: "Example Shop",
         domain: shopifyContext?.shop || "",
-        plan: "Shopify Plus"
+        plan: shopifyContext?.shopPlan || "Shopify Plus"
       } : undefined
     };
   };
@@ -135,7 +143,6 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
   return (
     <ShopifyContext.Provider
       value={{
-        shopifyContext,
         isShopifyConnected,
         isShopifyHealthy,
         lastConnectionCheck,
@@ -148,7 +155,8 @@ export function ShopifyProvider({ children }: { children: React.ReactNode }) {
         loadShopifyData,
         batchProcessShopifyItems,
         bulkOperations,
-        testConnection
+        testConnection,
+        shopifyContext
       }}
     >
       {children}

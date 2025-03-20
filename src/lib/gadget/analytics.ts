@@ -125,6 +125,34 @@ export const gadgetAnalytics = {
           .catch(error => console.error(`Failed to track configuration of ${featureArea}.${setting}:`, error));
       }
     };
+  },
+  
+  // Enhanced Shopify metrics for Plus merchants
+  trackShopifyPlusMetrics: async (
+    metricType: 'script_performance' | 'flow_execution' | 'multipass_auth' | 'b2b_pricing' | 'api_efficiency',
+    value: number,
+    metadata?: Record<string, any>
+  ): Promise<boolean> => {
+    return gadgetAnalytics.trackEvent('shopify_plus_metric', {
+      type: metricType,
+      value,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    });
+  },
+  
+  // Track compliance metrics for Built for Shopify certification
+  trackComplianceMetric: async (
+    complianceArea: 'api_version' | 'webhooks' | 'oauth' | 'data_security' | 'rate_limiting' | 'app_bridge',
+    status: 'compliant' | 'non_compliant' | 'warning',
+    metadata?: Record<string, any>
+  ): Promise<boolean> => {
+    return gadgetAnalytics.trackEvent('compliance_metric', {
+      area: complianceArea,
+      status,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    });
   }
 };
 
@@ -165,6 +193,45 @@ export const withPerformanceTracking = <T, Args extends any[]>(
       throw error;
     }
   };
+};
+
+// Enhanced rate-limit monitoring for Shopify API
+export const monitorShopifyRateLimit = (response: Response) => {
+  try {
+    // Extract rate limit headers from Shopify response
+    const remaining = parseInt(response.headers.get('X-Shopify-Shop-Api-Call-Limit')?.split('/')[0] || '0');
+    const limit = parseInt(response.headers.get('X-Shopify-Shop-Api-Call-Limit')?.split('/')[1] || '40');
+    const percentage = (remaining / limit) * 100;
+    
+    // Log rate limit usage
+    console.log(`Shopify API Rate Limit: ${remaining}/${limit} (${percentage.toFixed(1)}% remaining)`);
+    
+    // Track as metric if usage is high
+    if (percentage < 20) {
+      gadgetAnalytics.trackBusinessMetric('shopify_rate_limit', percentage, {
+        remaining,
+        limit,
+        critical: percentage < 10
+      });
+      
+      // Warn if rate limit is critical
+      if (percentage < 10) {
+        console.warn('Critical Shopify API rate limit usage!');
+        
+        // Show toast only on very low limits to avoid spamming
+        if (percentage < 5) {
+          toast.warning('API Rate Limit Warning', {
+            description: 'Approaching Shopify API rate limits. Some operations may be delayed.'
+          });
+        }
+      }
+    }
+    
+    return { remaining, limit, percentage };
+  } catch (error) {
+    console.error('Error monitoring rate limit:', error);
+    return { remaining: 0, limit: 40, percentage: 0 };
+  }
 };
 
 // Initialize analytics on module import

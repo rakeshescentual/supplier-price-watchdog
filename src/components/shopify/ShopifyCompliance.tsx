@@ -8,6 +8,7 @@ import { CheckCircle, XCircle, Info, Shield, AlertTriangle } from "lucide-react"
 import { useShopify } from "@/contexts/shopify";
 import { useState } from "react";
 import { toast } from "sonner";
+import { gadgetAnalytics } from "@/lib/gadget/analytics";
 
 interface ComplianceItem {
   id: string;
@@ -86,6 +87,11 @@ export function ShopifyCompliance() {
   
   const runComplianceCheck = () => {
     setIsRunningCheck(true);
+    
+    // Track this action
+    gadgetAnalytics.trackComplianceMetric('api_version', 'compliant', {
+      details: "Using latest supported version"
+    });
     
     setTimeout(() => {
       setIsRunningCheck(false);

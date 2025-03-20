@@ -107,6 +107,24 @@ export const gadgetAnalytics = {
       count,
       ...metadata
     });
+  },
+  
+  // Usage tracking hook creator - moved into the gadgetAnalytics object
+  createUsageTracker: (featureArea: string) => {
+    return {
+      trackView: (component: string, metadata?: Record<string, any>) => {
+        gadgetAnalytics.trackFeatureUsage(`${featureArea}.${component}`, 'viewed', metadata)
+          .catch(error => console.error(`Failed to track view of ${featureArea}.${component}:`, error));
+      },
+      trackUse: (action: string, metadata?: Record<string, any>) => {
+        gadgetAnalytics.trackFeatureUsage(`${featureArea}.${action}`, 'used', metadata)
+          .catch(error => console.error(`Failed to track use of ${featureArea}.${action}:`, error));
+      },
+      trackConfigure: (setting: string, metadata?: Record<string, any>) => {
+        gadgetAnalytics.trackFeatureUsage(`${featureArea}.${setting}`, 'configured', metadata)
+          .catch(error => console.error(`Failed to track configuration of ${featureArea}.${setting}:`, error));
+      }
+    };
   }
 };
 
@@ -145,24 +163,6 @@ export const withPerformanceTracking = <T, Args extends any[]>(
       });
       
       throw error;
-    }
-  };
-};
-
-// Usage tracking hook creator
-export const createUsageTracker = (featureArea: string) => {
-  return {
-    trackView: (component: string, metadata?: Record<string, any>) => {
-      gadgetAnalytics.trackFeatureUsage(`${featureArea}.${component}`, 'viewed', metadata)
-        .catch(error => console.error(`Failed to track view of ${featureArea}.${component}:`, error));
-    },
-    trackUse: (action: string, metadata?: Record<string, any>) => {
-      gadgetAnalytics.trackFeatureUsage(`${featureArea}.${action}`, 'used', metadata)
-        .catch(error => console.error(`Failed to track use of ${featureArea}.${action}:`, error));
-    },
-    trackConfigure: (setting: string, metadata?: Record<string, any>) => {
-      gadgetAnalytics.trackFeatureUsage(`${featureArea}.${setting}`, 'configured', metadata)
-        .catch(error => console.error(`Failed to track configuration of ${featureArea}.${setting}:`, error));
     }
   };
 };

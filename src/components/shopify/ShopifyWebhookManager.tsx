@@ -1,341 +1,344 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Webhook, Database, RefreshCw, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Bell, Plus, RefreshCw, HelpCircle } from "lucide-react";
+import { enhancedShopifyClient } from "@/services/enhanced-shopify";
+import { useShopify } from "@/contexts/shopify";
 import { gadgetAnalytics } from "@/lib/gadget/analytics";
 
-interface WebhookTopic {
+// Create a webhook tracking object
+const webhookTracker = gadgetAnalytics.createFeatureTracker('webhooks');
+
+interface Webhook {
   id: string;
-  name: string;
-  description: string;
-  isRegistered: boolean;
-  lastTriggered?: string;
-  status: "active" | "inactive" | "error";
+  topic: string;
+  address: string;
+  active: boolean;
+  format: string;
+  createdAt: string;
 }
 
 export function ShopifyWebhookManager() {
+  const { isShopifyConnected } = useShopify();
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [webhooks, setWebhooks] = useState<WebhookTopic[]>([]);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   
-  // Mock webhook topics that we'll use for demonstration
-  const allWebhookTopics: WebhookTopic[] = [
+  // Essential webhooks configuration
+  const essentialWebhooks = [
     {
-      id: "products/create",
-      name: "Product Creation",
-      description: "Triggered when a new product is created",
-      isRegistered: true,
-      lastTriggered: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "active"
+      topic: "products/update",
+      description: "Track product updates",
+      recommended: true
     },
     {
-      id: "products/update",
-      name: "Product Update",
-      description: "Triggered when a product is updated",
-      isRegistered: true,
-      lastTriggered: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "active"
+      topic: "products/delete",
+      description: "Handle product deletions",
+      recommended: true
     },
     {
-      id: "products/delete",
-      name: "Product Deletion",
-      description: "Triggered when a product is deleted",
-      isRegistered: false,
-      status: "inactive"
+      topic: "orders/create",
+      description: "Track new orders",
+      recommended: false
     },
     {
-      id: "inventory_levels/update",
-      name: "Inventory Update",
-      description: "Triggered when inventory levels change",
-      isRegistered: true,
-      lastTriggered: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      status: "active"
+      topic: "inventory_levels/update",
+      description: "Track inventory changes",
+      recommended: true
     },
     {
-      id: "orders/create",
-      name: "Order Creation",
-      description: "Triggered when a new order is placed",
-      isRegistered: true,
-      lastTriggered: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      status: "error"
-    },
-    {
-      id: "app/uninstalled",
-      name: "App Uninstalled",
-      description: "Triggered when the app is uninstalled",
-      isRegistered: true,
-      status: "active"
-    },
-    {
-      id: "shop/update",
-      name: "Shop Update",
-      description: "Triggered when shop details are updated",
-      isRegistered: false,
-      status: "inactive"
-    },
-    {
-      id: "themes/publish",
-      name: "Theme Published",
-      description: "Triggered when a theme is published",
-      isRegistered: false,
-      status: "inactive"
+      topic: "app/uninstalled",
+      description: "Handle app uninstallation",
+      recommended: true
     }
   ];
   
-  useEffect(() => {
-    // Simulate loading webhooks
-    setIsLoading(true);
-    setTimeout(() => {
-      setWebhooks(allWebhookTopics);
+  // Load webhooks
+  const loadWebhooks = async () => {
+    if (!isShopifyConnected) {
       setIsLoading(false);
-    }, 1000);
-    
-    // Track view
-    gadgetAnalytics.trackFeatureUsage('shopify.webhooks', 'viewed');
-  }, []);
-  
-  const refreshWebhooks = () => {
-    setIsLoading(true);
-    
-    // Track action
-    gadgetAnalytics.trackFeatureUsage('shopify.webhooks', 'used', {
-      action: 'refresh'
-    });
-    
-    // Simulate refreshing webhooks
-    setTimeout(() => {
-      // Update lastTriggered for a random webhook
-      const updatedWebhooks = [...allWebhookTopics];
-      const randomIndex = Math.floor(Math.random() * updatedWebhooks.length);
-      if (updatedWebhooks[randomIndex].isRegistered) {
-        updatedWebhooks[randomIndex] = {
-          ...updatedWebhooks[randomIndex],
-          lastTriggered: new Date().toISOString()
-        };
-      }
-      
-      setWebhooks(updatedWebhooks);
-      setIsLoading(false);
-      
-      toast.success("Webhooks refreshed", {
-        description: "The latest webhook status has been loaded"
-      });
-    }, 1000);
-  };
-  
-  const registerAllWebhooks = () => {
-    setIsRegistering(true);
-    
-    // Track action
-    gadgetAnalytics.trackFeatureUsage('shopify.webhooks', 'used', {
-      action: 'register_all'
-    });
-    
-    // Simulate registering all webhooks
-    setTimeout(() => {
-      const updatedWebhooks = allWebhookTopics.map(webhook => ({
-        ...webhook,
-        isRegistered: true,
-        status: "active" as const
-      }));
-      
-      setWebhooks(updatedWebhooks);
-      setIsRegistering(false);
-      
-      toast.success("All webhooks registered", {
-        description: "Successfully registered all webhooks with Shopify"
-      });
-    }, 2000);
-  };
-  
-  const toggleWebhook = (id: string) => {
-    // Find the webhook
-    const webhook = webhooks.find(w => w.id === id);
-    if (!webhook) return;
-    
-    const action = webhook.isRegistered ? 'unregister' : 'register';
-    
-    // Track action
-    gadgetAnalytics.trackFeatureUsage('shopify.webhooks', 'used', {
-      action,
-      webhookId: id
-    });
-    
-    // Update the webhooks state
-    setWebhooks(prevWebhooks => prevWebhooks.map(w => {
-      if (w.id === id) {
-        return {
-          ...w,
-          isRegistered: !w.isRegistered,
-          status: !w.isRegistered ? "active" : "inactive"
-        };
-      }
-      return w;
-    }));
-    
-    // Show success message
-    toast.success(
-      webhook.isRegistered ? "Webhook unregistered" : "Webhook registered", 
-      {
-        description: `Successfully ${webhook.isRegistered ? 'unregistered' : 'registered'} ${webhook.name} webhook`
-      }
-    );
-  };
-  
-  const getStatusBadge = (status: WebhookTopic["status"]) => {
-    switch (status) {
-      case "active":
-        return <Badge variant="success">Active</Badge>;
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      case "error":
-        return <Badge variant="destructive">Error</Badge>;
+      return;
     }
-  };
-  
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "Never";
+    
+    setIsLoading(true);
     
     try {
-      const date = new Date(dateString);
-      return date.toLocaleString();
-    } catch (e) {
-      return "Invalid date";
+      // In a real implementation, this would fetch real webhooks
+      // For demo purposes, we'll create mock data
+      webhookTracker.trackView();
+      
+      setTimeout(() => {
+        const mockWebhooks: Webhook[] = [
+          {
+            id: "webhook1",
+            topic: "products/update",
+            address: "https://app.escentual.com/api/webhooks/products-update",
+            active: true,
+            format: "json",
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: "webhook2",
+            topic: "inventory_levels/update",
+            address: "https://app.escentual.com/api/webhooks/inventory-update",
+            active: true,
+            format: "json",
+            createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ];
+        
+        setWebhooks(mockWebhooks);
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error loading webhooks:", error);
+      toast.error("Failed to load webhooks", {
+        description: "Could not retrieve webhooks from Shopify"
+      });
+      setIsLoading(false);
     }
   };
-
+  
+  // Create webhook
+  const createWebhook = async (topic: string) => {
+    if (!isShopifyConnected) return;
+    
+    setIsCreating(true);
+    
+    try {
+      const webhookAddress = `https://app.escentual.com/api/webhooks/${topic.replace(/\//g, '-')}`;
+      
+      const result = await enhancedShopifyClient.registerWebhook(
+        topic,
+        webhookAddress,
+        'json'
+      );
+      
+      if (result.success) {
+        webhookTracker.trackCreate({
+          topic,
+          address: webhookAddress
+        });
+        
+        toast.success("Webhook created", {
+          description: `Created webhook for ${topic}`
+        });
+        
+        // Add the new webhook to the list
+        setWebhooks(prev => [
+          ...prev,
+          {
+            id: result.webhookId,
+            topic,
+            address: webhookAddress,
+            active: true,
+            format: 'json',
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      } else {
+        toast.error("Failed to create webhook", {
+          description: result.message || "An error occurred"
+        });
+      }
+    } catch (error) {
+      console.error("Error creating webhook:", error);
+      toast.error("Webhook creation failed", {
+        description: "Could not create webhook"
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+  
+  // Toggle webhook active status
+  const toggleWebhookStatus = (webhookId: string, active: boolean) => {
+    // In a real implementation, this would update the webhook in Shopify
+    setWebhooks(prev => 
+      prev.map(webhook => 
+        webhook.id === webhookId 
+          ? { ...webhook, active } 
+          : webhook
+      )
+    );
+    
+    webhookTracker.trackUpdate({
+      webhookId,
+      active
+    });
+    
+    toast.success(`Webhook ${active ? 'activated' : 'deactivated'}`, {
+      description: `Webhook has been ${active ? 'activated' : 'deactivated'}`
+    });
+  };
+  
+  // Check for missing essential webhooks
+  const getMissingEssentialWebhooks = () => {
+    return essentialWebhooks
+      .filter(essential => essential.recommended)
+      .filter(essential => 
+        !webhooks.some(webhook => webhook.topic === essential.topic && webhook.active)
+      );
+  };
+  
+  // Load webhooks on component mount
+  useEffect(() => {
+    loadWebhooks();
+  }, [isShopifyConnected]);
+  
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Webhook className="h-5 w-5" />
-          Shopify Webhooks
-        </CardTitle>
-        <CardDescription>
-          Manage webhooks for real-time Shopify event notifications
-        </CardDescription>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Bell className="h-5 w-5 mr-2 text-blue-500" />
+            <div>
+              <CardTitle className="text-base">Webhook Manager</CardTitle>
+              <CardDescription>
+                Configure Shopify webhooks for real-time updates
+              </CardDescription>
+            </div>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadWebhooks} 
+            disabled={isLoading || !isShopifyConnected}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              {webhooks.filter(w => w.isRegistered).length} of {webhooks.length} webhooks registered
-            </span>
+        {!isShopifyConnected ? (
+          <div className="rounded-md bg-slate-50 p-4 text-center text-sm">
+            Connect to Shopify to manage webhooks
           </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refreshWebhooks}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            
-            <Button 
-              size="sm" 
-              onClick={registerAllWebhooks}
-              disabled={isRegistering || webhooks.every(w => w.isRegistered)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Register All
-            </Button>
-          </div>
-        </div>
-        
-        {webhooks.some(w => w.status === "error") && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              One or more webhooks are reporting errors. Please check your webhook endpoints.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/4">Topic</TableHead>
-                <TableHead className="w-1/3">Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Triggered</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array(5).fill(0).map((_, index) => (
-                  <TableRow key={`skeleton-${index}`}>
-                    <TableCell>
-                      <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="h-5 w-48 bg-gray-200 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="h-5 w-16 bg-gray-200 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="h-8 w-20 bg-gray-200 rounded animate-pulse ml-auto"></div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : webhooks.length > 0 ? (
-                webhooks.map(webhook => (
-                  <TableRow key={webhook.id}>
-                    <TableCell className="font-medium">{webhook.name}</TableCell>
-                    <TableCell>{webhook.description}</TableCell>
-                    <TableCell>{getStatusBadge(webhook.status)}</TableCell>
-                    <TableCell>{formatDate(webhook.lastTriggered)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant={webhook.isRegistered ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => toggleWebhook(webhook.id)}
+        ) : (
+          <>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Active Webhooks</h3>
+                <Badge variant="outline">
+                  {webhooks.filter(w => w.active).length}/{webhooks.length}
+                </Badge>
+              </div>
+              
+              <ScrollArea className="h-[140px] rounded-md border">
+                {isLoading ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Loading webhooks...
+                  </div>
+                ) : webhooks.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No webhooks configured
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    {webhooks.map(webhook => (
+                      <div 
+                        key={webhook.id} 
+                        className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-md"
                       >
-                        {webhook.isRegistered ? (
-                          <>
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Unregister
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Register
-                          </>
-                        )}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    No webhooks found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        <div>
+                          <div className="text-sm font-medium">{webhook.topic}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                            {webhook.address}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={webhook.active}
+                            onCheckedChange={(checked) => toggleWebhookStatus(webhook.id, checked)}
+                          />
+                          <Badge variant={webhook.active ? "success" : "outline"} className="ml-2">
+                            {webhook.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Essential Webhooks</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {essentialWebhooks.map(webhook => {
+                  const isConfigured = webhooks.some(w => 
+                    w.topic === webhook.topic && w.active
+                  );
+                  
+                  return (
+                    <div 
+                      key={webhook.topic} 
+                      className="flex items-center justify-between"
+                    >
+                      <div className="space-y-0.5">
+                        <Label htmlFor={webhook.topic} className="text-sm">
+                          {webhook.topic}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {webhook.description}
+                        </p>
+                      </div>
+                      
+                      {isConfigured ? (
+                        <Badge variant="success">Configured</Badge>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => createWebhook(webhook.topic)}
+                          disabled={isCreating}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {getMissingEssentialWebhooks().length > 0 && (
+              <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="font-medium flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+                  Missing essential webhooks
+                </div>
+                <p className="text-xs mt-1 text-amber-700">
+                  We recommend adding all essential webhooks for proper functionality
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
-      
-      <CardFooter className="text-xs text-muted-foreground">
-        Webhooks enable real-time event processing from your Shopify store
-      </CardFooter>
     </Card>
   );
 }

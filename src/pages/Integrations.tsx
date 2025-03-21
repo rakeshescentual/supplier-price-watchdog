@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { initGA4, trackPriceChange, GA4EventType } from "@/lib/integrations/googleAnalytics4";
 import { prepareKlaviyoSegmentData } from "@/utils/marketDataUtils";
 import { gadgetAnalytics } from "@/lib/gadget/analytics";
+import { checkShopifyCompliance, startComplianceMonitoring } from "@/lib/shopify/compliance";
+import { startShopifyHealthMonitoring } from "@/lib/shopify/health";
 
 // Import the refactored components
 import { IntegrationsHeader } from "@/components/integrations/IntegrationsHeader";
@@ -60,6 +62,25 @@ export default function Integrations() {
     // Check Shopify connection
     if (isShopifyConnected && shopifyContext) {
       setIntegrationStatus(prev => ({ ...prev, shopify: true }));
+      
+      // Start health monitoring
+      const stopHealthMonitoring = startShopifyHealthMonitoring(15, (status) => {
+        // Update integrationStatus if health affects connectivity
+        if (status.status === 'unhealthy') {
+          setIntegrationStatus(prev => ({ ...prev, shopify: false }));
+        } else if (status.status === 'healthy') {
+          setIntegrationStatus(prev => ({ ...prev, shopify: true }));
+        }
+      });
+      
+      // Start compliance monitoring
+      const stopComplianceMonitoring = startComplianceMonitoring(7);
+      
+      // Clean up monitors on component unmount
+      return () => {
+        stopHealthMonitoring();
+        stopComplianceMonitoring();
+      };
     }
     
     // Check Gadget initialization
@@ -86,6 +107,16 @@ export default function Integrations() {
     try {
       // Wait a moment to simulate testing connections
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // If Shopify is connected, check compliance
+      if (isShopifyConnected) {
+        const complianceResult = await checkShopifyCompliance();
+        if (!complianceResult.compliant) {
+          toast.warning("Shopify Compliance Issues", {
+            description: "There are compliance issues that should be addressed"
+          });
+        }
+      }
       
       // In production, this would test real connections
       // For demo purposes, we'll just show results based on status

@@ -21,6 +21,8 @@ import { PriceAlertChannels } from "@/components/integrations/PriceAlertChannels
 import { KlaviyoIntegration } from "@/components/integrations/KlaviyoIntegration";
 import { ShopifyPlusIntegration } from "@/components/shopify/ShopifyPlusIntegration";
 import { ShopifyCompliance } from "@/components/shopify/ShopifyCompliance";
+import { ShopifyWebhookManager } from "@/components/shopify/ShopifyWebhookManager";
+import { ShopifyApiHealthCheck } from "@/components/shopify/ShopifyApiHealthCheck";
 
 // Create a usage tracker for this page
 const usageTracker = gadgetAnalytics.createUsageTracker('integrations');
@@ -188,10 +190,12 @@ export default function Integrations() {
               items={items}
             />
             
-            {/* Add new Shopify Plus integration component */}
-            <ShopifyPlusIntegration />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ShopifyApiHealthCheck />
+              <ShopifyWebhookManager />
+            </div>
             
-            {/* Add Shopify Compliance component */}
+            <ShopifyPlusIntegration />
             <ShopifyCompliance />
           </div>
         </TabsContent>

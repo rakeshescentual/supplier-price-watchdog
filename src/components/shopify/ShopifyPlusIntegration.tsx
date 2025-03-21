@@ -2,410 +2,437 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Crown, Code, GitBranch, Users, ShoppingCart, AlertTriangle } from "lucide-react";
-import { useShopify } from "@/contexts/shopify";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { ShoppingBag, Code, GitBranch, Building2, Zap, CreditCard, Users, Globe, Lock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useShopify } from "@/contexts/shopify";
 import { gadgetAnalytics } from "@/lib/gadget/analytics";
+import { PriceItem } from "@/types/price";
 
 export function ShopifyPlusIntegration() {
-  const { isShopifyConnected, shopifyContext } = useShopify();
   const [activeTab, setActiveTab] = useState("scripts");
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [scriptType, setScriptType] = useState("discount");
-  const [scriptCode, setScriptCode] = useState(`# Example Ruby script for Shopify discount
-if Input.cart.line_items.size > 3
-  # Apply 10% discount when customer buys more than 3 items
-  Input.cart.line_items.each do |line_item|
-    line_item.change_line_price(line_item.line_price * 0.9, message: "10% Volume Discount")
-  end
-end
-
-Output.cart = Input.cart`);
-
-  const handleDeployScript = () => {
-    if (!isShopifyConnected) {
-      toast.error("Shopify not connected", {
-        description: "Please connect to Shopify before deploying scripts"
-      });
-      return;
-    }
-    
-    setIsDeploying(true);
-    
-    // Track this Plus-specific action
-    gadgetAnalytics.trackShopifyPlusMetrics('script_performance', 1, {
-      scriptType,
-      codeLength: scriptCode.length
-    });
+  const { isShopifyConnected, shopifyContext } = useShopify();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Usage tracker for analytics
+  const usageTracker = gadgetAnalytics.createUsageTracker('shopify_plus');
+  
+  // Track view
+  usageTracker.trackView('page');
+  
+  // Demo functions for Shopify Plus features
+  const handleCreatePricingScript = () => {
+    setIsLoading(true);
+    usageTracker.trackUse('create_pricing_script');
     
     setTimeout(() => {
-      setIsDeploying(false);
-      toast.success("Script deployed successfully", {
-        description: "Your script has been deployed to your Shopify Plus store"
+      toast.success("Script Created", {
+        description: "Pricing script has been deployed to your Shopify Plus store"
       });
-    }, 2000);
+      setIsLoading(false);
+    }, 1500);
   };
-
+  
+  const handleCreateFlow = () => {
+    setIsLoading(true);
+    usageTracker.trackUse('create_flow');
+    
+    setTimeout(() => {
+      toast.success("Flow Created", {
+        description: "Price change notification flow has been created"
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+  
+  const handleSyncB2BPricing = () => {
+    setIsLoading(true);
+    usageTracker.trackUse('sync_b2b_pricing');
+    
+    setTimeout(() => {
+      toast.success("B2B Pricing Synced", {
+        description: "All wholesale price lists have been updated"
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+  
+  // Track tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    usageTracker.trackUse(`tab_${value}`);
+  };
+  
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Crown className="h-6 w-6 text-amber-500" />
-          Shopify Plus Features
+          <ShoppingBag className="h-5 w-5" />
+          Shopify Plus Enhanced Integration
         </CardTitle>
         <CardDescription>
-          Advanced features available exclusively for Shopify Plus merchants
+          Advanced features and capabilities exclusive to Shopify Plus merchants
         </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-6">
         {!isShopifyConnected && (
-          <Alert variant="warning" className="mb-2">
+          <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Shopify Plus Required</AlertTitle>
+            <AlertTitle>Shopify Connection Required</AlertTitle>
             <AlertDescription>
-              These features require a Shopify Plus plan and an active connection
+              Connect to your Shopify Plus store to enable these enhanced features
             </AlertDescription>
           </Alert>
         )}
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="scripts">
-              <Code className="h-4 w-4 mr-2" />
-              Scripts
-            </TabsTrigger>
-            <TabsTrigger value="flows">
-              <GitBranch className="h-4 w-4 mr-2" />
-              Flows
-            </TabsTrigger>
-            <TabsTrigger value="b2b">
-              <Users className="h-4 w-4 mr-2" />
-              B2B
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid grid-cols-3">
+            <TabsTrigger value="scripts">Scripts</TabsTrigger>
+            <TabsTrigger value="flows">Flows</TabsTrigger>
+            <TabsTrigger value="b2b">B2B</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="scripts" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="script-type" className="text-sm font-medium">Script Type</label>
-                  <Select 
-                    value={scriptType} 
-                    onValueChange={setScriptType}
+          <TabsContent value="scripts" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Shopify Scripts</h3>
+                <p className="text-sm text-muted-foreground">Custom pricing rules for checkout</p>
+              </div>
+              
+              <Badge variant="outline" className="font-normal">Plus Only</Badge>
+            </div>
+            
+            <Separator />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Code className="h-5 w-5 text-blue-500" />
+                  <h3 className="font-medium">Pricing Scripts</h3>
+                </div>
+                
+                <div className="border rounded-md p-4 space-y-3">
+                  <p className="text-sm">Create dynamic pricing rules based on customer segments and cart conditions</p>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Script Features:</h4>
+                    <ul className="text-sm list-disc pl-5 space-y-1">
+                      <li>Tiered quantity discounts</li>
+                      <li>Customer segment pricing</li>
+                      <li>Bundle discounts</li>
+                      <li>Conditional promotions</li>
+                    </ul>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    onClick={handleCreatePricingScript}
+                    disabled={isLoading || !isShopifyConnected}
                   >
-                    <SelectTrigger id="script-type">
-                      <SelectValue placeholder="Select script type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="discount">Discount</SelectItem>
-                      <SelectItem value="shipping">Shipping</SelectItem>
-                      <SelectItem value="payment">Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {isLoading ? "Creating..." : "Create Pricing Script"}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-medium">Script Templates</h3>
                 </div>
                 
-                <div className="space-y-2">
-                  <label htmlFor="script-code" className="text-sm font-medium">Script Code (Ruby)</label>
-                  <Textarea 
-                    id="script-code"
-                    value={scriptCode}
-                    onChange={(e) => setScriptCode(e.target.value)}
-                    className="font-mono text-sm h-[300px]"
-                  />
+                <div className="border rounded-md divide-y">
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Tiered Wholesale Pricing</h4>
+                      <p className="text-xs text-muted-foreground">Volume-based pricing for wholesale customers</p>
+                    </div>
+                    <Badge>Popular</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Buy X Get Y Free</h4>
+                      <p className="text-xs text-muted-foreground">Promotional offer for product bundles</p>
+                    </div>
+                    <Badge variant="outline">New</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">VIP Customer Pricing</h4>
+                      <p className="text-xs text-muted-foreground">Special rates for top customers</p>
+                    </div>
+                    <Badge variant="secondary">Advanced</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Holiday Price Rules</h4>
+                      <p className="text-xs text-muted-foreground">Seasonal pricing adjustments</p>
+                    </div>
+                    <Badge variant="outline">Seasonal</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-md border mt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="h-4 w-4 text-slate-600" />
+                <h4 className="font-medium text-sm">Script Security & Performance</h4>
+              </div>
+              <p className="text-xs text-slate-600">
+                All scripts are sandboxed by Shopify for security and undergo performance testing to ensure they don't impact checkout speed. Scripts execute in under 50ms with minimal memory usage.
+              </p>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="flows" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Shopify Flow</h3>
+                <p className="text-sm text-muted-foreground">Automate business processes</p>
+              </div>
+              
+              <Badge variant="outline" className="font-normal">Plus Only</Badge>
+            </div>
+            
+            <Separator />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-5 w-5 text-green-500" />
+                  <h3 className="font-medium">Price Change Automation</h3>
                 </div>
                 
-                <Button 
-                  onClick={handleDeployScript} 
-                  disabled={isDeploying || !isShopifyConnected || !scriptCode.trim()}
-                  className="w-full"
-                >
-                  {isDeploying ? "Deploying..." : "Deploy Script"}
+                <div className="border rounded-md p-4 space-y-3">
+                  <p className="text-sm">Create automated workflows that trigger when prices change</p>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Flow Features:</h4>
+                    <ul className="text-sm list-disc pl-5 space-y-1">
+                      <li>Email notifications to team members</li>
+                      <li>Update product tags based on price changes</li>
+                      <li>Create marketing campaigns for sales</li>
+                      <li>Auto-adjust inventory settings</li>
+                    </ul>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    onClick={handleCreateFlow}
+                    disabled={isLoading || !isShopifyConnected}
+                  >
+                    {isLoading ? "Creating..." : "Create Flow Automation"}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-medium">Flow Templates</h3>
+                </div>
+                
+                <div className="border rounded-md divide-y">
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Price Increase Notification</h4>
+                      <p className="text-xs text-muted-foreground">Notify team and schedule customer emails</p>
+                    </div>
+                    <Badge>Recommended</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Price Drop Promotion</h4>
+                      <p className="text-xs text-muted-foreground">Tag products and create marketing campaigns</p>
+                    </div>
+                    <Badge variant="outline">Marketing</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Competitor Price Match</h4>
+                      <p className="text-xs text-muted-foreground">Auto-adjust pricing based on competitor data</p>
+                    </div>
+                    <Badge variant="secondary">Advanced</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Margin Protection</h4>
+                      <p className="text-xs text-muted-foreground">Alert when prices fall below profit threshold</p>
+                    </div>
+                    <Badge variant="outline">Business</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-md border mt-2">
+              <h4 className="font-medium text-sm mb-2">Flow Analytics</h4>
+              <p className="text-xs text-slate-600 mb-3">Performance of your active Flow automations</p>
+              
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Price Increase Notification</span>
+                    <span>24 executions/month</span>
+                  </div>
+                  <Progress value={80} className="h-1" />
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Price Drop Promotion</span>
+                    <span>12 executions/month</span>
+                  </div>
+                  <Progress value={40} className="h-1" />
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Inventory Alert</span>
+                    <span>35 executions/month</span>
+                  </div>
+                  <Progress value={90} className="h-1" />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="b2b" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">B2B & Wholesale</h3>
+                <p className="text-sm text-muted-foreground">Business customer pricing management</p>
+              </div>
+              
+              <Badge variant="outline" className="font-normal">Plus Only</Badge>
+            </div>
+            
+            <Separator />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-500" />
+                  <h3 className="font-medium">B2B Price Lists</h3>
+                </div>
+                
+                <div className="border rounded-md p-4 space-y-3">
+                  <p className="text-sm">Manage custom pricing for business customers and wholesale accounts</p>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">B2B Features:</h4>
+                    <ul className="text-sm list-disc pl-5 space-y-1">
+                      <li>Custom price lists by customer or company</li>
+                      <li>Volume-based pricing tiers</li>
+                      <li>Contract pricing with start/end dates</li>
+                      <li>Custom payment terms</li>
+                    </ul>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    onClick={handleSyncB2BPricing}
+                    disabled={isLoading || !isShopifyConnected}
+                  >
+                    {isLoading ? "Syncing..." : "Sync B2B Pricing"}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-500" />
+                  <h3 className="font-medium">Customer Groups</h3>
+                </div>
+                
+                <div className="border rounded-md divide-y">
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Wholesale</h4>
+                      <p className="text-xs text-muted-foreground">25% off retail prices</p>
+                    </div>
+                    <Badge variant="outline">52 customers</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Distributors</h4>
+                      <p className="text-xs text-muted-foreground">40% off retail prices + volume discounts</p>
+                    </div>
+                    <Badge variant="outline">18 customers</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Key Accounts</h4>
+                      <p className="text-xs text-muted-foreground">Custom negotiated prices</p>
+                    </div>
+                    <Badge variant="outline">7 customers</Badge>
+                  </div>
+                  
+                  <div className="p-3 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">International</h4>
+                      <p className="text-xs text-muted-foreground">Region-specific pricing</p>
+                    </div>
+                    <Badge variant="outline">12 customers</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-md border mt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="h-4 w-4 text-slate-600" />
+                <h4 className="font-medium text-sm">International B2B</h4>
+              </div>
+              <p className="text-xs text-slate-600 mb-3">
+                Manage international B2B pricing across different markets and currencies. 
+                Automatically sync price changes while maintaining different margins for each market.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  Configure International Pricing
                 </Button>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Available Script Templates</h3>
-                
-                <div className="space-y-3">
-                  <div className="p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium">Volume Discount</h4>
-                      <Badge>Discount</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Apply tiered discounts based on number of items in cart
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium">Free Shipping Threshold</h4>
-                      <Badge>Shipping</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Provide free shipping when order exceeds threshold
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium">Brand-specific Discount</h4>
-                      <Badge>Discount</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Apply discounts to specific brands or vendors
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium">BOGO Discount</h4>
-                      <Badge>Discount</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Buy one, get one free or discounted
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="flows" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="p-4 border rounded-md">
-                  <h3 className="font-medium mb-2">Price Change Notifications</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Automatically notify customers when prices change on products they've viewed
-                  </p>
-                  <Button variant="outline" size="sm" disabled={!isShopifyConnected}>
-                    Create Flow
-                  </Button>
-                </div>
-                
-                <div className="p-4 border rounded-md">
-                  <h3 className="font-medium mb-2">Back-in-Stock Alerts</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Notify customers when products they're interested in are restocked
-                  </p>
-                  <Button variant="outline" size="sm" disabled={!isShopifyConnected}>
-                    Create Flow
-                  </Button>
-                </div>
-                
-                <div className="p-4 border rounded-md">
-                  <h3 className="font-medium mb-2">Competitor Price Monitoring</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Automatically adjust prices when competitor prices change
-                  </p>
-                  <Button variant="outline" size="sm" disabled={!isShopifyConnected}>
-                    Create Flow
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-4 border rounded-md">
-                <h3 className="font-medium mb-3">Custom Flow Builder</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Trigger Event</label>
-                    <Select disabled={!isShopifyConnected} defaultValue="price_changed">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select trigger" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="price_changed">Price Changed</SelectItem>
-                        <SelectItem value="inventory_updated">Inventory Updated</SelectItem>
-                        <SelectItem value="product_created">Product Created</SelectItem>
-                        <SelectItem value="order_placed">Order Placed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Conditions</label>
-                    <div className="p-3 border rounded-md">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span>Price difference is greater than</span>
-                        <Input 
-                          type="number" 
-                          className="w-16 h-7" 
-                          disabled={!isShopifyConnected}
-                          defaultValue="10"
-                        />
-                        <span>%</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Actions</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="email-customer" disabled={!isShopifyConnected} />
-                        <label htmlFor="email-customer" className="text-sm">Email Customer</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="create-discount" disabled={!isShopifyConnected} />
-                        <label htmlFor="create-discount" className="text-sm">Create Discount Code</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="update-tag" disabled={!isShopifyConnected} />
-                        <label htmlFor="update-tag" className="text-sm">Update Product Tag</label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button className="w-full" disabled={!isShopifyConnected}>
-                    Save Flow
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="b2b" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="p-4 border rounded-md">
-                  <h3 className="font-medium mb-2">B2B Price Lists</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Create and manage price lists for wholesale customers
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Wholesale Tier 1</span>
-                      <Badge>10% off</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Wholesale Tier 2</span>
-                      <Badge>15% off</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Distributor Pricing</span>
-                      <Badge>25% off</Badge>
-                    </div>
-                  </div>
-                  
-                  <Button variant="outline" size="sm" className="mt-3" disabled={!isShopifyConnected}>
-                    Add Price List
-                  </Button>
-                </div>
-                
-                <div className="p-4 border rounded-md">
-                  <h3 className="font-medium mb-2">B2B Customer Groups</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Organize wholesale customers into groups with specific permissions
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Small Retailers</span>
-                      <Badge variant="outline">12 customers</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Distributors</span>
-                      <Badge variant="outline">5 customers</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-sm">Chain Stores</span>
-                      <Badge variant="outline">3 customers</Badge>
-                    </div>
-                  </div>
-                  
-                  <Button variant="outline" size="sm" className="mt-3" disabled={!isShopifyConnected}>
-                    Manage Groups
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-4 border rounded-md">
-                <div className="flex items-center gap-2 mb-3">
-                  <ShoppingCart className="h-5 w-5" />
-                  <h3 className="font-medium">Bulk Pricing Tool</h3>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create wholesale pricing for multiple products at once
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Customer Group</label>
-                    <Select disabled={!isShopifyConnected} defaultValue="distributors">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="small_retailers">Small Retailers</SelectItem>
-                        <SelectItem value="distributors">Distributors</SelectItem>
-                        <SelectItem value="chain_stores">Chain Stores</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Discount Type</label>
-                    <Select disabled={!isShopifyConnected} defaultValue="percentage">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select discount type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage Discount</SelectItem>
-                        <SelectItem value="fixed_amount">Fixed Amount Off</SelectItem>
-                        <SelectItem value="fixed_price">Fixed Price</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Discount Value</label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        type="number" 
-                        className="w-full" 
-                        disabled={!isShopifyConnected}
-                        defaultValue="25"
-                      />
-                      <span className="text-sm">%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Product Categories</label>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="fragrances" disabled={!isShopifyConnected} />
-                        <label htmlFor="fragrances" className="text-sm">Fragrances</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="skincare" disabled={!isShopifyConnected} />
-                        <label htmlFor="skincare" className="text-sm">Skincare</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="makeup" disabled={!isShopifyConnected} />
-                        <label htmlFor="makeup" className="text-sm">Makeup</label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button className="w-full" disabled={!isShopifyConnected}>
-                    Apply Bulk Pricing
-                  </Button>
-                </div>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  Manage Currency Conversions
+                </Button>
               </div>
             </div>
           </TabsContent>
         </Tabs>
+        
+        <Separator />
+        
+        <div className="flex flex-col sm:flex-row items-center gap-3 text-sm">
+          <div className="flex items-center gap-1">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Shopify Plus required</span>
+          </div>
+          
+          <div className="bg-muted h-1 w-1 rounded-full hidden sm:block"></div>
+          
+          <a 
+            href="https://www.shopify.com/plus" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-500 hover:text-blue-700"
+          >
+            Learn more about Shopify Plus
+          </a>
+        </div>
       </CardContent>
     </Card>
   );

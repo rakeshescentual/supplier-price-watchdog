@@ -35,7 +35,7 @@ export const trackShopifyPlusMetrics = (metrics: Partial<ShopifyPlusMetrics>): P
  * Track Shopify Scripts usage
  */
 export const trackScriptsUsage = (
-  action: 'created' | 'updated' | 'deleted' | 'activated',
+  action: 'viewed' | 'used' | 'configured',
   scriptType: 'discount' | 'shipping' | 'payment',
   metadata?: Record<string, any>
 ): Promise<boolean> => {
@@ -49,7 +49,7 @@ export const trackScriptsUsage = (
  * Track Shopify Flow usage
  */
 export const trackFlowUsage = (
-  action: 'created' | 'updated' | 'deleted' | 'triggered',
+  action: 'viewed' | 'used' | 'configured',
   flowType: string,
   metadata?: Record<string, any>
 ): Promise<boolean> => {
@@ -63,7 +63,7 @@ export const trackFlowUsage = (
  * Track B2B feature usage
  */
 export const trackB2BUsage = (
-  action: 'viewed' | 'created' | 'updated',
+  action: 'viewed' | 'used' | 'configured',
   feature: 'pricelist' | 'company' | 'locations' | 'payment_terms',
   metadata?: Record<string, any>
 ): Promise<boolean> => {
@@ -84,13 +84,13 @@ export const createShopifyFeatureTracker = (featureName: string) => {
       });
     },
     trackCreate: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'created', metadata);
+      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
     },
     trackUpdate: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'updated', metadata);
+      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
     },
     trackDelete: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'deleted', metadata);
+      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
     },
     trackUse: (action: string, metadata?: Record<string, any>) => {
       return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', {

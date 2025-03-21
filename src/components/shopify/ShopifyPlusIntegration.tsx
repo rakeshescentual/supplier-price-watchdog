@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,8 +20,8 @@ export function ShopifyPlusIntegration() {
   const { isShopifyConnected, shopifyContext } = useShopify();
   const [activeTab, setActiveTab] = useState("scripts");
   
-  // Check if store is on Shopify Plus plan
-  const isShopifyPlus = shopifyContext?.plan === 'plus' || false;
+  // Check if store is on Shopify Plus plan - using shopPlan property instead of plan
+  const isShopifyPlus = shopifyContext?.shopPlan === 'plus' || false;
   
   // Track tab changes
   const handleTabChange = (value: string) => {

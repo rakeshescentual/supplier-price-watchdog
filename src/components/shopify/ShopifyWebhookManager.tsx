@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Plus, RefreshCw, HelpCircle } from "lucide-react";
+import { Bell, Plus, RefreshCw, HelpCircle, AlertCircle } from "lucide-react";
 import { enhancedShopifyClient } from "@/services/enhanced-shopify";
 import { useShopify } from "@/contexts/shopify";
 import { gadgetAnalytics } from "@/lib/gadget/analytics";
 
-// Create a webhook tracking object
-const webhookTracker = gadgetAnalytics.createFeatureTracker('webhooks');
+// Create a webhook tracking object for analytics
+const webhookTracker = {
+  trackView: () => gadgetAnalytics.trackFeatureUsage('webhooks', 'viewed'),
+  trackCreate: (metadata?: Record<string, any>) => gadgetAnalytics.trackFeatureUsage('webhooks', 'used', metadata),
+  trackUpdate: (metadata?: Record<string, any>) => gadgetAnalytics.trackFeatureUsage('webhooks', 'used', metadata)
+};
 
 interface Webhook {
   id: string;

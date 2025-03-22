@@ -1,64 +1,37 @@
 
 import { useState } from "react";
 import { useShopify } from "@/contexts/shopify";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ShopifyConnectionStatus } from "@/components/ShopifyConnectionStatus";
 import { ShopifyApiHealthCheck } from "@/components/shopify/ShopifyApiHealthCheck";
 import { ShopifyPlusFeatures } from "@/components/shopify/ShopifyPlusFeatures";
 import { AiMarketInsights } from "@/components/AiMarketInsights";
 import { ShopifyBulkOperations } from "@/components/shopify/ShopifyBulkOperations";
 import { ShopifyScriptsManager } from "@/components/shopify/ShopifyScriptsManager";
-import { ShopifyWebhooks } from "@/components/shopify/ShopifyWebhooks"; 
+import { WebhookManager } from "@/components/shopify/WebhookManager";
 import { ShopifyIntegrationStatus } from "@/components/shopify/ShopifyIntegrationStatus"; 
 import { ShopifyB2BPricing } from "@/components/shopify/ShopifyB2BPricing";
 import { MultiLocationInventory } from "@/components/shopify/plus/MultiLocationInventory";
 import { ShopifyCompliance } from "@/components/shopify/ShopifyCompliance";
-import { ExternalLink, AlertTriangle, Settings, Store, Lock, Zap, Activity, MapPin } from "lucide-react";
+import { FlowsAutomation } from "@/components/shopify/plus/FlowsAutomation";
+import { ShopifyOAuth } from "@/components/shopify/ShopifyOAuth";
+import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { isShopifyConnected, shopifyContext, connectToShopify } = useShopify();
+  const { isShopifyConnected, shopifyContext } = useShopify();
   const [mockCompetitorData] = useState([]);
-  const [shopUrl, setShopUrl] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [isConnecting, setIsConnecting] = useState(false);
 
   const fetchMockData = () => {
     toast.success("Data refreshed", {
       description: "Latest Shopify data has been loaded"
     });
-  };
-
-  const handleConnect = async () => {
-    if (!shopUrl || !accessToken) {
-      toast.error("Missing credentials", {
-        description: "Please enter both shop URL and access token"
-      });
-      return;
-    }
-    
-    setIsConnecting(true);
-    try {
-      const success = await connectToShopify(shopUrl, accessToken);
-      if (success) {
-        // Initialize API version manager after successful connection
-        shopifyApiVersionManager.init();
-        
-        setShopUrl("");
-        setAccessToken("");
-      }
-    } catch (error) {
-      console.error("Connection error:", error);
-    } finally {
-      setIsConnecting(false);
-    }
   };
 
   // Check if the current API version is the latest
@@ -130,6 +103,10 @@ export function ShopifyIntegrationDashboard() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="insights">Market Insights</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+          <TabsTrigger value="flows">
+            <Zap className="h-4 w-4 mr-1" />
+            Flows
+          </TabsTrigger>
           <TabsTrigger value="b2b">B2B Pricing</TabsTrigger>
           <TabsTrigger value="inventory">
             <MapPin className="h-4 w-4 mr-1" />
@@ -159,7 +136,11 @@ export function ShopifyIntegrationDashboard() {
         </TabsContent>
         
         <TabsContent value="webhooks">
-          <ShopifyWebhooks />
+          <WebhookManager />
+        </TabsContent>
+        
+        <TabsContent value="flows">
+          <FlowsAutomation />
         </TabsContent>
         
         <TabsContent value="b2b">
@@ -175,68 +156,7 @@ export function ShopifyIntegrationDashboard() {
         </TabsContent>
         
         <TabsContent value="connect">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Connect to Shopify
-              </CardTitle>
-              <CardDescription>
-                Configure your Shopify store connection
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <Alert>
-                <AlertDescription>
-                  For a production app, you would use OAuth for secure authentication. This form is for demonstration purposes only.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="shop-url" className="text-sm font-medium">
-                    Shop URL
-                  </label>
-                  <Input
-                    id="shop-url"
-                    placeholder="your-store.myshopify.com"
-                    value={shopUrl}
-                    onChange={e => setShopUrl(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="access-token" className="text-sm font-medium">
-                    Admin API Access Token
-                  </label>
-                  <Input
-                    id="access-token"
-                    type="password"
-                    placeholder="shpat_xxxxxxxxxxxxxxxxxxxx"
-                    value={accessToken}
-                    onChange={e => setAccessToken(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-            
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" asChild>
-                <a href="https://help.shopify.com/en/manual/apps/custom-apps" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Shopify API Docs
-                </a>
-              </Button>
-              
-              <Button 
-                onClick={handleConnect}
-                disabled={isConnecting || !shopUrl || !accessToken}
-              >
-                {isConnecting ? "Connecting..." : "Connect to Shopify"}
-              </Button>
-            </CardFooter>
-          </Card>
+          <ShopifyOAuth />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './components/theme-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 import { FileAnalysisProvider } from './contexts/FileAnalysisContext';
 import { ShopifyProvider } from './contexts/shopify';

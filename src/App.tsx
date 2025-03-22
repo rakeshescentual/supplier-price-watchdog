@@ -31,7 +31,8 @@ function App() {
     
     // Check for updates periodically
     const checkInterval = setInterval(() => {
-      shopifyApiVersionManager.checkForUpdates();
+      // Using the available checkVersionStatus method instead of checkForUpdates
+      shopifyApiVersionManager.checkVersionStatus();
     }, 24 * 60 * 60 * 1000); // Check once a day
     
     return () => clearInterval(checkInterval);

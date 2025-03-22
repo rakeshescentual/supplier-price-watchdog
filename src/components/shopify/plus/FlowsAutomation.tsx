@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,12 +73,7 @@ export function FlowsAutomation() {
       const template = FLOW_TEMPLATES.find(t => t.id === templateId);
       if (!template) throw new Error('Template not found');
       
-      const result = await createShopifyFlow(shopifyContext.shop, {
-        name: template.name,
-        trigger: template.trigger,
-        conditions: [],
-        actions: []
-      });
+      const result = await createShopifyFlow(shopifyContext.shop);
       
       if (result.success) {
         toast({

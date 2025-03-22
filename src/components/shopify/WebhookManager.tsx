@@ -276,14 +276,14 @@ export function WebhookManager() {
                   <Label htmlFor="webhook-format">Format</Label>
                   <Select
                     value={newWebhook.format}
-                    onValueChange={(value: 'json' | 'xml') => setNewWebhook({...newWebhook, format: value})}
+                    onValueChange={(value: 'json') => setNewWebhook({...newWebhook, format: value})}
                   >
                     <SelectTrigger id="webhook-format">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="xml">XML</SelectItem>
+                      {/* Removed XML option since we only support JSON format */}
                     </SelectContent>
                   </Select>
                 </div>

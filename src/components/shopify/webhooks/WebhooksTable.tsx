@@ -1,119 +1,159 @@
 
 import React from 'react';
-import { TableHeader, TableRow, TableHead, TableBody, TableCell, Table } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { WebhookSubscription } from '@/lib/shopify/webhooks';
-import { AlertCircle, CheckCircle, Clock, Trash2, ExternalLink } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Webhook } from './types';
+import { Trash2, Send, Check, AlertTriangle, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface WebhooksTableProps {
-  webhooks: WebhookSubscription[];
+  webhooks: Webhook[];
   isLoading: boolean;
-  onDeleteWebhook: (id: string) => Promise<void>;
-  onTestWebhook?: (webhook: WebhookSubscription) => Promise<void>;
+  onDeleteWebhook: (webhookId: string) => void;
+  onTestWebhook: (webhookId: string) => Promise<boolean>;
 }
 
 export function WebhooksTable({ 
   webhooks, 
   isLoading, 
-  onDeleteWebhook,
-  onTestWebhook
+  onDeleteWebhook, 
+  onTestWebhook 
 }: WebhooksTableProps) {
+  const [testingWebhooks, setTestingWebhooks] = React.useState<Record<string, boolean>>({});
+  const [testResults, setTestResults] = React.useState<Record<string, boolean>>({});
+
+  const handleTestWebhook = async (webhookId: string) => {
+    setTestingWebhooks(prev => ({ ...prev, [webhookId]: true }));
+    try {
+      const result = await onTestWebhook(webhookId);
+      setTestResults(prev => ({ ...prev, [webhookId]: result }));
+      
+      // Clear test result after 5 seconds
+      setTimeout(() => {
+        setTestResults(prev => {
+          const newResults = { ...prev };
+          delete newResults[webhookId];
+          return newResults;
+        });
+      }, 5000);
+    } finally {
+      setTestingWebhooks(prev => ({ ...prev, [webhookId]: false }));
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="text-center p-6 border rounded-md bg-gray-50">
-        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-        <p className="text-muted-foreground">Loading webhooks...</p>
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
       </div>
     );
   }
 
   if (webhooks.length === 0) {
     return (
-      <div className="text-center p-6 border rounded-md bg-gray-50">
-        <p className="text-muted-foreground">No webhooks configured</p>
+      <div className="text-center p-8 border rounded-md bg-muted/20">
+        <p className="text-sm text-muted-foreground">No webhooks configured</p>
       </div>
     );
   }
 
-  const getWebhookStatusBadge = (webhook: WebhookSubscription) => {
-    const createdAt = new Date(webhook.createdAt);
-    const isRecent = Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000; // Less than 24 hours old
-    
-    return webhook.isActive ? (
-      <Badge variant="success" className="flex items-center gap-1">
-        <CheckCircle className="h-3 w-3" />
-        Active
-        {isRecent && (
-          <span className="ml-1 text-xs bg-green-700 px-1 rounded">New</span>
-        )}
-      </Badge>
-    ) : (
-      <Badge variant="secondary" className="flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        Inactive
-      </Badge>
-    );
-  };
-
   return (
-    <div className="border rounded-md">
+    <div className="border rounded-md overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Topic</TableHead>
-            <TableHead>Callback URL</TableHead>
+            <TableHead>Address</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {webhooks.map((webhook) => (
-            <TableRow key={webhook.id}>
-              <TableCell className="font-medium">{webhook.topic}</TableCell>
-              <TableCell className="font-mono text-xs truncate max-w-[180px]">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help">{webhook.address}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{webhook.address}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableCell>
-              <TableCell>{getWebhookStatusBadge(webhook)}</TableCell>
-              <TableCell>
-                {webhook.createdAt ? formatDistanceToNow(new Date(webhook.createdAt), { addSuffix: true }) : 'N/A'}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  {onTestWebhook && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => onTestWebhook(webhook)}
-                      title="Test webhook"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
+          {webhooks.map((webhook) => {
+            const isTesting = testingWebhooks[webhook.id];
+            const testResult = testResults[webhook.id];
+            const testStatus = testResult === undefined 
+              ? null 
+              : testResult === true
+                ? "success"
+                : "error";
+              
+            return (
+              <TableRow key={webhook.id}>
+                <TableCell className="font-medium">
+                  {webhook.topic}
+                </TableCell>
+                <TableCell className="font-mono text-xs max-w-md truncate">
+                  {webhook.address}
+                </TableCell>
+                <TableCell>
+                  {webhook.active ? (
+                    <Badge variant="success" className="flex w-fit items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Active
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Inactive
+                    </Badge>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => onDeleteWebhook(webhook.id)}
-                    title="Delete webhook"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                    <Clock className="h-3 w-3" />
+                    {formatDistanceToNow(new Date(webhook.createdAt), { addSuffix: true })}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestWebhook(webhook.id)}
+                      disabled={isTesting}
+                      className={
+                        testStatus === "success" ? "border-green-200 bg-green-50" :
+                        testStatus === "error" ? "border-red-200 bg-red-50" : ""
+                      }
+                    >
+                      {isTesting ? (
+                        "Testing..."
+                      ) : testStatus === "success" ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                          Success
+                        </>
+                      ) : testStatus === "error" ? (
+                        <>
+                          <AlertTriangle className="h-3.5 w-3.5 mr-1.5 text-red-500" />
+                          Failed
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-3.5 w-3.5 mr-1.5" />
+                          Test
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDeleteWebhook(webhook.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

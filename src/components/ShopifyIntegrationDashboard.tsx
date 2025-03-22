@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useShopify } from "@/contexts/shopify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,12 +12,15 @@ import { ShopifyPlusFeatures } from "@/components/shopify/ShopifyPlusFeatures";
 import { AiMarketInsights } from "@/components/AiMarketInsights";
 import { ShopifyBulkOperations } from "@/components/shopify/ShopifyBulkOperations";
 import { ShopifyScriptsManager } from "@/components/shopify/ShopifyScriptsManager";
-import { ShopifyWebhookManager } from "@/components/shopify/ShopifyWebhookManager"; 
+import { ShopifyWebhooks } from "@/components/shopify/ShopifyWebhooks"; 
 import { ShopifyIntegrationStatus } from "@/components/shopify/ShopifyIntegrationStatus"; 
 import { ShopifyB2BPricing } from "@/components/shopify/ShopifyB2BPricing";
-import { ExternalLink, AlertTriangle, Settings, Store, Lock } from "lucide-react";
+import { MultiLocationInventory } from "@/components/shopify/plus/MultiLocationInventory";
+import { ShopifyCompliance } from "@/components/shopify/ShopifyCompliance";
+import { ExternalLink, AlertTriangle, Settings, Store, Lock, Zap, Activity, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -44,6 +48,9 @@ export function ShopifyIntegrationDashboard() {
     try {
       const success = await connectToShopify(shopUrl, accessToken);
       if (success) {
+        // Initialize API version manager after successful connection
+        shopifyApiVersionManager.init();
+        
         setShopUrl("");
         setAccessToken("");
       }
@@ -53,6 +60,11 @@ export function ShopifyIntegrationDashboard() {
       setIsConnecting(false);
     }
   };
+
+  // Check if the current API version is the latest
+  const currentApiVersion = shopifyApiVersionManager.getCurrent();
+  const latestApiVersion = shopifyApiVersionManager.getLatestStable().version;
+  const isLatestApiVersion = currentApiVersion === latestApiVersion;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -89,12 +101,40 @@ export function ShopifyIntegrationDashboard() {
         </Alert>
       )}
       
+      {isShopifyConnected && !isLatestApiVersion && (
+        <Alert variant="warning" className="mb-6">
+          <Activity className="h-4 w-4" />
+          <AlertTitle>API Version Update Available</AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              You're using Shopify API version {currentApiVersion}. Version {latestApiVersion} is now available.
+            </span>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                shopifyApiVersionManager.updateToLatest();
+                toast.success("API Version Updated", {
+                  description: `Updated to Shopify API version ${shopifyApiVersionManager.getCurrent()}`
+                });
+              }}
+            >
+              Update API Version
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="insights">Market Insights</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="b2b">B2B Pricing</TabsTrigger>
+          <TabsTrigger value="inventory">
+            <MapPin className="h-4 w-4 mr-1" />
+            Inventory
+          </TabsTrigger>
           <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
           <TabsTrigger value="connect">Connect</TabsTrigger>
         </TabsList>
@@ -108,6 +148,10 @@ export function ShopifyIntegrationDashboard() {
           <Separator className="my-8" />
           
           <ShopifyPlusFeatures />
+          
+          <div className="mt-8">
+            <ShopifyCompliance />
+          </div>
         </TabsContent>
         
         <TabsContent value="insights">
@@ -115,11 +159,15 @@ export function ShopifyIntegrationDashboard() {
         </TabsContent>
         
         <TabsContent value="webhooks">
-          <ShopifyWebhookManager />
+          <ShopifyWebhooks />
         </TabsContent>
         
         <TabsContent value="b2b">
           <ShopifyB2BPricing />
+        </TabsContent>
+        
+        <TabsContent value="inventory">
+          <MultiLocationInventory />
         </TabsContent>
         
         <TabsContent value="bulk">

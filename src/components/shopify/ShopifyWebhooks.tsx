@@ -3,11 +3,12 @@ import React from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, Bell } from 'lucide-react';
+import { ArrowLeftRight, Bell, AlertTriangle } from 'lucide-react';
 import { WebhookForm } from './webhooks/WebhookForm';
 import { WebhooksTable } from './webhooks/WebhooksTable';
 import { NotConnectedState } from './webhooks/NotConnectedState';
 import { useShopifyWebhooks } from './webhooks/useShopifyWebhooks';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function ShopifyWebhooks() {
   const { isShopifyConnected } = useShopify();
@@ -15,14 +16,21 @@ export function ShopifyWebhooks() {
     webhooks,
     isLoading,
     isCreating,
+    isTesting,
     newWebhookTopic,
     setNewWebhookTopic,
     newWebhookAddress,
     setNewWebhookAddress,
     loadWebhooks,
     handleCreateWebhook,
-    handleDeleteWebhook
+    handleDeleteWebhook,
+    handleTestWebhook
   } = useShopifyWebhooks();
+
+  // Check for essential webhooks
+  const essentialWebhookTopics = ['products/update', 'inventory_levels/update', 'app/uninstalled'];
+  const hasMissingEssentialWebhooks = isShopifyConnected && webhooks.length > 0 && 
+    essentialWebhookTopics.some(topic => !webhooks.some(webhook => webhook.topic === topic));
 
   return (
     <Card>
@@ -40,6 +48,15 @@ export function ShopifyWebhooks() {
           <NotConnectedState />
         ) : (
           <div className="space-y-6">
+            {hasMissingEssentialWebhooks && (
+              <Alert variant="warning">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Some essential webhooks are missing. Consider adding them for better integration.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <WebhookForm
               newWebhookTopic={newWebhookTopic}
               setNewWebhookTopic={setNewWebhookTopic}
@@ -53,6 +70,7 @@ export function ShopifyWebhooks() {
               webhooks={webhooks}
               isLoading={isLoading}
               onDeleteWebhook={handleDeleteWebhook}
+              onTestWebhook={handleTestWebhook}
             />
           </div>
         )}
@@ -65,9 +83,9 @@ export function ShopifyWebhooks() {
         <Button
           variant="outline"
           onClick={loadWebhooks}
-          disabled={!isShopifyConnected || isLoading}
+          disabled={!isShopifyConnected || isLoading || isTesting}
         >
-          Refresh
+          {isLoading ? "Loading..." : "Refresh"}
         </Button>
       </CardFooter>
     </Card>

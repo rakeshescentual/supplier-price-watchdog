@@ -94,7 +94,7 @@ export {
   generatePriceRecommendations
 } from './gadget/actions';
 
-// Export Shopify Plus specific functionality from the new modular structure
+// Export Shopify Plus specific functionality directly from shopify-integration.ts
 export {
   deployShopifyScript,
   createShopifyFlow,

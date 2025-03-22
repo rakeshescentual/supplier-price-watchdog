@@ -1,180 +1,86 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { MapPin, Package, RotateCcw, Search, Filter, AlertTriangle } from "lucide-react";
-import { useShopify } from '@/contexts/shopify';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Info, MapPin, Plus, RefreshCw, Store, AlertTriangle } from "lucide-react";
 import { toast } from 'sonner';
+import { useShopify } from '@/contexts/shopify';
 
-interface InventoryLocation {
-  id: string;
-  name: string;
-  address: string;
-  isActive: boolean;
-  isPrimary: boolean;
-}
+// Mock data for demonstration
+const MOCK_LOCATIONS = [
+  { id: 'loc1', name: 'Main Warehouse', address: 'London, UK', isActive: true },
+  { id: 'loc2', name: 'Cardiff Store', address: 'Cardiff, UK', isActive: true },
+  { id: 'loc3', name: 'Manchester Store', address: 'Manchester, UK', isActive: true },
+  { id: 'loc4', name: 'Temporary Popup', address: 'Birmingham, UK', isActive: false }
+];
 
-interface InventoryItem {
-  id: string;
-  sku: string;
-  productTitle: string;
-  inventoryLevels: {
-    locationId: string;
-    available: number;
-    incoming: number;
-    committed: number;
-  }[];
-}
+const MOCK_INVENTORY = [
+  { id: 'inv1', locationId: 'loc1', productId: 'prod1', sku: 'ESC001', name: 'Chanel No. 5', available: 24, onOrder: 10 },
+  { id: 'inv2', locationId: 'loc1', productId: 'prod2', sku: 'ESC002', name: 'Dior Sauvage', available: 35, onOrder: 0 },
+  { id: 'inv3', locationId: 'loc2', productId: 'prod1', sku: 'ESC001', name: 'Chanel No. 5', available: 5, onOrder: 0 },
+  { id: 'inv4', locationId: 'loc2', productId: 'prod2', sku: 'ESC002', name: 'Dior Sauvage', available: 7, onOrder: 5 },
+  { id: 'inv5', locationId: 'loc3', productId: 'prod1', sku: 'ESC001', name: 'Chanel No. 5', available: 12, onOrder: 0 },
+  { id: 'inv6', locationId: 'loc4', productId: 'prod3', sku: 'ESC003', name: 'Tom Ford Tobacco Vanille', available: 3, onOrder: 0 }
+];
 
 export function MultiLocationInventory() {
   const { isShopifyConnected, shopifyContext } = useShopify();
-  const [locations, setLocations] = useState<InventoryLocation[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [locations, setLocations] = useState(MOCK_LOCATIONS);
+  const [inventory, setInventory] = useState(MOCK_INVENTORY);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isShopifyPlus, setIsShopifyPlus] = useState(false);
+  const [activeTab, setActiveTab] = useState('inventory');
   
   // Check if the user has Shopify Plus
-  useEffect(() => {
-    if (shopifyContext?.shopPlan === 'plus') {
-      setIsShopifyPlus(true);
-    }
-  }, [shopifyContext]);
+  const isShopifyPlus = shopifyContext?.shopPlan === 'plus';
   
-  // Load mock data for demonstration
-  const loadData = async () => {
-    if (!isShopifyConnected || !shopifyContext) {
+  const refreshInventory = async () => {
+    if (!isShopifyConnected) {
+      toast.error('Not connected to Shopify');
       return;
     }
     
     setIsLoading(true);
-    
     try {
-      // In a real implementation, this would fetch data from Shopify
-      // For demonstration, we're using mock data
+      // This would be a real API call in production
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock locations
-      const mockLocations: InventoryLocation[] = [
-        {
-          id: 'loc1',
-          name: 'Main Warehouse',
-          address: '123 Fulfillment St, London, UK',
-          isActive: true,
-          isPrimary: true
-        },
-        {
-          id: 'loc2',
-          name: 'Cardiff Store',
-          address: '456 Shop Ave, Cardiff, UK',
-          isActive: true,
-          isPrimary: false
-        },
-        {
-          id: 'loc3',
-          name: 'Manchester Warehouse',
-          address: '789 Supply Rd, Manchester, UK',
-          isActive: true,
-          isPrimary: false
-        },
-        {
-          id: 'loc4',
-          name: 'Edinburgh Pop-up',
-          address: '101 Seasonal Blvd, Edinburgh, UK',
-          isActive: false,
-          isPrimary: false
-        }
-      ];
-      
-      // Mock inventory items
-      const mockItems: InventoryItem[] = [
-        {
-          id: 'item1',
-          sku: 'FRAG-001',
-          productTitle: 'Chanel No. 5 Eau de Parfum',
-          inventoryLevels: [
-            { locationId: 'loc1', available: 25, incoming: 10, committed: 3 },
-            { locationId: 'loc2', available: 5, incoming: 0, committed: 1 },
-            { locationId: 'loc3', available: 12, incoming: 5, committed: 0 }
-          ]
-        },
-        {
-          id: 'item2',
-          sku: 'FRAG-002',
-          productTitle: 'Dior Sauvage Eau de Toilette',
-          inventoryLevels: [
-            { locationId: 'loc1', available: 18, incoming: 20, committed: 5 },
-            { locationId: 'loc2', available: 7, incoming: 0, committed: 2 },
-            { locationId: 'loc3', available: 9, incoming: 0, committed: 1 }
-          ]
-        },
-        {
-          id: 'item3',
-          sku: 'SKIN-001',
-          productTitle: 'La Mer Crème de la Mer Moisturizer',
-          inventoryLevels: [
-            { locationId: 'loc1', available: 10, incoming: 5, committed: 2 },
-            { locationId: 'loc2', available: 3, incoming: 0, committed: 0 },
-            { locationId: 'loc3', available: 4, incoming: 0, committed: 1 }
-          ]
-        },
-        {
-          id: 'item4',
-          sku: 'SKIN-002',
-          productTitle: 'Estée Lauder Advanced Night Repair',
-          inventoryLevels: [
-            { locationId: 'loc1', available: 22, incoming: 0, committed: 7 },
-            { locationId: 'loc2', available: 6, incoming: 0, committed: 1 },
-            { locationId: 'loc3', available: 8, incoming: 10, committed: 0 }
-          ]
-        }
-      ];
-      
-      setLocations(mockLocations);
-      setInventoryItems(mockItems);
-      
-      toast.success('Inventory data loaded', {
-        description: `Loaded ${mockItems.length} items across ${mockLocations.length} locations`
+      toast.success('Inventory refreshed', {
+        description: 'The latest inventory data has been loaded'
       });
     } catch (error) {
-      console.error('Error loading inventory data:', error);
-      toast.error('Failed to load inventory data');
+      console.error('Error loading inventory:', error);
+      toast.error('Failed to refresh inventory');
     } finally {
       setIsLoading(false);
     }
   };
   
-  useEffect(() => {
-    if (isShopifyConnected && isShopifyPlus) {
-      loadData();
-    }
-  }, [isShopifyConnected, isShopifyPlus]);
-  
-  // Filter items based on search term
-  const filteredItems = inventoryItems.filter(item => 
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.productTitle.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  // Get total inventory for an item across all locations
-  const getTotalInventory = (item: InventoryItem) => {
-    return item.inventoryLevels.reduce((sum, level) => sum + level.available, 0);
+  const addLocation = () => {
+    toast.info('Add Location', {
+      description: 'This would open a form to add a new location in a real implementation'
+    });
   };
   
-  // Get inventory level for a specific location
-  const getInventoryForLocation = (item: InventoryItem, locationId: string) => {
-    return item.inventoryLevels.find(level => level.locationId === locationId)?.available || 0;
+  // Generate inventory by location
+  const getInventoryByLocation = (locationId: string) => {
+    return inventory.filter(item => item.locationId === locationId);
   };
   
-  // Check if an item has low inventory at any location
-  const hasLowInventory = (item: InventoryItem) => {
-    return item.inventoryLevels.some(level => level.available < 5);
+  // Get inventory summary counts
+  const getInventorySummary = () => {
+    const totalProducts = inventory.length;
+    const lowStock = inventory.filter(item => item.available < 5).length;
+    const outOfStock = inventory.filter(item => item.available === 0).length;
+    
+    return { totalProducts, lowStock, outOfStock };
   };
   
-  // Render component
+  const summary = getInventorySummary();
+  
   if (!isShopifyConnected) {
     return (
       <Card>
@@ -184,15 +90,15 @@ export function MultiLocationInventory() {
             Multi-Location Inventory
           </CardTitle>
           <CardDescription>
-            Manage inventory across multiple locations
+            Manage inventory across all your Shopify locations
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center p-6 border rounded-md bg-gray-50">
-            <p className="text-muted-foreground text-center">
-              Connect to Shopify to manage inventory
-            </p>
-          </div>
+          <Alert>
+            <AlertDescription>
+              Connect to Shopify to manage multi-location inventory
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -207,19 +113,16 @@ export function MultiLocationInventory() {
             Multi-Location Inventory
           </CardTitle>
           <CardDescription>
-            Manage inventory across multiple locations
+            Manage inventory across all your Shopify locations
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center p-6 border rounded-md bg-amber-50">
-            <AlertTriangle className="h-10 w-10 text-amber-500 mb-2" />
-            <p className="text-amber-800 text-center font-medium">
-              This feature requires Shopify Plus
-            </p>
-            <p className="text-amber-700 text-center mt-1">
-              Upgrade your Shopify plan to access multi-location inventory management
-            </p>
-          </div>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Multi-location inventory management is a Shopify Plus feature. Upgrade your Shopify plan to access these features.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -228,110 +131,143 @@ export function MultiLocationInventory() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Multi-Location Inventory
-        </CardTitle>
-        <CardDescription>
-          Manage inventory across multiple locations
-        </CardDescription>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Multi-Location Inventory
+            </CardTitle>
+            <CardDescription>
+              Manage inventory across all your Shopify locations
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={refreshInventory} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button size="sm" onClick={addLocation}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Location
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center p-6">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
-            <p className="ml-2 text-muted-foreground">Loading inventory data...</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-green-50 border border-green-100 rounded-md p-4">
+            <div className="text-sm font-medium text-green-600 mb-1">Total Inventory Items</div>
+            <div className="text-2xl font-bold">{summary.totalProducts}</div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by SKU or product name"
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-1"
-                  onClick={loadData}
-                  disabled={isLoading}
-                >
-                  <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-            
-            <div className="rounded-md border">
+          <div className="bg-amber-50 border border-amber-100 rounded-md p-4">
+            <div className="text-sm font-medium text-amber-600 mb-1">Low Stock Items</div>
+            <div className="text-2xl font-bold">{summary.lowStock}</div>
+          </div>
+          <div className="bg-red-50 border border-red-100 rounded-md p-4">
+            <div className="text-sm font-medium text-red-600 mb-1">Out of Stock Items</div>
+            <div className="text-2xl font-bold">{summary.outOfStock}</div>
+          </div>
+        </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="inventory">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>SKU</TableHead>
-                    <TableHead>Total Stock</TableHead>
-                    {locations
-                      .filter(loc => loc.isActive)
-                      .map(location => (
-                        <TableHead key={location.id} className="text-center">
-                          {location.name}
-                          {location.isPrimary && (
-                            <Badge variant="outline" className="ml-1">Primary</Badge>
-                          )}
-                        </TableHead>
-                    ))}
+                    <TableHead>Location</TableHead>
+                    <TableHead>Available</TableHead>
+                    <TableHead>On Order</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3 + locations.filter(loc => loc.isActive).length} className="text-center py-6">
-                        No items found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredItems.map(item => (
-                      <TableRow key={item.id} className={hasLowInventory(item) ? 'bg-amber-50' : ''}>
-                        <TableCell className="font-medium">{item.productTitle}</TableCell>
-                        <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                        <TableCell className="font-medium">
-                          {getTotalInventory(item)}
-                          {hasLowInventory(item) && (
-                            <Badge variant="warning" className="ml-2">Low Stock</Badge>
+                  {inventory.map(item => {
+                    const location = locations.find(loc => loc.id === item.locationId);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.sku}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Store className="h-3 w-3" />
+                            {location?.name || 'Unknown'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.available}</TableCell>
+                        <TableCell>{item.onOrder}</TableCell>
+                        <TableCell>
+                          {item.available === 0 ? (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Out of Stock
+                            </Badge>
+                          ) : item.available < 5 ? (
+                            <Badge variant="warning" className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Low Stock
+                            </Badge>
+                          ) : (
+                            <Badge variant="success">In Stock</Badge>
                           )}
                         </TableCell>
-                        {locations
-                          .filter(loc => loc.isActive)
-                          .map(location => (
-                            <TableCell key={location.id} className="text-center">
-                              {getInventoryForLocation(item, location.id)}
-                            </TableCell>
-                        ))}
                       </TableRow>
-                    ))
-                  )}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
-          </div>
-        )}
+          </TabsContent>
+          
+          <TabsContent value="locations">
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Inventory Count</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {locations.map(location => (
+                    <TableRow key={location.id}>
+                      <TableCell className="font-medium">{location.name}</TableCell>
+                      <TableCell>{location.address}</TableCell>
+                      <TableCell>
+                        {location.isActive ? (
+                          <Badge variant="success">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {getInventoryByLocation(location.id).length} items
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="text-sm text-muted-foreground">
-          <Package className="h-4 w-4 inline-block mr-1" />
-          Manage inventory across {locations.filter(loc => loc.isActive).length} active locations
+      <CardFooter className="flex justify-between text-sm text-muted-foreground border-t pt-4">
+        <div>
+          <Info className="h-4 w-4 inline-block mr-1" />
+          Inventory data last updated {new Date().toLocaleString()}
         </div>
-        <Button size="sm">Transfer Inventory</Button>
+        <div>
+          Powered by Shopify Plus Multi-Location Inventory
+        </div>
       </CardFooter>
     </Card>
   );

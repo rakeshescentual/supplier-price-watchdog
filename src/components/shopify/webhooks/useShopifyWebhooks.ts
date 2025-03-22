@@ -4,6 +4,17 @@ import { useShopify } from '@/contexts/shopify';
 import { toast } from 'sonner';
 import { WebhookTopic, WebhookSubscription, createWebhook, listWebhooks, deleteWebhook, testWebhook } from '@/lib/shopify/webhooks';
 import { gadgetAnalytics } from '@/lib/gadget/analytics';
+import { ShopifyContext as AppShopifyContext } from '@/types/shopify';
+import { ShopifyContext as WebhooksShopifyContext } from '@/lib/shopify/webhooks';
+
+// Helper function to adapt the context type
+const adaptContext = (context: AppShopifyContext): WebhooksShopifyContext => {
+  return {
+    shop: context.shop,
+    accessToken: context.accessToken,
+    shopPlan: context.shopPlan as "basic" | "shopify" | "advanced" | "plus" | undefined
+  };
+};
 
 export const useShopifyWebhooks = () => {
   const { isShopifyConnected, shopifyContext } = useShopify();
@@ -23,7 +34,8 @@ export const useShopifyWebhooks = () => {
     
     setIsLoading(true);
     try {
-      const webhooksList = await listWebhooks(shopifyContext);
+      const adaptedContext = adaptContext(shopifyContext);
+      const webhooksList = await listWebhooks(adaptedContext);
       setWebhooks(webhooksList);
       
       // Track analytics
@@ -78,8 +90,9 @@ export const useShopifyWebhooks = () => {
     
     setIsCreating(true);
     try {
+      const adaptedContext = adaptContext(shopifyContext);
       const webhook = await createWebhook(
-        shopifyContext,
+        adaptedContext,
         newWebhookTopic,
         newWebhookAddress
       );
@@ -114,7 +127,8 @@ export const useShopifyWebhooks = () => {
     }
     
     try {
-      await deleteWebhook(shopifyContext, id);
+      const adaptedContext = adaptContext(shopifyContext);
+      await deleteWebhook(adaptedContext, id);
       
       setWebhooks(prev => prev.filter(webhook => webhook.id !== id));
       
@@ -138,7 +152,8 @@ export const useShopifyWebhooks = () => {
     
     setIsTesting(true);
     try {
-      const response = await testWebhook(shopifyContext, webhook.id);
+      const adaptedContext = adaptContext(shopifyContext);
+      const response = await testWebhook(adaptedContext, webhook.id);
       
       if (response.success) {
         toast.success('Webhook test successful', {

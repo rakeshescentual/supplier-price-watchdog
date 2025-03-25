@@ -48,7 +48,8 @@ export function ShopifyPlusFeatures() {
     setIsDeploying(true);
     
     try {
-      await deployShopifyScript({ scriptId });
+      // Update to match the proper function signature
+      await deployShopifyScript("store.myshopify.com", scriptId, "// Script content here");
       toast.success("Script deployed successfully");
     } catch (error) {
       console.error("Error deploying script:", error);
@@ -69,9 +70,13 @@ export function ShopifyPlusFeatures() {
     setIsDeploying(true);
     
     try {
-      // Assuming we have the shop domain from context, we would pass it here
-      // For now, passing a dummy string as required by the updated function
-      await createShopifyFlow("dummy-shop.myshopify.com");
+      // Update to match the expected function signature
+      await createShopifyFlow("store.myshopify.com", {
+        name: flowId,
+        trigger: "product_update",
+        conditions: [],
+        actions: []
+      });
       toast.success("Flow created successfully");
     } catch (error) {
       console.error("Error creating flow:", error);
@@ -92,9 +97,9 @@ export function ShopifyPlusFeatures() {
     setIsDeploying(true);
     
     try {
-      await scheduleShopifyPriceChanges([
-        { id: 'product-1', scheduledPrice: 19.99, scheduledDate: '2023-12-01' },
-        { id: 'product-2', scheduledPrice: 29.99, scheduledDate: '2023-12-01' }
+      await scheduleShopifyPriceChanges("store.myshopify.com", [
+        { variantId: 'product-1', newPrice: 19.99, effectiveDate: '2023-12-01' },
+        { variantId: 'product-2', newPrice: 29.99, effectiveDate: '2023-12-01' }
       ]);
       toast.success("Price changes scheduled successfully");
     } catch (error) {

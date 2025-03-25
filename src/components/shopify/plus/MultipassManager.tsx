@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,7 +106,7 @@ export function MultipassManager() {
   };
   
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <KeyRound className="h-5 w-5" />
@@ -228,10 +227,10 @@ export function MultipassManager() {
                   </ScrollArea>
                 </div>
                 
-                <Alert variant="secondary">
-                  <Fingerprint className="h-4 w-4" />
+                <Alert variant="default" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    This token will expire in {multipassToken.expiresIn} seconds. Generate a new one for each login attempt.
+                    Multipass requires Shopify Plus and a secure server-to-server implementation.
                   </AlertDescription>
                 </Alert>
               </div>

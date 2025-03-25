@@ -125,3 +125,116 @@ export const scheduleShopifyPriceChanges = async (
     };
   }
 };
+
+/**
+ * Create a Shopify Multipass token
+ */
+export const createShopifyMultipassToken = async (
+  shopDomain: string,
+  customerData: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    tag_string?: string;
+    remote_ip?: string;
+    return_to?: string;
+    created_at?: string;
+  }
+): Promise<{ success: boolean; token?: string; url?: string }> => {
+  // Mock implementation
+  try {
+    logInfo(`Creating Multipass token for ${customerData.email} for ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const mockToken = `mp_tok_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    
+    return {
+      success: true,
+      token: mockToken,
+      url: `https://${shopDomain}/account/login/multipass/${mockToken}`
+    };
+  } catch (error) {
+    logError(`Error creating Multipass token: ${error}`, {}, 'shopify-plus');
+    return {
+      success: false
+    };
+  }
+};
+
+/**
+ * Create a B2B Company
+ */
+export const createB2BCompany = async (
+  shopDomain: string,
+  companyData: {
+    name: string;
+    external_id?: string;
+    company_location?: {
+      address1: string;
+      city: string;
+      province: string;
+      country: string;
+      postal_code: string;
+    };
+  }
+): Promise<{ success: boolean; companyId?: string }> => {
+  // Mock implementation
+  try {
+    logInfo(`Creating B2B company ${companyData.name} for ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    return {
+      success: true,
+      companyId: `gid://shopify/Company/${Date.now()}`
+    };
+  } catch (error) {
+    logError(`Error creating B2B company: ${error}`, {}, 'shopify-plus');
+    return {
+      success: false
+    };
+  }
+};
+
+/**
+ * Create a Shopify Gift Card
+ */
+export const createShopifyGiftCard = async (
+  shopDomain: string,
+  giftCardData: {
+    initialValue: number;
+    currency?: string;
+    note?: string;
+    expiresOn?: string;
+    recipient?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      message?: string;
+    };
+  }
+): Promise<{ success: boolean; giftCardId?: string; code?: string }> => {
+  // Mock implementation
+  try {
+    logInfo(`Creating gift card with value ${giftCardData.initialValue} for ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    
+    return {
+      success: true,
+      giftCardId: `gid://shopify/GiftCard/${Date.now()}`,
+      code: mockCode
+    };
+  } catch (error) {
+    logError(`Error creating gift card: ${error}`, {}, 'shopify-plus');
+    return {
+      success: false
+    };
+  }
+};

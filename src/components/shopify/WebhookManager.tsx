@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,10 +56,8 @@ export function ShopifyWebhookManager() {
     setIsLoading(true);
     
     try {
-      // In a real app, this would call the API to fetch webhooks
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock data for demonstration
       setWebhooks([
         {
           id: 'webhook1',
@@ -107,7 +104,6 @@ export function ShopifyWebhookManager() {
     setIsCreating(true);
     
     try {
-      // In a real app, this would call the API to create the webhook
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const webhookId = `webhook-${Date.now()}`;
@@ -124,7 +120,6 @@ export function ShopifyWebhookManager() {
         description: `The ${newWebhook.topic} webhook has been created successfully.`
       });
       
-      // Reset form and switch to existing webhooks tab
       setNewWebhook({
         id: '',
         topic: '',
@@ -148,7 +143,6 @@ export function ShopifyWebhookManager() {
     if (!isShopifyConnected) return;
     
     try {
-      // In a real app, this would call the API to delete the webhook
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setWebhooks(webhooks.filter(webhook => webhook.id !== webhookId));
@@ -170,7 +164,6 @@ export function ShopifyWebhookManager() {
     setIsTesting(webhook.id);
     
     try {
-      // In a real app, this would call the testWebhook function
       const result = await testWebhook(shopifyContext, webhook.id);
       
       setTestResults({
@@ -445,7 +438,7 @@ export function ShopifyWebhookManager() {
                 </p>
               </div>
               
-              <Alert variant="secondary" className="mt-2">
+              <Alert variant="default" className="mt-2">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   Make sure your webhook endpoint is publicly accessible and can handle POST requests.
@@ -499,5 +492,4 @@ export function ShopifyWebhookManager() {
   );
 }
 
-// Add an alias export for WebhookManager to maintain compatibility with existing imports
 export const WebhookManager = ShopifyWebhookManager;

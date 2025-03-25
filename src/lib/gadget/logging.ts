@@ -1,9 +1,15 @@
+
 /**
  * Enhanced logging utilities for Gadget integration
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-type LogCategory = 'api' | 'sync' | 'shopify' | 'shopify-plus' | 'webhook' | 'system' | 'auth' | 'user';
+type LogCategory = 
+  'api' | 'sync' | 'shopify' | 'shopify-plus' | 'webhook' | 'system' | 'auth' | 'user' |
+  'client' | 'health' | 'status' | 'connections' | 'liveQuery' | 'mock' | 'operations' |
+  'pagination' | 'pdf' | 'processing' | 'storage' | 'telemetry' | 'diagnostics' | 'export' |
+  'actions' | 'batch' | 'competitor-actions' | 'platform-actions' | 'price-actions' |
+  'integration' | 'cache' | 'shopify-integration';
 
 interface LoggerOptions {
   enableConsole: boolean;
@@ -204,3 +210,6 @@ export const logError = (message: string, metadata: any = {}, category: LogCateg
 // Export the logger class and singleton
 export const logger = loggerInstance;
 export default Logger;
+
+// Export the LogCategory type for external usage
+export type { LogCategory, LogLevel };

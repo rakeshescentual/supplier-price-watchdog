@@ -1,87 +1,65 @@
 
 /**
- * Shopify B2B pricing integration with Gadget
+ * Shopify B2B integration with Gadget
  */
-import { toast } from 'sonner';
-import type { PriceItem, ShopifyContext } from '@/types/price';
+import type { ShopifyContext } from '@/types/shopify';
+import type { B2BPriceConfig, B2BCompanyData } from '@/types/shopify-plus';
 import { initGadgetClient } from '../client';
-import { performBatchOperations } from '../batch';
 import { logInfo, logError } from '../logging';
-import { startPerformanceTracking } from '../telemetry';
 
 /**
- * Sync price changes to Shopify Plus B2B customers via Gadget
- * @param context Shopify context
- * @param items Price items to sync
- * @param customerSegments Customer segments to target
+ * Sync B2B Prices via Gadget
+ * @param shopDomain Shop domain
+ * @param products B2B product pricing configuration
  * @returns Promise resolving to sync result
  */
 export const syncB2BPrices = async (
-  context: ShopifyContext,
-  items: PriceItem[],
-  customerSegments: string[]
-): Promise<{ success: boolean; message?: string }> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return { success: false, message: "Gadget configuration required" };
-  }
-  
-  // Start performance tracking
-  const finishTracking = startPerformanceTracking('syncB2BPrices', {
-    shop: context.shop,
-    itemCount: items.length,
-    customerSegments
-  });
-  
+  shopDomain: string,
+  products: B2BPriceConfig[]
+): Promise<{ success: boolean; syncedCount: number }> => {
   try {
-    logInfo(`Syncing B2B prices for ${items.length} items`, {
-      shop: context.shop,
-      segments: customerSegments
-    }, 'shopify-integration');
+    logInfo(`Syncing B2B prices for ${products.length} products to ${shopDomain}`, {}, 'shopify-plus');
     
-    // In production: Use Gadget SDK for efficient batching
-    // const results = await performBatchOperations(
-    //   items,
-    //   async (item) => {
-    //     return await client.mutate.syncB2BPrice({
-    //       shop: context.shop,
-    //       accessToken: context.accessToken,
-    //       productId: item.productId,
-    //       variantId: item.variantId,
-    //       price: item.b2bPrice || item.newPrice,
-    //       customerSegments
-    //     });
-    //   },
-    //   { batchSize: 25, retryCount: 3 }
-    // );
-    // 
-    // const success = results.length === items.length;
-    
-    // For development: Mock implementation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const success = Math.random() > 0.1; // 90% success rate for testing
-    
-    // Complete performance tracking
-    await finishTracking();
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     return {
-      success,
-      message: success 
-        ? `Successfully synced B2B prices for ${items.length} items` 
-        : "Some items failed to sync B2B prices"
+      success: true,
+      syncedCount: products.length
     };
   } catch (error) {
-    logError("Error syncing B2B prices", { error }, 'shopify-integration');
-    
-    // Complete performance tracking even on error
-    await finishTracking();
-    
+    logError(`Error syncing B2B prices: ${error}`, {}, 'shopify-plus');
     return {
       success: false,
-      message: error instanceof Error 
-        ? error.message 
-        : "Unknown error syncing B2B prices"
+      syncedCount: 0
+    };
+  }
+};
+
+/**
+ * Create a B2B Company via Gadget
+ * @param shopDomain Shop domain
+ * @param companyData B2B company data
+ * @returns Promise resolving to company creation result
+ */
+export const createB2BCompany = async (
+  shopDomain: string,
+  companyData: B2BCompanyData
+): Promise<{ success: boolean; companyId?: string }> => {
+  try {
+    logInfo(`Creating B2B company ${companyData.name} for ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    return {
+      success: true,
+      companyId: `gid://shopify/Company/${Date.now()}`
+    };
+  } catch (error) {
+    logError(`Error creating B2B company: ${error}`, {}, 'shopify-plus');
+    return {
+      success: false
     };
   }
 };

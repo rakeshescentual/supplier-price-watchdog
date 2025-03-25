@@ -2,9 +2,9 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { CorrespondenceItem, Correspondence } from '../CorrespondenceItem';
+import { CorrespondenceList } from '../CorrespondenceList';
 import { AddCorrespondenceForm } from './AddCorrespondenceForm';
+import { Correspondence } from '../CorrespondenceItem';
 
 interface CorrespondencePanelProps {
   correspondence: Correspondence[];
@@ -44,18 +44,11 @@ export const CorrespondencePanel: React.FC<CorrespondencePanelProps> = ({
           
           <TabsContent value="correspondence">
             <div className="p-4">
-              <ScrollArea className="h-[50vh]">
-                <div className="space-y-3">
-                  {correspondence.map(item => (
-                    <CorrespondenceItem
-                      key={item.id}
-                      correspondence={item}
-                      isSelected={selectedCorrespondence?.id === item.id}
-                      onClick={() => onSelectCorrespondence(item)}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
+              <CorrespondenceList 
+                correspondence={correspondence}
+                selectedCorrespondence={selectedCorrespondence}
+                onSelectCorrespondence={onSelectCorrespondence}
+              />
             </div>
           </TabsContent>
           

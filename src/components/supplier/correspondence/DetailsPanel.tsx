@@ -4,12 +4,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Copy, Mail } from 'lucide-react';
-import { toast } from 'sonner';
-import { Correspondence } from '../CorrespondenceItem';
-import { QueryForm } from '../QueryForm';
-import { QueryItemComponent, QueryItem } from '../QueryItem';
+import { Send, Mail } from 'lucide-react';
 import { EmailThreadView } from './EmailThreadView';
+import { Correspondence } from '../CorrespondenceItem';
+import { QueryItem, QueryItemComponent } from '../QueryItem';
+import { QueryForm } from '../QueryForm';
 
 interface DetailsPanelProps {
   selectedCorrespondence: Correspondence | null;

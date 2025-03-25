@@ -1,16 +1,10 @@
-
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, Send } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { Correspondence } from './CorrespondenceItem';
-import { QueryItem } from './QueryItem';
-import { CorrespondenceList } from './CorrespondenceList';
-import { AddCorrespondenceForm } from './AddCorrespondenceForm';
-import { EmailThread } from './EmailThread';
-import { QueriesPanel } from './QueriesPanel';
+import { Correspondence } from '../CorrespondenceItem';
+import { QueryItem } from '../QueryItem';
+import { CorrespondencePanel } from './CorrespondencePanel';
+import { DetailsPanel } from './DetailsPanel';
 
 // Mock data for supplier correspondence
 const mockCorrespondence: Correspondence[] = [
@@ -157,33 +151,6 @@ export const SupplierCorrespondenceManager = () => {
     });
   };
 
-  const handleAddCorrespondence = (supplier: string, subject: string, emailContent: string) => {
-    const newItem: Correspondence = {
-      id: Date.now(),
-      supplier,
-      subject,
-      emails: [
-        {
-          id: 1,
-          from: 'system@escentual.com',
-          to: supplier,
-          content: emailContent,
-          timestamp: new Date()
-        }
-      ],
-      timestamp: new Date(),
-      status: 'pending',
-      queryItems: []
-    };
-    
-    setCorrespondence([newItem, ...correspondence]);
-    setActiveTab('correspondence');
-    
-    toast.success("Correspondence added", {
-      description: "New supplier correspondence has been added.",
-    });
-  };
-
   const handleResolveQuery = (queryId: number) => {
     if (!selectedCorrespondence) return;
     
@@ -205,95 +172,57 @@ export const SupplierCorrespondenceManager = () => {
     });
   };
 
+  const handleAddCorrespondence = (data: {
+    supplier: string;
+    subject: string;
+    emailContent: string;
+  }) => {
+    const newItem: Correspondence = {
+      id: Date.now(),
+      supplier: data.supplier,
+      subject: data.subject,
+      emails: [
+        {
+          id: 1,
+          from: 'system@escentual.com',
+          to: data.supplier,
+          content: data.emailContent,
+          timestamp: new Date()
+        }
+      ],
+      timestamp: new Date(),
+      status: 'pending',
+      queryItems: []
+    };
+    
+    setCorrespondence([newItem, ...correspondence]);
+    setActiveTab('correspondence');
+    
+    toast.success("Correspondence added", {
+      description: "New supplier correspondence has been added.",
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="md:col-span-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Supplier Correspondence</CardTitle>
-            <CardDescription>
-              Track and manage supplier communications
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full">
-                <TabsTrigger value="correspondence" className="flex-1">Correspondence</TabsTrigger>
-                <TabsTrigger value="add" className="flex-1">Add New</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="correspondence">
-                <div className="p-4">
-                  <CorrespondenceList 
-                    correspondence={correspondence}
-                    selectedCorrespondence={selectedCorrespondence}
-                    onSelectCorrespondence={handleSelectCorrespondence}
-                  />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="add">
-                <AddCorrespondenceForm onAddCorrespondence={handleAddCorrespondence} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <CorrespondencePanel
+          correspondence={correspondence}
+          selectedCorrespondence={selectedCorrespondence}
+          onSelectCorrespondence={handleSelectCorrespondence}
+          onAddCorrespondence={handleAddCorrespondence}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </div>
       
       <div className="md:col-span-2">
-        {selectedCorrespondence ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{selectedCorrespondence.subject}</CardTitle>
-              <CardDescription>
-                {selectedCorrespondence.supplier} · {selectedCorrespondence.timestamp.toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Tabs defaultValue="emails">
-                <TabsList className="w-full">
-                  <TabsTrigger value="emails" className="flex-1">Email Thread</TabsTrigger>
-                  <TabsTrigger value="queries" className="flex-1">
-                    Queries
-                    {selectedQueryItems.length > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-primary/20">
-                        {selectedQueryItems.length}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="emails">
-                  <EmailThread emails={selectedCorrespondence.emails} />
-                </TabsContent>
-                
-                <TabsContent value="queries">
-                  <QueriesPanel
-                    queries={selectedQueryItems}
-                    onSaveQuery={handleSaveQuery}
-                    onResolveQuery={handleResolveQuery}
-                  />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button variant="outline" className="w-full" disabled={true}>
-                <Send className="mr-2 h-4 w-4" />
-                Send Reply (coming soon)
-              </Button>
-            </CardFooter>
-          </Card>
-        ) : (
-          <div className="flex items-center justify-center h-full p-8 border rounded-lg bg-muted/30">
-            <div className="text-center">
-              <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No correspondence selected</h3>
-              <p className="text-muted-foreground">
-                Select a supplier correspondence from the left panel or add a new one.
-              </p>
-            </div>
-          </div>
-        )}
+        <DetailsPanel
+          selectedCorrespondence={selectedCorrespondence}
+          selectedQueryItems={selectedQueryItems}
+          onSaveQuery={handleSaveQuery}
+          onResolveQuery={handleResolveQuery}
+        />
       </div>
     </div>
   );

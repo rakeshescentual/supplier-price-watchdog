@@ -1,8 +1,7 @@
 
 /**
- * Shopify authentication integration with Gadget
+ * Shopify Plus authentication integration with Gadget
  */
-import type { ShopifyContext } from '@/types/shopify';
 import type { MultipassCustomerData, GiftCardData } from '@/types/shopify-plus';
 import { initGadgetClient } from '../client';
 import { logInfo, logError } from '../logging';
@@ -10,28 +9,35 @@ import { logInfo, logError } from '../logging';
 /**
  * Create a Shopify Multipass token via Gadget
  * @param shopDomain Shop domain
- * @param customerData Customer data for Multipass token
- * @returns Promise resolving to token creation result
+ * @param customerData Customer data for the multipass token
+ * @returns Promise resolving to multipass token creation result
  */
 export const createShopifyMultipassToken = async (
   shopDomain: string,
   customerData: MultipassCustomerData
 ): Promise<{ success: boolean; token?: string; url?: string }> => {
   try {
-    logInfo(`Creating Multipass token for ${customerData.email} for ${shopDomain}`, {}, 'shopify-plus');
+    logInfo(`Creating Shopify Multipass token for ${customerData.email} on ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Validate required fields
+    if (!customerData.email) {
+      throw new Error('Email is required for Multipass token creation');
+    }
     
     // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    const mockToken = `mp_tok_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    // Generate a mock URL using the shop domain and a token
+    const token = `mp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    const url = `https://${shopDomain}/account/login/multipass/${token}`;
     
     return {
       success: true,
-      token: mockToken,
-      url: `https://${shopDomain}/account/login/multipass/${mockToken}`
+      token,
+      url
     };
   } catch (error) {
-    logError(`Error creating Multipass token: ${error}`, {}, 'shopify-plus');
+    logError(`Error creating Shopify Multipass token: ${error}`, {}, 'shopify-plus');
     return {
       success: false
     };
@@ -47,22 +53,28 @@ export const createShopifyMultipassToken = async (
 export const createShopifyGiftCard = async (
   shopDomain: string,
   giftCardData: GiftCardData
-): Promise<{ success: boolean; giftCardId?: string; code?: string }> => {
+): Promise<{ success: boolean; giftCardId?: string; giftCardCode?: string }> => {
   try {
-    logInfo(`Creating gift card with value ${giftCardData.initialValue} for ${shopDomain}`, {}, 'shopify-plus');
+    logInfo(`Creating Shopify Gift Card with value ${giftCardData.initialValue} for ${shopDomain}`, {}, 'shopify-plus');
+    
+    // Validate required fields
+    if (!giftCardData.initialValue || giftCardData.initialValue <= 0) {
+      throw new Error('Valid initial value is required for gift card creation');
+    }
     
     // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const mockCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    // Generate a mock gift card code
+    const giftCardCode = `GFT${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
     return {
       success: true,
       giftCardId: `gid://shopify/GiftCard/${Date.now()}`,
-      code: mockCode
+      giftCardCode
     };
   } catch (error) {
-    logError(`Error creating gift card: ${error}`, {}, 'shopify-plus');
+    logError(`Error creating Shopify Gift Card: ${error}`, {}, 'shopify-plus');
     return {
       success: false
     };

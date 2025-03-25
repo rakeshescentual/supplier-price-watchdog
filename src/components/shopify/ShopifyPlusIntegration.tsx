@@ -10,18 +10,20 @@ import { ShopifyFlowManager } from "./ShopifyFlowManager";
 import { ShopifyB2BPricing } from "./ShopifyB2BPricing";
 import { AlertTriangle, Zap, ArrowRight } from "lucide-react";
 import { createShopifyFeatureTracker } from "@/lib/gadget/analytics/shopifyMetrics";
+import { MultipassAuthentication } from "./plus/MultipassAuthentication";
 
 // Create feature trackers
 const scriptsTracker = createShopifyFeatureTracker('scripts');
 const flowTracker = createShopifyFeatureTracker('flow');
 const b2bTracker = createShopifyFeatureTracker('b2b');
+const authTracker = createShopifyFeatureTracker('authentication');
 
 export function ShopifyPlusIntegration() {
   const { isShopifyConnected, shopifyContext } = useShopify();
   const [activeTab, setActiveTab] = useState("scripts");
   
   // Check if store is on Shopify Plus plan - using shopPlan property instead of plan
-  const isShopifyPlus = shopifyContext?.shopPlan === 'plus' || false;
+  const isShopifyPlus = shopifyContext?.shopPlan === 'Shopify Plus' || false;
   
   // Track tab changes
   const handleTabChange = (value: string) => {
@@ -37,6 +39,9 @@ export function ShopifyPlusIntegration() {
         break;
       case "b2b":
         b2bTracker.trackView();
+        break;
+      case "auth":
+        authTracker.trackView();
         break;
     }
   };
@@ -160,6 +165,7 @@ export function ShopifyPlusIntegration() {
             <TabsTrigger value="scripts">Scripts</TabsTrigger>
             <TabsTrigger value="flow">Flow</TabsTrigger>
             <TabsTrigger value="b2b">B2B</TabsTrigger>
+            <TabsTrigger value="auth">Authentication</TabsTrigger>
           </TabsList>
           
           <TabsContent value="scripts">
@@ -172,6 +178,10 @@ export function ShopifyPlusIntegration() {
           
           <TabsContent value="b2b">
             <ShopifyB2BPricing />
+          </TabsContent>
+          
+          <TabsContent value="auth">
+            <MultipassAuthentication />
           </TabsContent>
         </Tabs>
       </CardContent>

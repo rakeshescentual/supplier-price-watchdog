@@ -1,14 +1,14 @@
-
 /**
  * Shopify integration types
  */
 
 // Core Shopify context
 export interface ShopifyContext {
-  shop: string;
+  shop: string; // Shopify store domain
   accessToken: string;
   apiVersion?: string;
   shopPlan?: string;
+  shopDomain?: string; // Added this property to match the webhook interface
 }
 
 // Extended context with additional properties

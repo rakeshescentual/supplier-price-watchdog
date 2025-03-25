@@ -4,17 +4,23 @@
  */
 import { logInfo, logError } from '../logging';
 
+// Define the types to match function calls
+export interface ShopifyScriptConfig {
+  title: string;
+  scriptCustomerScope?: string;
+  source?: string;
+}
+
 /**
  * Deploy a Shopify Script
  */
 export const deployShopifyScript = async (
   shopDomain: string,
-  scriptTitle: string,
-  scriptContent: string
+  scriptConfig: ShopifyScriptConfig
 ): Promise<{ success: boolean; scriptId?: string }> => {
   // Mock implementation
   try {
-    logInfo(`Deploying Shopify script '${scriptTitle}' to ${shopDomain}`, {}, 'shopify-plus');
+    logInfo(`Deploying Shopify script '${scriptConfig.title}' to ${shopDomain}`, {}, 'shopify-plus');
     
     // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 1200));
@@ -101,9 +107,11 @@ export const syncB2BPrices = async (
 export const scheduleShopifyPriceChanges = async (
   shopDomain: string,
   priceChanges: Array<{
-    variantId: string;
-    newPrice: number;
-    effectiveDate: string;
+    id: string;
+    scheduledPrice: number;
+    scheduledDate: string;
+    compareAtPrice?: number;
+    locationId?: string;
   }>
 ): Promise<{ success: boolean; scheduledCount: number }> => {
   // Mock implementation

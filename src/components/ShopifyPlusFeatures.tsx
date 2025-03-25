@@ -48,8 +48,10 @@ export function ShopifyPlusFeatures() {
     setIsDeploying(true);
     
     try {
-      // Update to match the proper function signature
-      await deployShopifyScript("store.myshopify.com", scriptTitle, "// Script content here");
+      // Fix the call to match the function signature
+      await deployShopifyScript("store.myshopify.com", {
+        title: scriptTitle
+      });
       toast.success("Script deployed successfully");
     } catch (error) {
       console.error("Error deploying script:", error);

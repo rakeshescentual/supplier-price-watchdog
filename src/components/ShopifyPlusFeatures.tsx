@@ -37,7 +37,7 @@ export function ShopifyPlusFeatures() {
   const [isDeploying, setIsDeploying] = useState(false);
   const { isShopifyConnected } = useShopify();
 
-  const handleDeployScript = async (scriptId: string) => {
+  const handleDeployScript = async (scriptTitle: string) => {
     if (!isShopifyConnected) {
       toast.error("Shopify not connected", {
         description: "Please connect to Shopify before deploying scripts."
@@ -49,7 +49,7 @@ export function ShopifyPlusFeatures() {
     
     try {
       // Update to match the proper function signature
-      await deployShopifyScript("store.myshopify.com", scriptId, "// Script content here");
+      await deployShopifyScript("store.myshopify.com", scriptTitle, "// Script content here");
       toast.success("Script deployed successfully");
     } catch (error) {
       console.error("Error deploying script:", error);
@@ -98,8 +98,8 @@ export function ShopifyPlusFeatures() {
     
     try {
       await scheduleShopifyPriceChanges("store.myshopify.com", [
-        { variantId: 'product-1', newPrice: 19.99, effectiveDate: '2023-12-01' },
-        { variantId: 'product-2', newPrice: 29.99, effectiveDate: '2023-12-01' }
+        { id: 'product-1', scheduledPrice: 19.99, scheduledDate: '2023-12-01' },
+        { id: 'product-2', scheduledPrice: 29.99, scheduledDate: '2023-12-01' }
       ]);
       toast.success("Price changes scheduled successfully");
     } catch (error) {

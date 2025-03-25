@@ -164,7 +164,14 @@ export function ShopifyWebhookManager() {
     setIsTesting(webhook.id);
     
     try {
-      const result = await testWebhook(shopifyContext, webhook.id);
+      const adaptedContext = {
+        shopDomain: shopifyContext.shop,
+        accessToken: shopifyContext.accessToken,
+        shopPlan: shopifyContext.shopPlan || '',
+        apiVersion: shopifyContext.apiVersion || '2023-07'
+      };
+      
+      const result = await testWebhook(adaptedContext, webhook.id);
       
       setTestResults({
         ...testResults,

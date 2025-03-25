@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useShopify } from "@/contexts/shopify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { ShopifyPlusFeatures } from "@/components/shopify/ShopifyPlusFeatures";
 import { AiMarketInsights } from "@/components/AiMarketInsights";
 import { ShopifyBulkOperations } from "@/components/shopify/ShopifyBulkOperations";
 import { ShopifyScriptsManager } from "@/components/shopify/ShopifyScriptsManager";
-import { WebhookManager } from "@/components/shopify/WebhookManager";
+import { ShopifyWebhookManager } from "@/components/shopify/WebhookManager";
 import { ShopifyIntegrationStatus } from "@/components/shopify/ShopifyIntegrationStatus"; 
 import { ShopifyB2BPricing } from "@/components/shopify/ShopifyB2BPricing";
 import { MultiLocationInventory } from "@/components/shopify/plus/MultiLocationInventory";
@@ -36,12 +35,10 @@ export function ShopifyIntegrationDashboard() {
     });
   };
 
-  // Check if the current API version is the latest
   const currentApiVersion = shopifyApiVersionManager.getCurrent();
   const latestApiVersion = shopifyApiVersionManager.getLatestStable().version;
   const isLatestApiVersion = currentApiVersion === latestApiVersion;
   
-  // Check if store is on Shopify Plus plan
   const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');
 
   return (
@@ -149,7 +146,7 @@ export function ShopifyIntegrationDashboard() {
         </TabsContent>
         
         <TabsContent value="webhooks">
-          <WebhookManager />
+          <ShopifyWebhookManager />
         </TabsContent>
         
         <TabsContent value="flows">

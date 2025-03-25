@@ -174,11 +174,15 @@ class Logger {
 // Create a singleton logger instance
 const loggerInstance = new Logger();
 
-// Connect to error tracking system
-import { gadgetAnalytics } from './analytics';
-loggerInstance.setErrorHandler((error, metadata) => {
-  gadgetAnalytics.trackError(error, metadata);
-});
+// Define error tracking function separately to avoid circular imports
+const trackError = (error: Error | string, metadata?: any) => {
+  console.error("Error tracked:", error, metadata);
+  // In a real implementation, this would send to an error tracking service
+  // We'll implement this later once the circular dependency is resolved
+};
+
+// Set a simple error handler for now
+loggerInstance.setErrorHandler(trackError);
 
 // Export convenience methods that use the singleton
 export const logDebug = (message: string, metadata: any = {}, category: LogCategory = 'system'): void => {

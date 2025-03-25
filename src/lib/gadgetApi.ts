@@ -5,10 +5,8 @@
  * This file maintains backward compatibility with existing imports
  */
 
-// Export all Gadget functionality
-export * from './gadget';
-
-// Re-export specific functions for backward compatibility
+// Re-export specific functions for initialization and client management first
+// to avoid circular dependencies
 export { 
   initGadgetClient, 
   isGadgetInitialized, 
@@ -17,9 +15,22 @@ export {
   displayGadgetStatus
 } from './gadget/client';
 
-// Import and re-export testGadgetConnection from the correct location
+// Now that the core client functions are exported, export other modules
+export * from './gadget';
+
+// Import and re-export connection functions
 export { testGadgetConnection, getGadgetStatus } from './gadget/client/connection';
 
+// Export logging functionality (moving this up to avoid circular dependencies)
+export {
+  logger,
+  logDebug,
+  logInfo,
+  logWarning,
+  logError
+} from './gadget/logging';
+
+// Export sync functionality
 export {
   authenticateShopify,
   syncToShopifyViaGadget,

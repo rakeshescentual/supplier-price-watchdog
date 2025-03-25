@@ -99,7 +99,10 @@ export {
   deployShopifyScript,
   createShopifyFlow,
   syncB2BPrices,
-  scheduleShopifyPriceChanges
+  scheduleShopifyPriceChanges,
+  createShopifyMultipassToken,
+  createB2BCompany,
+  createShopifyGiftCard
 } from './gadget/shopify-integration';
 
 // Export new background job utilities

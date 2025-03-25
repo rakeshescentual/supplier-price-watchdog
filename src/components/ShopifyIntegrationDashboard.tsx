@@ -18,7 +18,9 @@ import { MultiLocationInventory } from "@/components/shopify/plus/MultiLocationI
 import { ShopifyCompliance } from "@/components/shopify/ShopifyCompliance";
 import { FlowsAutomation } from "@/components/shopify/plus/FlowsAutomation";
 import { ShopifyOAuth } from "@/components/shopify/ShopifyOAuth";
-import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap } from "lucide-react";
+import { MultipassManager } from "@/components/shopify/plus/MultipassManager";
+import { GiftCardManager } from "@/components/shopify/plus/GiftCardManager";
+import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
@@ -38,6 +40,9 @@ export function ShopifyIntegrationDashboard() {
   const currentApiVersion = shopifyApiVersionManager.getCurrent();
   const latestApiVersion = shopifyApiVersionManager.getLatestStable().version;
   const isLatestApiVersion = currentApiVersion === latestApiVersion;
+  
+  // Check if store is on Shopify Plus plan
+  const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -112,6 +117,14 @@ export function ShopifyIntegrationDashboard() {
             <MapPin className="h-4 w-4 mr-1" />
             Inventory
           </TabsTrigger>
+          <TabsTrigger value="multipass">
+            <KeyRound className="h-4 w-4 mr-1" />
+            Multipass
+          </TabsTrigger>
+          <TabsTrigger value="giftcards">
+            <Gift className="h-4 w-4 mr-1" />
+            Gift Cards
+          </TabsTrigger>
           <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
           <TabsTrigger value="connect">Connect</TabsTrigger>
         </TabsList>
@@ -149,6 +162,14 @@ export function ShopifyIntegrationDashboard() {
         
         <TabsContent value="inventory">
           <MultiLocationInventory />
+        </TabsContent>
+        
+        <TabsContent value="multipass">
+          <MultipassManager />
+        </TabsContent>
+        
+        <TabsContent value="giftcards">
+          <GiftCardManager />
         </TabsContent>
         
         <TabsContent value="bulk">

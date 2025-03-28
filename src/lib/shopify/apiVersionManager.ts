@@ -2,180 +2,212 @@
 /**
  * Shopify API Version Manager
  * 
- * This module helps keep the app up-to-date with the latest Shopify API versions.
- * Shopify releases new API versions quarterly, and it's important to stay current.
+ * This utility helps manage Shopify API version transitions and updates.
+ * Shopify releases new API versions quarterly and deprecates older versions after 12 months.
  */
 
-import { toast } from 'sonner';
-import { gadgetAnalytics } from '../gadget/analytics';
+import { toast } from "sonner";
 
-// Types for API version management
-interface ShopifyApiVersion {
+interface ApiVersion {
   version: string;
-  status: 'stable' | 'release-candidate' | 'unstable';
-  releaseDate: Date;
-  supportEndDate: Date;
+  releaseDate: string;
+  deprecationDate: string;
+  status: 'stable' | 'release_candidate' | 'deprecated';
 }
 
-// Current known Shopify API versions (would be kept up-to-date in production)
-const SHOPIFY_API_VERSIONS: ShopifyApiVersion[] = [
+// Current and upcoming API versions
+// Shopify updates these quarterly
+const SHOPIFY_API_VERSIONS: ApiVersion[] = [
   {
-    version: '2022-10',
-    status: 'stable',
-    releaseDate: new Date('2022-10-01'),
-    supportEndDate: new Date('2023-10-01')
-  },
-  {
-    version: '2023-01',
-    status: 'stable',
-    releaseDate: new Date('2023-01-01'),
-    supportEndDate: new Date('2024-01-01')
-  },
-  {
-    version: '2023-04',
-    status: 'stable',
-    releaseDate: new Date('2023-04-01'),
-    supportEndDate: new Date('2024-04-01')
-  },
-  {
-    version: '2023-07',
-    status: 'stable',
-    releaseDate: new Date('2023-07-01'),
-    supportEndDate: new Date('2024-07-01')
-  },
-  {
-    version: '2023-10',
-    status: 'stable',
-    releaseDate: new Date('2023-10-01'),
-    supportEndDate: new Date('2024-10-01')
+    version: '2024-04',
+    releaseDate: '2024-04-01',
+    deprecationDate: '2025-04-01',
+    status: 'stable'
   },
   {
     version: '2024-01',
-    status: 'stable',
-    releaseDate: new Date('2024-01-01'),
-    supportEndDate: new Date('2025-01-01')
+    releaseDate: '2024-01-01',
+    deprecationDate: '2025-01-01',
+    status: 'stable'
   },
   {
-    version: '2024-04',
-    status: 'stable',
-    releaseDate: new Date('2024-04-01'),
-    supportEndDate: new Date('2025-04-01')
+    version: '2023-10',
+    releaseDate: '2023-10-01',
+    deprecationDate: '2024-10-01',
+    status: 'stable'
   },
   {
-    version: '2024-07',
-    status: 'release-candidate',
-    releaseDate: new Date('2024-07-01'),
-    supportEndDate: new Date('2025-07-01')
+    version: '2023-07',
+    releaseDate: '2023-07-01',
+    deprecationDate: '2024-07-01',
+    status: 'stable'
+  },
+  {
+    version: '2023-04',
+    releaseDate: '2023-04-01',
+    deprecationDate: '2024-04-01',
+    status: 'deprecated'
   }
 ];
 
+// Default to latest stable version
+const DEFAULT_API_VERSION = '2024-04';
+
 class ShopifyApiVersionManager {
-  private currentVersion: string = '2024-04';
-  private isInitialized: boolean = false;
-  
-  /**
-   * Initialize the API version manager
-   */
-  public init(): void {
-    // In a real app, this would check local storage or server config
-    // to determine the currently used API version
-    this.isInitialized = true;
-    
-    // Check if the current version is going to be deprecated soon
-    this.checkVersionStatus();
+  private currentVersion: string;
+  private localStorage: Storage;
+
+  constructor() {
+    this.localStorage = typeof window !== 'undefined' ? window.localStorage : null as any;
+    this.currentVersion = this.getSavedVersion() || DEFAULT_API_VERSION;
   }
-  
+
+  private getSavedVersion(): string | null {
+    if (!this.localStorage) return null;
+    return this.localStorage.getItem('shopify_api_version');
+  }
+
+  private saveVersion(version: string): void {
+    if (!this.localStorage) return;
+    this.localStorage.setItem('shopify_api_version', version);
+    this.currentVersion = version;
+  }
+
   /**
-   * Get the current API version in use
+   * Get current API version
    */
   public getCurrent(): string {
     return this.currentVersion;
   }
-  
+
   /**
    * Get all available API versions
    */
-  public getAvailableVersions(): ShopifyApiVersion[] {
-    return SHOPIFY_API_VERSIONS;
+  public getAllVersions(): ApiVersion[] {
+    return [...SHOPIFY_API_VERSIONS];
   }
-  
+
   /**
-   * Get the latest stable API version
+   * Get latest stable API version
    */
-  public getLatestStable(): ShopifyApiVersion {
-    const stableVersions = SHOPIFY_API_VERSIONS
-      .filter(v => v.status === 'stable')
-      .sort((a, b) => b.releaseDate.getTime() - a.releaseDate.getTime());
-    
-    return stableVersions[0] || SHOPIFY_API_VERSIONS[SHOPIFY_API_VERSIONS.length - 1];
+  public getLatestStable(): ApiVersion {
+    return SHOPIFY_API_VERSIONS.find(v => v.status === 'stable') || SHOPIFY_API_VERSIONS[0];
   }
-  
+
   /**
-   * Update to the latest stable API version
+   * Update to specific API version
    */
-  public updateToLatest(): void {
-    const latest = this.getLatestStable();
-    this.currentVersion = latest.version;
-    
-    // In a real app, this would save the version to storage
-    localStorage.setItem('shopifyApiVersion', latest.version);
-    
-    // Track update
-    gadgetAnalytics.trackBusinessMetric('shopify_api_version_updated', 1, {
-      oldVersion: this.currentVersion,
-      newVersion: latest.version
-    });
-    
-    this.isInitialized = true;
-  }
-  
-  /**
-   * Set a specific API version
-   */
-  public setVersion(version: string): boolean {
+  public updateToVersion(version: string): boolean {
     const versionExists = SHOPIFY_API_VERSIONS.some(v => v.version === version);
-    
     if (!versionExists) {
-      console.error(`API version ${version} not found`);
+      console.error(`API version ${version} does not exist`);
       return false;
     }
-    
-    this.currentVersion = version;
-    
-    // In a real app, this would save the version to storage
-    localStorage.setItem('shopifyApiVersion', version);
-    
-    // Track change
-    gadgetAnalytics.trackBusinessMetric('shopify_api_version_changed', 1, {
-      version
-    });
-    
+
+    this.saveVersion(version);
     return true;
   }
-  
+
   /**
-   * Check if the current version is going to be deprecated soon
-   * and notify the user if needed
+   * Update to latest stable API version
    */
-  private checkVersionStatus(): void {
+  public updateToLatest(): boolean {
+    const latestVersion = this.getLatestStable().version;
+    return this.updateToVersion(latestVersion);
+  }
+
+  /**
+   * Check if current version is deprecated
+   */
+  public isCurrentVersionDeprecated(): boolean {
     const currentVersionInfo = SHOPIFY_API_VERSIONS.find(v => v.version === this.currentVersion);
+    return currentVersionInfo?.status === 'deprecated';
+  }
+
+  /**
+   * Check if current version needs updating
+   */
+  public needsUpdate(): boolean {
+    return this.currentVersion !== this.getLatestStable().version;
+  }
+
+  /**
+   * Get months until current version is deprecated
+   */
+  public monthsUntilDeprecation(): number {
+    const currentVersionInfo = SHOPIFY_API_VERSIONS.find(v => v.version === this.currentVersion);
+    if (!currentVersionInfo) return 0;
+
+    const deprecationDate = new Date(currentVersionInfo.deprecationDate);
+    const today = new Date();
+    const monthsDiff = (deprecationDate.getFullYear() - today.getFullYear()) * 12 + 
+                       (deprecationDate.getMonth() - today.getMonth());
     
-    if (!currentVersionInfo) {
-      return;
-    }
-    
-    const now = new Date();
-    const threeMonthsFromNow = new Date();
-    threeMonthsFromNow.setMonth(now.getMonth() + 3);
-    
-    // If the version will be deprecated within 3 months
-    if (currentVersionInfo.supportEndDate <= threeMonthsFromNow) {
-      toast.warning('Shopify API Version Update Needed', {
-        description: `The Shopify API version ${this.currentVersion} will be deprecated soon. Please update to the latest version.`
-      });
-    }
+    return Math.max(0, monthsDiff);
   }
 }
 
-// Export a singleton instance
+// Export singleton instance
 export const shopifyApiVersionManager = new ShopifyApiVersionManager();
+
+/**
+ * Start monitoring for deprecated API versions
+ * @param checkIntervalDays How often to check (in days)
+ * @returns Function to stop monitoring
+ */
+export const startApiVersionMonitoring = (checkIntervalDays: number = 7): (() => void) => {
+  // Check immediately
+  checkApiVersion();
+  
+  // Set up interval
+  const intervalId = setInterval(checkApiVersion, checkIntervalDays * 24 * 60 * 60 * 1000);
+  
+  return () => clearInterval(intervalId);
+};
+
+/**
+ * Check if API version needs updating
+ */
+export const checkApiVersion = (): boolean => {
+  const manager = shopifyApiVersionManager;
+  
+  if (manager.isCurrentVersionDeprecated()) {
+    toast.warning("Shopify API version deprecated", {
+      description: "The current Shopify API version is deprecated. Please update to the latest version.",
+      action: {
+        label: "Update",
+        onClick: () => {
+          if (manager.updateToLatest()) {
+            toast.success("API version updated", {
+              description: `Updated to Shopify API version ${manager.getCurrent()}`
+            });
+            return true;
+          }
+          return false;
+        }
+      }
+    });
+    return true;
+  }
+  
+  if (manager.needsUpdate() && manager.monthsUntilDeprecation() <= 3) {
+    toast.info("Shopify API version update available", {
+      description: "A new Shopify API version is available. Consider updating soon.",
+      action: {
+        label: "Update",
+        onClick: () => {
+          if (manager.updateToLatest()) {
+            toast.success("API version updated", {
+              description: `Updated to Shopify API version ${manager.getCurrent()}`
+            });
+            return true;
+          }
+          return false;
+        }
+      }
+    });
+    return true;
+  }
+  
+  return false;
+};

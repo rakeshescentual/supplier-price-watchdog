@@ -1,92 +1,76 @@
 
-import { WebhookDefinition } from './types';
-
 /**
- * Returns a list of essential webhooks based on the Shopify plan
+ * Utilities for handling Shopify webhooks
+ * Implements best practices for the upcoming webhook API changes
  */
-export const getEssentialWebhooks = (plan?: string): WebhookDefinition[] => {
-  const basicWebhooks: WebhookDefinition[] = [
-    {
-      topic: 'app/uninstalled',
-      description: 'Triggered when the app is uninstalled from a store',
-      recommended: true
-    },
-    {
-      topic: 'products/update',
-      description: 'Triggered when a product is updated',
-      recommended: true
-    },
-    {
-      topic: 'inventory_levels/update',
-      description: 'Triggered when inventory levels change',
-      recommended: true
-    },
-    {
-      topic: 'shop/update',
-      description: 'Triggered when shop details are updated',
-      recommended: true
-    }
-  ];
+
+import { toast } from 'sonner';
+
+// Webhook topic types based on Shopify's latest specs
+export const WEBHOOK_TOPICS = [
+  // Core topics
+  'products/create',
+  'products/update',
+  'products/delete',
+  'orders/create',
+  'orders/cancelled',
+  'orders/fulfilled',
+  'customers/create',
+  'customers/update',
+  'inventory_levels/update',
+  'inventory_items/create',
+  'inventory_items/update',
+  'fulfillments/create',
   
-  // Additional webhooks for Shopify Plus plans
-  const plusWebhooks: WebhookDefinition[] = [
-    {
-      topic: 'locations/create',
-      description: 'Triggered when a new location is created',
-      recommended: true
-    },
-    {
-      topic: 'locations/update',
-      description: 'Triggered when a location is updated',
-      recommended: true
-    },
-    {
-      topic: 'locations/delete',
-      description: 'Triggered when a location is deleted',
-      recommended: true
-    },
-    {
-      topic: 'fulfillment_orders/fulfillment_request_rejected',
-      description: 'Triggered when a fulfillment request is rejected',
-      recommended: true
-    },
-    {
-      topic: 'fulfillment_orders/scheduled_fulfillment_order_ready',
-      description: 'Triggered when a scheduled fulfillment order is ready',
-      recommended: true
-    }
-  ];
+  // App topics
+  'app/uninstalled',
   
-  // Return appropriate webhooks based on the shop plan
-  return plan === 'plus' 
-    ? [...basicWebhooks, ...plusWebhooks]
-    : basicWebhooks;
-};
+  // Plus-only topics
+  'themes/publish',
+  'collections/update',
+  'price_rules/create',
+  'price_rules/update',
+  'bulk_operations/finish',
+  'customer_payment_methods/create',
+  'customer_payment_methods/update',
+  'customer_payment_methods/revoke',
+  'company_locations/create',
+  'company_locations/update',
+  'company_locations/delete',
+  'locales/create',
+  'shop/update',
+] as const;
+
+export type WebhookTopic = typeof WEBHOOK_TOPICS[number];
+
+export interface WebhookValidationResult {
+  valid: boolean;
+  errors: string[];
+}
 
 /**
- * Validates webhook configuration
+ * Validate a webhook configuration before registering
  */
 export const validateWebhook = (
   address: string, 
   topic: string
-): { valid: boolean; errors: string[] } => {
+): WebhookValidationResult => {
   const errors: string[] = [];
   
-  // Validate address format
-  if (!address.startsWith('https://')) {
-    errors.push('Webhook address must use HTTPS protocol for security');
+  // Check webhook address
+  if (!address) {
+    errors.push('Webhook address is required');
+  } else if (!address.startsWith('https://')) {
+    errors.push('Webhook address must use HTTPS');
+  } else if (!/^https:\/\/[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/.test(address)) {
+    errors.push('Invalid webhook URL format');
   }
   
-  // Validate address for proper URL format
-  try {
-    new URL(address);
-  } catch (e) {
-    errors.push('Invalid URL format');
-  }
-  
-  // Validate topic format
-  if (!topic.includes('/')) {
-    errors.push('Topic must be in format "resource/event"');
+  // Check topic
+  if (!topic) {
+    errors.push('Webhook topic is required');
+  } else if (!WEBHOOK_TOPICS.includes(topic as WebhookTopic)) {
+    errors.push(`Invalid webhook topic: ${topic}`);
   }
   
   return {
@@ -96,63 +80,169 @@ export const validateWebhook = (
 };
 
 /**
- * Groups webhooks by topic category
+ * Process webhook payloads according to Shopify's latest best practices
  */
-export const groupWebhooksByCategory = (webhooks: { topic: string }[]): Record<string, number> => {
-  const categories: Record<string, number> = {};
-  
-  webhooks.forEach(webhook => {
-    const category = webhook.topic.split('/')[0];
-    categories[category] = (categories[category] || 0) + 1;
-  });
-  
-  return categories;
+export const processWebhookPayload = async (
+  topic: WebhookTopic,
+  payload: any,
+  hmac: string,
+  shopDomain: string
+): Promise<{ success: boolean; message: string; data?: any }> => {
+  try {
+    // In production:
+    // 1. Verify HMAC signature
+    // 2. Validate payload format
+    // 3. Process based on topic
+    
+    console.log(`Processing ${topic} webhook from ${shopDomain}`);
+    
+    // Mock processing based on topic
+    switch (topic) {
+      case 'products/update':
+        return {
+          success: true,
+          message: 'Product update processed',
+          data: { id: payload.id }
+        };
+        
+      case 'inventory_levels/update':
+        return {
+          success: true,
+          message: 'Inventory update processed',
+          data: { 
+            inventoryItemId: payload.inventory_item_id,
+            availableAdjustment: payload.available_adjustment
+          }
+        };
+        
+      case 'app/uninstalled':
+        return {
+          success: true,
+          message: 'App uninstalled event processed',
+          data: { shopDomain }
+        };
+        
+      default:
+        return {
+          success: true,
+          message: `${topic} webhook processed`,
+          data: { received: true }
+        };
+    }
+  } catch (error) {
+    console.error(`Error processing ${topic} webhook:`, error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 };
 
 /**
- * Get recommended webhook topics for Escentual's use case
+ * Register webhook with the new API pattern
  */
-export const getRecommendedWebhooks = (): WebhookDefinition[] => {
-  return [
-    {
-      topic: 'products/update',
-      description: 'Keep Escentual product data in sync with Shopify',
-      recommended: true
-    },
-    {
-      topic: 'products/delete',
-      description: 'Remove products when deleted from Shopify',
-      recommended: true
-    },
-    {
-      topic: 'inventory_levels/update',
-      description: 'Update inventory levels across all locations',
-      recommended: true
-    },
-    {
-      topic: 'orders/create',
-      description: 'Process new orders in real-time',
-      recommended: true
-    },
-    {
-      topic: 'customers/create',
-      description: 'Sync new customer data to Escentual\'s systems',
-      recommended: true
-    },
-    {
-      topic: 'customers/update',
-      description: 'Keep customer profiles in sync',
-      recommended: false
-    },
-    {
-      topic: 'fulfillments/create',
-      description: 'Track when orders are fulfilled',
-      recommended: false
-    },
-    {
-      topic: 'price_rules/create',
-      description: 'Track new promotions and discounts',
-      recommended: false
+export const registerShopifyWebhook = async (
+  shopDomain: string,
+  accessToken: string,
+  topic: WebhookTopic,
+  address: string,
+  format: 'json' | 'xml' = 'json'
+): Promise<{ success: boolean; webhookId?: string; message?: string }> => {
+  // Validate inputs
+  const validation = validateWebhook(address, topic);
+  if (!validation.valid) {
+    return { 
+      success: false, 
+      message: validation.errors.join(', ')
+    };
+  }
+  
+  try {
+    // In production, this would use the Shopify API
+    // The new Shopify API pattern uses GraphQL for webhooks:
+    /*
+    const CREATE_WEBHOOK_MUTATION = `
+      mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+        webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+          userErrors {
+            field
+            message
+          }
+          webhookSubscription {
+            id
+          }
+        }
+      }
+    `;
+    
+    const variables = {
+      topic: topic.toUpperCase().replace(/\//g, '_'),
+      webhookSubscription: {
+        callbackUrl: address,
+        format
+      }
+    };
+    
+    const response = await fetch(`https://${shopDomain}/admin/api/2024-04/graphql.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        query: CREATE_WEBHOOK_MUTATION,
+        variables
+      })
+    });
+    
+    const result = await response.json();
+    */
+    
+    // Mock successful response
+    console.log(`Registering ${topic} webhook to ${address}`);
+    
+    return {
+      success: true,
+      webhookId: `webhook_${Date.now()}`,
+      message: `Successfully registered ${topic} webhook`
+    };
+  } catch (error) {
+    console.error('Error registering webhook:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+/**
+ * Test a webhook by sending a test notification
+ */
+export const testWebhook = async (
+  shopDomain: string,
+  accessToken: string,
+  webhookId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    // In production, this would use the Shopify API to test the webhook
+    // For now, simulate a test
+    
+    console.log(`Testing webhook ${webhookId} for ${shopDomain}`);
+    
+    // Simulate 90% success rate
+    if (Math.random() < 0.9) {
+      return {
+        success: true,
+        message: 'Test notification sent successfully'
+      };
+    } else {
+      throw new Error('Webhook endpoint returned status 500');
     }
-  ];
+  } catch (error) {
+    console.error('Error testing webhook:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 };

@@ -6,11 +6,11 @@ import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Email {
-  id: number;
-  from: string;
-  to: string;
+  id: string;
+  sender: string;
+  date: string;
   content: string;
-  timestamp: Date;
+  read: boolean;
 }
 
 interface EmailThreadProps {
@@ -26,12 +26,10 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ emails }) => {
             <div key={email.id} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-medium">{email.from}</span>
-                  <span className="text-muted-foreground mx-2">→</span>
-                  <span>{email.to}</span>
+                  <span className="font-medium">{email.sender}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {email.timestamp.toLocaleString()}
+                  {email.date}
                 </span>
               </div>
               <div className="bg-muted/30 p-4 rounded-md whitespace-pre-line">

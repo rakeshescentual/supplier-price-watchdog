@@ -4,6 +4,7 @@ import { useShopify } from '@/contexts/shopify';
 import { Webhook } from './types';
 import { toast } from 'sonner';
 import { validateWebhook } from './webhookUtils';
+import { WebhookTopic } from '@/lib/shopify/webhooks';
 
 // Mock data for testing
 const MOCK_WEBHOOKS: Webhook[] = [
@@ -39,7 +40,7 @@ export function useShopifyWebhooks() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [newWebhookTopic, setNewWebhookTopic] = useState('');
+  const [newWebhookTopic, setNewWebhookTopic] = useState<string>('');
   const [newWebhookAddress, setNewWebhookAddress] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
@@ -126,7 +127,7 @@ export function useShopifyWebhooks() {
     }
 
     // Validate input
-    const validation = validateWebhook(newWebhookAddress, newWebhookTopic);
+    const validation = validateWebhook(newWebhookAddress, newWebhookTopic as WebhookTopic);
     if (!validation.valid) {
       toast.error('Invalid webhook configuration', {
         description: validation.errors.join(', ')

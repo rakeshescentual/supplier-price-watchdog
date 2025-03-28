@@ -2,21 +2,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Plus } from 'lucide-react';
-import { QueryItem } from './QueryItem';
+import { HelpCircle } from 'lucide-react';
 
 interface QueryFormProps {
-  onSave: (query: Omit<QueryItem, 'id' | 'createdAt'>) => void;
+  onSave: (query: { text: string; status: 'pending'; type: string }) => void;
 }
 
 export const QueryForm: React.FC<QueryFormProps> = ({ onSave }) => {
   const [queryText, setQueryText] = useState('');
-  const [queryType, setQueryType] = useState<'general' | 'tpr' | 'pack-size' | 'discontinued'>('general');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [queryType, setQueryType] = useState('price');
+  
+  const handleSubmit = () => {
     if (!queryText.trim()) return;
     
     onSave({
@@ -26,44 +22,61 @@ export const QueryForm: React.FC<QueryFormProps> = ({ onSave }) => {
     });
     
     setQueryText('');
-    setQueryType('general');
+    setQueryType('price');
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="queryText">Query Description</Label>
-        <Textarea
-          id="queryText"
-          placeholder="Describe the issue or query..."
-          value={queryText}
-          onChange={(e) => setQueryText(e.target.value)}
-          className="min-h-[100px]"
-        />
-      </div>
+    <div className="space-y-3">
+      <Textarea
+        placeholder="Enter your product query..."
+        value={queryText}
+        onChange={(e) => setQueryText(e.target.value)}
+        className="min-h-[100px]"
+      />
       
-      <div className="space-y-2">
-        <Label htmlFor="queryType">Query Type</Label>
-        <Select 
-          value={queryType} 
-          onValueChange={(value) => setQueryType(value as any)}
+      <div className="flex flex-wrap gap-2">
+        <Button 
+          type="button" 
+          variant={queryType === 'price' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setQueryType('price')}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select query type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="general">General</SelectItem>
-            <SelectItem value="tpr">TPR (Temporary Price Reduction)</SelectItem>
-            <SelectItem value="pack-size">Pack Size Issue</SelectItem>
-            <SelectItem value="discontinued">Discontinued Item</SelectItem>
-          </SelectContent>
-        </Select>
+          Price
+        </Button>
+        <Button 
+          type="button" 
+          variant={queryType === 'pack-size' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setQueryType('pack-size')}
+        >
+          Pack Size
+        </Button>
+        <Button 
+          type="button" 
+          variant={queryType === 'barcode' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setQueryType('barcode')}
+        >
+          Barcode
+        </Button>
+        <Button 
+          type="button" 
+          variant={queryType === 'tpr' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setQueryType('tpr')}
+        >
+          TPR
+        </Button>
       </div>
       
-      <Button type="submit" className="w-full">
-        <Plus className="h-4 w-4 mr-2" />
+      <Button 
+        onClick={handleSubmit}
+        disabled={!queryText.trim()}
+        className="w-full"
+      >
+        <HelpCircle className="h-4 w-4 mr-2" />
         Add Query
       </Button>
-    </form>
+    </div>
   );
 };

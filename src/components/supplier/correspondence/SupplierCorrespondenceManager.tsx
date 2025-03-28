@@ -1,22 +1,27 @@
+
 import React, { useState } from 'react';
 import { Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Correspondence } from '../CorrespondenceItem';
-import { QueryItem } from '../QueryItem';
+import { QueryItem } from '../QueriesPanel';
 import { CorrespondencePanel } from './CorrespondencePanel';
 import { DetailsPanel } from './DetailsPanel';
 
 // Mock data for supplier correspondence
 const mockCorrespondence: Correspondence[] = [
   {
-    id: 1,
+    id: '1',
     supplier: 'DCS Group',
     subject: 'DCS Group | Initial Check Price List | 26th March 2025',
-    emails: [
+    date: '2025-03-04',
+    content: 'Initial price check for DCS Group products',
+    read: true,
+    status: 'pending',
+    threads: [
       {
-        id: 1,
-        from: 'jade@escentual.com',
-        to: 'alicia@escentual.com',
+        id: '1-1',
+        sender: 'jade@escentual.com',
+        date: '2025-03-04',
         content: `Hi Alicia,
 
 I have completed the DCS Group price list which is due on the 25th March. Please, can you check if everything is correct and import for this date?
@@ -35,12 +40,12 @@ If none of the above makes sense, please let me know.
 
 Thanks
 Jade`,
-        timestamp: new Date('2025-03-04T14:55:00')
+        read: true
       },
       {
-        id: 2,
-        from: 'tom@escentual.com',
-        to: 'jade@escentual.com',
+        id: '1-2',
+        sender: 'tom@escentual.com',
+        date: '2025-03-04',
         content: `Hi Jade,
 
 The body products at the top of the list all come in packs of 2-6, explaining the massive increase. Could you please divide the cost by the pack size to get an accurate cost per unit?
@@ -54,12 +59,12 @@ Calvin Klein Ck One Skin Moisturiser 250ml	10000075	10.15	32.00	21.85	215.27%
 
 Kind Regards, 
 Tom`,
-        timestamp: new Date('2025-03-04T15:10:00')
+        read: true
       },
       {
-        id: 3,
-        from: 'jade@escentual.com',
-        to: 'tom@escentual.com',
+        id: '1-3',
+        sender: 'jade@escentual.com',
+        date: '2025-03-04',
         content: `Hi Tom,
 
 Thanks for the heads up on this and it makes sense why the % was so high. Apologies! Divided the old and new cost and updated the sheet.
@@ -74,43 +79,43 @@ CT001832	8005610340784	Hugo Man Deodorant spray | 150ml	6	£12.60	£24.00	£13.1
 
 Thanks,
 Jade`,
-        timestamp: new Date('2025-03-04T15:50:00')
+        read: true
       }
     ],
-    timestamp: new Date('2025-03-04T14:55:00'),
-    status: 'pending',
     queryItems: [
       {
         id: 1,
         text: 'Need to figure out how to add start of sale pricing alerts for TPR lines (rows 82-104)',
         status: 'pending',
         type: 'tpr',
-        createdAt: new Date('2025-03-04T15:00:00')
+        createdAt: new Date('2025-03-04')
       },
       {
         id: 2,
         text: 'Units per pack discrepancy - should divide cost by pack size',
         status: 'resolved',
         type: 'pack-size',
-        createdAt: new Date('2025-03-04T15:15:00')
+        createdAt: new Date('2025-03-04')
       }
     ]
   },
   {
-    id: 2,
+    id: '2',
     supplier: 'L\'Oreal Luxe',
     subject: 'L\'Oreal Luxe | April Price Updates',
-    emails: [
+    date: '2025-03-01',
+    content: 'Price update notification for April...',
+    read: true,
+    status: 'pending',
+    threads: [
       {
-        id: 1,
-        from: 'supplier@loreal.com',
-        to: 'purchasing@escentual.com',
+        id: '2-1',
+        sender: 'supplier@loreal.com',
+        date: '2025-03-01',
         content: 'Price update notification for April...',
-        timestamp: new Date('2025-03-01T10:30:00')
+        read: true
       }
     ],
-    timestamp: new Date('2025-03-01T10:30:00'),
-    status: 'processed',
     queryItems: []
   }
 ];
@@ -178,20 +183,22 @@ export const SupplierCorrespondenceManager = () => {
     emailContent: string;
   }) => {
     const newItem: Correspondence = {
-      id: Date.now(),
+      id: `${Date.now()}`,
       supplier: data.supplier,
       subject: data.subject,
-      emails: [
+      content: data.emailContent,
+      date: new Date().toISOString().split('T')[0],
+      read: true,
+      status: 'pending',
+      threads: [
         {
-          id: 1,
-          from: 'system@escentual.com',
-          to: data.supplier,
+          id: '1',
+          sender: 'system@escentual.com',
           content: data.emailContent,
-          timestamp: new Date()
+          date: new Date().toISOString().split('T')[0],
+          read: true
         }
       ],
-      timestamp: new Date(),
-      status: 'pending',
       queryItems: []
     };
     

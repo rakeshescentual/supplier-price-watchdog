@@ -281,7 +281,7 @@ export function MultipassAuthentication() {
                 <div className="border rounded-md p-3">
                   <h3 className="font-medium mb-2">4. Redirect With Token</h3>
                   <p className="text-sm text-muted-foreground">
-                    Redirect the customer to: https://your-store.myshopify.com/account/login/multipass/{token}
+                    Redirect the customer to: https://your-store.myshopify.com/account/login/multipass/{multipassToken}
                   </p>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getRecommendedWebhooks } from './webhookUtils';
 import { Plus, Link } from 'lucide-react';
+import { WebhookTopic } from '@/lib/shopify/webhooks';
 
 interface WebhookFormProps {
   newWebhookTopic: string;

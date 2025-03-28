@@ -2,7 +2,16 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { QueryForm } from './QueryForm';
-import { QueryItemComponent, QueryItem } from './QueryItem';
+import { QueryItemComponent } from './QueryItem';
+
+export interface QueryItem {
+  id: number;
+  text: string;
+  status: 'pending' | 'resolved';
+  type: string;
+  createdAt: Date;
+  response?: string;
+}
 
 interface QueriesPanelProps {
   queries: QueryItem[];

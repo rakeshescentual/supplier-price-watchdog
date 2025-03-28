@@ -123,7 +123,7 @@ export function SupplierCorrespondence() {
       date: '2024-02-25',
       content: "As part of our quarterly review, we've made some adjustments to our price list. Most items remain unchanged, but there are increases on imported ingredients.",
       read: false,
-      status: 'processed',
+      status: 'pending',
       tags: ['quarterly', 'review'],
       threads: [
         {
@@ -160,22 +160,22 @@ export function SupplierCorrespondence() {
     setShowAddForm(true);
   };
 
-  const handleCreateCorrespondence = (data: Partial<Correspondence>) => {
+  const handleCreateCorrespondence = (supplier: string, subject: string, emailContent: string) => {
     const newItem: Correspondence = {
       id: `item-${Date.now()}`,
-      supplier: data.supplier || '',
-      subject: data.subject || '',
+      supplier: supplier,
+      subject: subject,
       date: new Date().toISOString().split('T')[0],
-      content: data.content,
+      content: emailContent,
       read: true,
       status: 'pending',
-      threads: data.content ? [{
+      threads: [{
         id: `thread-${Date.now()}`,
         sender: 'Escentual.com',
         date: new Date().toISOString().split('T')[0],
-        content: data.content,
+        content: emailContent,
         read: true
-      }] : []
+      }]
     };
     
     setCorrespondence(prev => [newItem, ...prev]);
@@ -195,7 +195,7 @@ export function SupplierCorrespondence() {
         </CardHeader>
         <CardContent className="p-0">
           {showAddForm ? (
-            <AddCorrespondenceForm onSubmit={handleCreateCorrespondence} onCancel={() => setShowAddForm(false)} />
+            <AddCorrespondenceForm onAddCorrespondence={handleCreateCorrespondence} />
           ) : (
             <CorrespondenceList
               items={correspondence}
@@ -230,10 +230,20 @@ export function SupplierCorrespondence() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="emails">
-                  <EmailThread threads={selectedItem.threads || []} />
+                  <EmailThread emails={selectedItem.threads || []} />
                 </TabsContent>
                 <TabsContent value="queries">
-                  <QueriesPanel correspondence={selectedItem} />
+                  <QueriesPanel 
+                    queries={selectedItem.queryItems || []} 
+                    onSaveQuery={(query) => {
+                      // Here we'd add the query to the correspondence
+                      console.log('Save query:', query);
+                    }}
+                    onResolveQuery={(queryId) => {
+                      // Here we'd mark the query as resolved
+                      console.log('Resolve query:', queryId);
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>

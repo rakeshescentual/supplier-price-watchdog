@@ -92,7 +92,7 @@ export function SupplierCorrespondence() {
           id: '3-2',
           sender: 'Escentual.com',
           date: '2024-03-07',
-          content: 'We're interested in discussing this opportunity. Could you provide more details about the product range, pricing structure, and your expectations for the exclusive agreement?',
+          content: "We're interested in discussing this opportunity. Could you provide more details about the product range, pricing structure, and your expectations for the exclusive agreement?",
           read: true
         }
       ]
@@ -102,7 +102,7 @@ export function SupplierCorrespondence() {
       supplier: 'Skincare Innovations',
       subject: 'New Product Line Pricing',
       date: '2024-02-28',
-      content: 'We're launching our new anti-aging product line next month and wanted to share the wholesale pricing details with you before the general announcement.',
+      content: "We're launching our new anti-aging product line next month and wanted to share the wholesale pricing details with you before the general announcement.",
       read: true,
       status: 'closed',
       tags: ['new products', 'pricing'],
@@ -111,7 +111,7 @@ export function SupplierCorrespondence() {
           id: '4-1',
           sender: 'Skincare Innovations',
           date: '2024-02-28',
-          content: 'We're launching our new anti-aging product line next month and wanted to share the wholesale pricing details with you before the general announcement. As a valued partner, you'll have access to pre-launch ordering starting next week.',
+          content: "We're launching our new anti-aging product line next month and wanted to share the wholesale pricing details with you before the general announcement. As a valued partner, you'll have access to pre-launch ordering starting next week.",
           read: true
         }
       ]
@@ -121,7 +121,7 @@ export function SupplierCorrespondence() {
       supplier: 'Lux Skincare',
       subject: 'Quarterly Price Revisions',
       date: '2024-02-25',
-      content: 'As part of our quarterly review, we've made some adjustments to our price list. Most items remain unchanged, but there are increases on imported ingredients.',
+      content: "As part of our quarterly review, we've made some adjustments to our price list. Most items remain unchanged, but there are increases on imported ingredients.",
       read: false,
       status: 'processed',
       tags: ['quarterly', 'review'],
@@ -130,7 +130,7 @@ export function SupplierCorrespondence() {
           id: '5-1',
           sender: 'Lux Skincare',
           date: '2024-02-25',
-          content: 'As part of our quarterly review, we've made some adjustments to our price list. Most items remain unchanged, but there are increases on imported ingredients due to higher shipping costs and import duties.',
+          content: "As part of our quarterly review, we've made some adjustments to our price list. Most items remain unchanged, but there are increases on imported ingredients due to higher shipping costs and import duties.",
           read: false
         }
       ]

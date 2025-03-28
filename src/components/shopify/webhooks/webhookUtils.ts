@@ -5,6 +5,7 @@
  */
 
 import { toast } from 'sonner';
+import { WebhookTopic } from '@/lib/shopify/webhooks';
 
 // Webhook topic types based on Shopify's latest specs
 export const WEBHOOK_TOPICS = [
@@ -41,7 +42,88 @@ export const WEBHOOK_TOPICS = [
   'shop/update',
 ] as const;
 
-export type WebhookTopic = typeof WEBHOOK_TOPICS[number];
+export type WebhookDefinition = {
+  topic: string;
+  description: string;
+  recommended: boolean;
+  plusOnly?: boolean;
+};
+
+/**
+ * Get recommended webhooks for the app
+ */
+export const getRecommendedWebhooks = (): WebhookDefinition[] => {
+  return [
+    {
+      topic: 'products/update',
+      description: 'Track product updates',
+      recommended: true
+    },
+    {
+      topic: 'products/delete',
+      description: 'Handle product deletions',
+      recommended: true
+    },
+    {
+      topic: 'orders/create',
+      description: 'Track new orders',
+      recommended: false
+    },
+    {
+      topic: 'inventory_levels/update',
+      description: 'Track inventory changes',
+      recommended: true
+    },
+    {
+      topic: 'app/uninstalled',
+      description: 'Handle app uninstallation',
+      recommended: true
+    }
+  ];
+};
+
+/**
+ * Get essential webhooks based on shop plan
+ */
+export const getEssentialWebhooks = (shopPlan?: string): WebhookDefinition[] => {
+  const essentialWebhooks: WebhookDefinition[] = [
+    {
+      topic: 'products/update',
+      description: 'Product updates',
+      recommended: true
+    },
+    {
+      topic: 'inventory_levels/update',
+      description: 'Inventory changes',
+      recommended: true
+    },
+    {
+      topic: 'app/uninstalled',
+      description: 'App uninstallation',
+      recommended: true
+    }
+  ];
+
+  // Add Plus-specific webhooks if on a Plus plan
+  if (shopPlan?.toLowerCase().includes('plus')) {
+    essentialWebhooks.push(
+      {
+        topic: 'bulk_operations/finish',
+        description: 'Bulk operations completion',
+        recommended: true,
+        plusOnly: true
+      },
+      {
+        topic: 'company_locations/update',
+        description: 'B2B location changes',
+        recommended: false,
+        plusOnly: true
+      }
+    );
+  }
+
+  return essentialWebhooks;
+};
 
 export interface WebhookValidationResult {
   valid: boolean;
@@ -98,14 +180,14 @@ export const processWebhookPayload = async (
     
     // Mock processing based on topic
     switch (topic) {
-      case 'products/update':
+      case "products/update":
         return {
           success: true,
           message: 'Product update processed',
           data: { id: payload.id }
         };
         
-      case 'inventory_levels/update':
+      case "inventory_levels/update":
         return {
           success: true,
           message: 'Inventory update processed',
@@ -115,7 +197,7 @@ export const processWebhookPayload = async (
           }
         };
         
-      case 'app/uninstalled':
+      case "app/uninstalled":
         return {
           success: true,
           message: 'App uninstalled event processed',

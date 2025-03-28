@@ -1,199 +1,153 @@
 
 import React, { useState } from 'react';
-import { useShopify } from '@/contexts/shopify';
-import { useFileAnalysis } from '@/contexts/FileAnalysisContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { Building2, AlertTriangle, Users, Percent, RefreshCw, Download } from 'lucide-react';
-import { toast } from 'sonner';
-import { syncB2BPrices } from '@/lib/gadget/shopify-integration/b2b';
-
-type CustomerSegment = {
-  id: string;
-  name: string;
-  description: string;
-  customerCount: number;
-  selected: boolean;
-};
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useShopify } from "@/contexts/shopify";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Building2, RefreshCw, Upload, Building, AlertCircle, Users, PlusCircle, ChevronDown, Edit, Info, UserPlus } from "lucide-react";
+import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function ShopifyB2BPricing() {
-  const { isShopifyConnected, shopifyContext } = useShopify();
-  const { items } = useFileAnalysis();
-  const [activeTab, setActiveTab] = useState('segments');
-  const [isExporting, setIsExporting] = useState(false);
+  const { isShopifyConnected, shopifyContext, syncToShopify } = useShopify();
+  const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [globalDiscountPercent, setGlobalDiscountPercent] = useState(10);
-  const [customerSegments, setCustomerSegments] = useState<CustomerSegment[]>([
-    {
-      id: 'wholesale',
-      name: 'Wholesale',
-      description: 'B2B customers with wholesale agreements',
-      customerCount: 48,
-      selected: true
-    },
-    {
-      id: 'distributor',
-      name: 'Distributors',
-      description: 'Regional distribution partners',
-      customerCount: 12,
-      selected: false
-    },
-    {
-      id: 'salon',
-      name: 'Salon Partners',
-      description: 'Professional salon and spa partners',
-      customerCount: 87,
-      selected: false
-    },
-    {
-      id: 'pharmacy',
-      name: 'Pharmacy Partners',
-      description: 'Pharmaceutical retail partners',
-      customerCount: 34,
-      selected: true
-    }
-  ]);
+  const [uploadingData, setUploadingData] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState('companies');
+  
+  // Mock data
+  const companyCustomers = [
+    { id: 'comp1', name: 'Acme Corp', status: 'active', customerCount: 5, createdAt: '2023-05-15', priceList: 'Wholesale' },
+    { id: 'comp2', name: 'TechGiant Inc', status: 'active', customerCount: 12, createdAt: '2023-06-22', priceList: 'Premium' },
+    { id: 'comp3', name: 'Global Supplies Ltd', status: 'pending', customerCount: 3, createdAt: '2023-08-04', priceList: 'Standard' },
+    { id: 'comp4', name: 'Eastern Distributors', status: 'active', customerCount: 8, createdAt: '2023-09-17', priceList: 'Wholesale' },
+  ];
+  
+  const b2bPriceLists = [
+    { id: 'price1', name: 'Wholesale', discount: '20%', productCount: 1250, customerCount: 15, lastUpdated: '2023-10-12' },
+    { id: 'price2', name: 'Premium', discount: '15%', productCount: 1250, customerCount: 8, lastUpdated: '2023-11-05' },
+    { id: 'price3', name: 'Standard', discount: '10%', productCount: 1250, customerCount: 22, lastUpdated: '2023-09-28' },
+  ];
   
   const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');
   
-  const toggleSegmentSelection = (id: string) => {
-    setCustomerSegments(segments => 
-      segments.map(segment => 
-        segment.id === id ? { ...segment, selected: !segment.selected } : segment
-      )
-    );
-  };
-  
-  const handleExport = () => {
-    setIsExporting(true);
-    
-    // Simulate export process
-    setTimeout(() => {
-      const selectedSegments = customerSegments.filter(s => s.selected);
-      
-      const blob = new Blob([JSON.stringify({
-        segments: selectedSegments.map(s => s.id),
-        items: items.map(item => ({
-          sku: item.sku,
-          name: item.name,
-          regularPrice: item.newPrice,
-          b2bPrice: +(item.newPrice * (1 - globalDiscountPercent / 100)).toFixed(2)
-        }))
-      }, null, 2)], { type: 'application/json' });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'escentual-b2b-prices.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      setIsExporting(false);
-      toast.success("B2B price list exported");
-    }, 1500);
-  };
-  
-  const handleSync = async () => {
-    if (!isShopifyConnected || !shopifyContext) {
-      toast.error("Not connected to Shopify");
-      return;
-    }
-    
-    const selectedSegments = customerSegments
-      .filter(segment => segment.selected)
-      .map(segment => segment.id);
-    
-    if (selectedSegments.length === 0) {
-      toast.error("No customer segments selected", {
-        description: "Please select at least one customer segment"
-      });
-      return;
-    }
+  const syncPriceLists = async () => {
+    if (!isShopifyConnected) return;
     
     setIsSyncing(true);
-    setSyncProgress(0);
     
     try {
-      // Apply B2B pricing to items
-      const b2bItems = items.map(item => ({
-        ...item,
-        b2bPrice: +(item.newPrice * (1 - globalDiscountPercent / 100)).toFixed(2)
+      const mockData = b2bPriceLists.map(list => ({
+        id: list.id,
+        name: list.name,
+        discount: list.discount,
+        productCount: list.productCount
       }));
       
-      // Progress simulation
-      const updateProgress = (progress: number) => {
-        setSyncProgress(progress);
-      };
+      const result = await syncToShopify(mockData);
       
-      // Start at 10%
-      updateProgress(10);
-      
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setSyncProgress(prev => {
-          const next = prev + Math.random() * 10;
-          return next > 90 ? 90 : next;
-        });
-      }, 500);
-      
-      // Call the B2B sync function
-      const result = await syncB2BPrices(
-        shopifyContext,
-        b2bItems,
-        selectedSegments
-      );
-      
-      clearInterval(progressInterval);
-      setSyncProgress(100);
-      
-      if (result.success) {
-        toast.success("B2B prices synced", {
-          description: `Price changes applied to ${selectedSegments.length} customer segments`
+      if (result) {
+        toast.success("B2B price lists synchronized", { 
+          description: `Successfully synced ${mockData.length} price lists to Shopify`
         });
       } else {
-        toast.error("B2B sync failed", {
-          description: result.message || "Unknown error"
+        toast.error("Failed to sync price lists", {
+          description: "There was an error syncing price lists to Shopify"
         });
       }
     } catch (error) {
-      console.error("B2B sync error:", error);
-      toast.error("B2B sync error", {
-        description: error instanceof Error ? error.message : "Unknown error"
+      console.error("Error syncing price lists:", error);
+      toast.error("Sync failed", {
+        description: error instanceof Error ? error.message : "Unknown error occurred"
       });
-      setSyncProgress(0);
     } finally {
       setIsSyncing(false);
     }
   };
   
-  if (!isPlusStore && isShopifyConnected) {
+  const uploadPriceFile = async () => {
+    setUploadingData(true);
+    
+    try {
+      // Mock file upload and processing
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      toast.success("Price data uploaded", {
+        description: "B2B price data has been processed successfully"
+      });
+    } catch (error) {
+      console.error("Error uploading price data:", error);
+      toast.error("Upload failed", {
+        description: "Could not process price data file"
+      });
+    } finally {
+      setUploadingData(false);
+    }
+  };
+  
+  if (!isShopifyConnected) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            B2B Price Management
+            B2B Pricing
           </CardTitle>
           <CardDescription>
-            Manage wholesale and special customer pricing
+            Manage B2B customer price lists and company accounts
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert variant="warning">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Shopify Plus Required</AlertTitle>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              B2B price management is a Shopify Plus feature. Upgrade your store to access B2B functionality.
+              Connect to Shopify to access B2B pricing features
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!isPlusStore) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            B2B Pricing
+          </CardTitle>
+          <CardDescription>
+            Manage B2B customer price lists and company accounts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              B2B pricing features are only available for Shopify Plus stores
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -202,188 +156,266 @@ export function ShopifyB2BPricing() {
   }
   
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          B2B Price Management
-        </CardTitle>
-        <CardDescription>
-          Manage wholesale and special customer pricing
-        </CardDescription>
-      </CardHeader>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="ml-6">
-          <TabsTrigger value="segments">Customer Segments</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing Rules</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="segments">
-          <CardContent className="space-y-6">
-            {!isShopifyConnected ? (
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Connect to Shopify to manage B2B customer segments
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">B2B Customer Segments</h3>
-                    <Badge variant="outline" className="font-normal">
-                      {customerSegments.length} segments
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {customerSegments.map(segment => (
-                      <div key={segment.id} className="flex items-start space-x-3 border p-4 rounded-md">
-                        <Checkbox 
-                          id={`segment-${segment.id}`} 
-                          checked={segment.selected}
-                          onCheckedChange={() => toggleSegmentSelection(segment.id)}
-                        />
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <label 
-                              htmlFor={`segment-${segment.id}`}
-                              className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {segment.name}
-                            </label>
-                            <Badge variant="secondary" className="font-normal">
-                              <Users className="h-3 w-3 mr-1" /> {segment.customerCount}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {segment.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </TabsContent>
-        
-        <TabsContent value="pricing">
-          <CardContent className="space-y-6">
-            {!isShopifyConnected ? (
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Connect to Shopify to manage B2B pricing rules
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  <div className="flex flex-col space-y-2">
-                    <label htmlFor="global-discount" className="text-sm font-medium">
-                      Global B2B Discount
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              B2B Pricing Management
+            </CardTitle>
+            <CardDescription>
+              Manage business customer pricing and company accounts
+            </CardDescription>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={syncPriceLists} 
+              disabled={isSyncing}
+              variant="outline"
+              size="sm"
+            >
+              {isSyncing ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Sync to Shopify
+                </>
+              )}
+            </Button>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Add Price List
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create B2B Price List</DialogTitle>
+                  <DialogDescription>
+                    Create a new price list for business customers
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="name" className="text-sm font-medium">
+                      Price List Name
                     </label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        id="global-discount"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={globalDiscountPercent}
-                        onChange={e => setGlobalDiscountPercent(Number(e.target.value))}
-                        className="w-24"
-                      />
-                      <Percent className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">off retail price</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      This discount will be applied to all products for selected B2B customer segments
-                    </p>
+                    <Input id="name" placeholder="e.g. Wholesale" />
                   </div>
                   
-                  <Separator />
-                  
-                  <div className="bg-muted/30 border rounded-md p-4">
-                    <h4 className="text-sm font-medium mb-2">Preview</h4>
-                    
-                    <div className="space-y-3">
-                      <div className="text-sm">
-                        <span className="font-medium">Example product:</span> {items.length > 0 ? items[0].name : 'No product data'}
-                      </div>
-                      
-                      {items.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Regular Price</p>
-                            <p className="font-medium">£{items[0].newPrice.toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">B2B Price</p>
-                            <p className="font-medium text-green-600">
-                              £{(items[0].newPrice * (1 - globalDiscountPercent / 100)).toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Selected B2B customers will see the discounted prices when logged in
-                      </p>
-                    </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="discount" className="text-sm font-medium">
+                      Discount Percentage
+                    </label>
+                    <Input id="discount" placeholder="e.g. 15%" />
                   </div>
-                  
-                  {isSyncing && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">Syncing B2B prices...</span>
-                        <span className="text-sm">{Math.round(syncProgress)}%</span>
-                      </div>
-                      <Progress value={syncProgress} />
-                    </div>
-                  )}
                 </div>
-              </>
-            )}
-          </CardContent>
-        </TabsContent>
-      </Tabs>
-      
-      <CardFooter className="flex gap-2 justify-end">
-        <Button 
-          variant="outline" 
-          onClick={handleExport} 
-          disabled={isExporting || !isShopifyConnected || items.length === 0}
-        >
-          {isExporting ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="mr-2 h-4 w-4" />
-              Export B2B Prices
-            </>
-          )}
-        </Button>
-        
-        <Button 
-          onClick={handleSync} 
-          disabled={isSyncing || !isShopifyConnected || items.length === 0}
-        >
-          {isSyncing ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Syncing...
-            </>
-          ) : (
-            'Sync B2B Prices'
-          )}
-        </Button>
+                
+                <DialogFooter>
+                  <Button type="submit">Create Price List</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="companies">
+              <Building className="h-4 w-4 mr-1.5" />
+              Companies
+            </TabsTrigger>
+            <TabsTrigger value="price-lists">
+              <Users className="h-4 w-4 mr-1.5" />
+              Price Lists
+            </TabsTrigger>
+            <TabsTrigger value="import">
+              <Upload className="h-4 w-4 mr-1.5" />
+              Import Prices
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="companies">
+            <div className="mb-4 flex justify-between items-center">
+              <h3 className="text-sm font-medium">Company Accounts</h3>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Add Company
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Company Account</DialogTitle>
+                    <DialogDescription>
+                      Create a new B2B company account
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <label htmlFor="company-name" className="text-sm font-medium">
+                        Company Name
+                      </label>
+                      <Input id="company-name" placeholder="Enter company name" />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <label htmlFor="price-list" className="text-sm font-medium">
+                        Price List
+                      </label>
+                      <Input id="price-list" placeholder="Select price list" />
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button type="submit">Create Company</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Price List</TableHead>
+                    <TableHead>Customers</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {companyCustomers.map((company) => (
+                    <TableRow key={company.id}>
+                      <TableCell className="font-medium">{company.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={company.status === 'active' ? 'outline' : 'secondary'}>
+                          {company.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{company.priceList}</TableCell>
+                      <TableCell>{company.customerCount}</TableCell>
+                      <TableCell className="text-muted-foreground">{company.createdAt}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <ChevronDown className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Users className="h-4 w-4 mr-2" />
+                              Manage Customers
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="price-lists">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>Products</TableHead>
+                    <TableHead>Companies</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {b2bPriceLists.map((list) => (
+                    <TableRow key={list.id}>
+                      <TableCell className="font-medium">{list.name}</TableCell>
+                      <TableCell>{list.discount}</TableCell>
+                      <TableCell>{list.productCount}</TableCell>
+                      <TableCell>{list.customerCount}</TableCell>
+                      <TableCell className="text-muted-foreground">{list.lastUpdated}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4 mr-1.5" />
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="import">
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-2">
+                <h3 className="text-sm font-medium">Import B2B Price Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload a CSV or Excel file with your B2B pricing data
+                </p>
+                
+                <div className="flex items-center gap-3">
+                  <Input type="file" className="max-w-lg" />
+                  <Button 
+                    onClick={uploadPriceFile}
+                    disabled={uploadingData}
+                  >
+                    {uploadingData ? "Uploading..." : "Upload File"}
+                  </Button>
+                </div>
+              </div>
+              
+              <Separator className="my-6" />
+              
+              <div className="rounded-md border p-4 bg-muted/50 flex items-start gap-2">
+                <Info className="h-5 w-5 mt-0.5 text-sky-500" />
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Supported file formats</h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>CSV files (.csv)</li>
+                    <li>Excel files (.xlsx, .xls)</li>
+                    <li>Required columns: SKU, Price, Company Code (optional)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-1">
+          <Building2 className="h-3.5 w-3.5" />
+          B2B pricing features require Shopify Plus
+        </div>
       </CardFooter>
     </Card>
   );

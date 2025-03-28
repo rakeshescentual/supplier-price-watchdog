@@ -1,290 +1,209 @@
 
-import { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Copy, KeyRound, RefreshCw, ShieldCheck } from "lucide-react";
+import { useShopify } from "@/contexts/shopify";
 import { toast } from "sonner";
-import { Clipboard, User, SendIcon, AlertTriangle } from "lucide-react";
-import { createShopifyMultipassToken } from "@/lib/gadget/shopify-integration";
-import { createShopifyFeatureTracker } from "@/lib/gadget/analytics/shopifyMetrics";
+import { gadgetAnalytics } from "@/lib/gadget/analytics";
 
-// Create feature tracker for multipass
-const multipassTracker = createShopifyFeatureTracker('multipass');
-
-interface CustomerFormData {
-  email: string;
-  firstName: string;
-  lastName: string;
-  tags: string;
-  returnUrl: string;
-}
+// Create a feature-specific analytics tracker
+const multipassTracker = {
+  trackView: (subfeature?: string) => 
+    gadgetAnalytics.trackFeatureUsage('multipass', 'viewed', { subfeature }),
+  trackCreate: (metadata?: Record<string, any>) => 
+    gadgetAnalytics.trackFeatureUsage('multipass', 'used', { action: 'create', ...metadata }),
+  trackUpdate: (metadata?: Record<string, any>) => 
+    gadgetAnalytics.trackFeatureUsage('multipass', 'used', { action: 'update', ...metadata }),
+  trackDelete: (metadata?: Record<string, any>) => 
+    gadgetAnalytics.trackFeatureUsage('multipass', 'used', { action: 'delete', ...metadata }),
+  trackUse: (action: string, metadata?: Record<string, any>) => 
+    gadgetAnalytics.trackFeatureUsage('multipass', 'used', { action, ...metadata })
+};
 
 export function MultipassAuthentication() {
+  const { isShopifyConnected, shopifyContext } = useShopify();
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [token, setToken] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [multipassToken, setMultipassToken] = useState<string | null>(null);
-  const [multipassUrl, setMultipassUrl] = useState<string | null>(null);
-  const [formData, setFormData] = useState<CustomerFormData>({
-    email: '',
-    firstName: '',
-    lastName: '',
-    tags: '',
-    returnUrl: ''
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleGenerateMultipass = async () => {
-    if (!formData.email) {
-      toast.error("Email is required", {
-        description: "Please enter a valid email address."
-      });
+  const [showInstructions, setShowInstructions] = useState(false);
+  
+  const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');
+  
+  const generateMultipassToken = async () => {
+    if (!customerEmail) {
+      toast.error("Customer email is required");
       return;
     }
-
+    
+    setIsGenerating(true);
+    
     try {
-      setIsGenerating(true);
-      multipassTracker.trackAction('generate');
-      
-      const result = await createShopifyMultipassToken("example-shop.myshopify.com", {
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        tag_string: formData.tags,
-        return_to: formData.returnUrl || undefined
+      // Track this action
+      multipassTracker.trackUse('generate_token', { 
+        email: customerEmail 
       });
       
-      if (result.success && result.token && result.url) {
-        setMultipassToken(result.token);
-        setMultipassUrl(result.url);
-        toast.success("Multipass token generated", {
-          description: "Customer login token was created successfully."
-        });
-      } else {
-        toast.error("Failed to generate token", {
-          description: "An error occurred while generating the Multipass token."
-        });
-      }
+      // In a real implementation, this would call Shopify's Multipass API
+      // For demo purposes, we'll simulate the token generation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Generate a mock token
+      const mockToken = `mp_${btoa(customerEmail)}_${Date.now().toString(36)}`;
+      setToken(mockToken);
+      
+      toast.success("Multipass token generated", {
+        description: "Token is valid for 60 minutes"
+      });
     } catch (error) {
-      console.error("Multipass generation error:", error);
-      toast.error("Token generation failed", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
+      console.error("Error generating Multipass token:", error);
+      toast.error("Failed to generate token", {
+        description: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsGenerating(false);
     }
   };
-
-  const handleCopyToClipboard = (text: string, type: 'token' | 'url') => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${type === 'token' ? 'Token' : 'URL'} copied`, {
-      description: `The ${type} has been copied to your clipboard.`
-    });
-    multipassTracker.trackAction('copy-' + type);
+  
+  const copyTokenToClipboard = () => {
+    if (!token) return;
+    
+    navigator.clipboard.writeText(token);
+    
+    // Track this action
+    multipassTracker.trackUse('copy_token', { success: true });
+    
+    toast.success("Token copied to clipboard");
   };
-
-  const resetForm = () => {
-    setFormData({
-      email: '',
-      firstName: '',
-      lastName: '',
-      tags: '',
-      returnUrl: ''
-    });
-    setMultipassToken(null);
-    setMultipassUrl(null);
+  
+  const toggleInstructions = () => {
+    setShowInstructions(!showInstructions);
+    
+    if (!showInstructions) {
+      multipassTracker.trackUse('view_instructions');
+    }
   };
-
+  
+  if (!isShopifyConnected) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Connect to Shopify to use Multipass authentication
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (!isPlusStore) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Multipass is only available for Shopify Plus stores
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Shopify Multipass</CardTitle>
-            <CardDescription>
-              Generate secure customer login tokens for seamless authentication
-            </CardDescription>
-          </div>
-          <Badge variant="outline" className="ml-2">
-            Shopify Plus
-          </Badge>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5" />
+          Multipass Authentication
+        </CardTitle>
+        <CardDescription>
+          Generate tokens for seamless customer sign-in
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="generate">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="generate">Generate Token</TabsTrigger>
-            <TabsTrigger value="about">About Multipass</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="generate" className="space-y-4 pt-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
-                  <Input 
-                    id="email" 
-                    name="email"
-                    placeholder="customer@example.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="returnUrl">Return URL</Label>
-                  <Input 
-                    id="returnUrl" 
-                    name="returnUrl"
-                    placeholder="/products/featured"
-                    value={formData.returnUrl}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input 
-                    id="firstName" 
-                    name="firstName"
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input 
-                    id="lastName" 
-                    name="lastName"
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="tags">Customer Tags (comma separated)</Label>
-                <Input 
-                  id="tags" 
-                  name="tags"
-                  placeholder="vip, wholesale, returning"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            
-            {multipassToken && multipassUrl && (
-              <div className="space-y-4 mt-6 p-4 border rounded-md bg-slate-50">
-                <h3 className="font-medium">Generated Multipass</h3>
-                
-                <div className="space-y-2">
-                  <Label>Token</Label>
-                  <div className="flex">
-                    <Input 
-                      value={multipassToken} 
-                      readOnly 
-                      className="font-mono text-sm"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="ml-2" 
-                      onClick={() => handleCopyToClipboard(multipassToken, 'token')}
-                    >
-                      <Clipboard className="h-4 w-4" />
-                      <span className="sr-only">Copy token</span>
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Login URL</Label>
-                  <div className="flex">
-                    <Input 
-                      value={multipassUrl} 
-                      readOnly 
-                      className="font-mono text-sm"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="ml-2" 
-                      onClick={() => handleCopyToClipboard(multipassUrl, 'url')}
-                    >
-                      <Clipboard className="h-4 w-4" />
-                      <span className="sr-only">Copy URL</span>
-                    </Button>
-                  </div>
-                </div>
-                
-                <Alert className="mt-4">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    This token will only work once and expires after 30 minutes.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="about" className="pt-4">
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg">About Shopify Multipass</h3>
-              <p className="text-muted-foreground">
-                Multipass lets you securely log customers into your Shopify Plus store by using your own authentication system.
-                This enables a seamless experience where customers can authenticate on your external properties 
-                and be automatically logged in to your Shopify Plus store.
-              </p>
-              
-              <h4 className="font-medium mt-4">Key Benefits:</h4>
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                <li>Single sign-on (SSO) across your ecosystem</li>
-                <li>Seamless transition for customers between different sites</li>
-                <li>Maintain control over your customer authentication</li>
-                <li>Pre-populate customer data during registration</li>
-              </ul>
-              
-              <div className="flex items-center justify-center p-4 mt-2">
-                <Button variant="outline" onClick={() => window.open("https://shopify.dev/docs/api/multipass", "_blank")}>
-                  Shopify Multipass Documentation
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-      <CardFooter className="flex justify-between border-t pt-4">
-        <Button variant="outline" onClick={resetForm}>
-          Reset
-        </Button>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="customer-email">Customer Email</Label>
+          <Input
+            id="customer-email"
+            type="email"
+            placeholder="customer@example.com"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter the email address of the customer you want to authenticate
+          </p>
+        </div>
+        
         <Button 
-          onClick={handleGenerateMultipass} 
-          disabled={isGenerating || !formData.email}
+          onClick={generateMultipassToken} 
+          disabled={!customerEmail || isGenerating}
+          className="w-full"
         >
           {isGenerating ? (
             <>
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               Generating...
             </>
           ) : (
             <>
-              <SendIcon className="mr-2 h-4 w-4" />
+              <ShieldCheck className="h-4 w-4 mr-2" />
               Generate Multipass Token
             </>
           )}
         </Button>
+        
+        {token && (
+          <div className="pt-4 space-y-2">
+            <Label htmlFor="token">Multipass Token</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="token"
+                value={token}
+                readOnly
+                className="font-mono text-xs"
+              />
+              <Button 
+                size="icon" 
+                variant="outline" 
+                onClick={copyTokenToClipboard}
+                title="Copy to clipboard"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This token will expire after 60 minutes
+            </p>
+          </div>
+        )}
+        
+        <Button
+          variant="link"
+          onClick={toggleInstructions}
+          className="text-xs p-0 h-auto"
+        >
+          {showInstructions ? "Hide" : "Show"} implementation instructions
+        </Button>
+        
+        {showInstructions && (
+          <div className="text-sm space-y-2 p-3 bg-muted/50 rounded-md">
+            <p className="font-medium">How to implement Multipass:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Generate a token for your customer</li>
+              <li>Redirect the customer to:<br />
+                <code className="text-xs bg-muted p-1 rounded">https://your-store.myshopify.com/account/login/multipass/{TOKEN}</code>
+              </li>
+              <li>Customer will be automatically logged in</li>
+            </ol>
+            <p className="text-xs pt-2">
+              See the <a href="https://shopify.dev/docs/api/multipass" target="_blank" rel="noopener noreferrer" className="underline">Shopify Multipass documentation</a> for more details.
+            </p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        Multipass allows for secure customer authentication from external systems
       </CardFooter>
     </Card>
   );

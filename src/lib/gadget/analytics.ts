@@ -11,6 +11,7 @@ import { initGadgetClientV2, isGadgetV2Initialized } from './client/gadgetClient
 // Helper type for usage tracking
 type UsageAction = 'viewed' | 'used' | 'configured' | 'error';
 type UsageCategory = 'page' | 'feature' | 'integration' | 'workflow';
+type LogCategory = 'error' | 'info' | 'warning' | 'debug';
 
 interface AnalyticsEvent {
   category: string;
@@ -68,9 +69,9 @@ const trackUsage = (
       label,
       value,
       metadata
-    }, 'analytics');
+    }, 'info');
   } catch (error) {
-    logError('Error tracking analytics event', { error }, 'analytics');
+    logError('Error tracking analytics event', { error }, 'error');
   }
 };
 
@@ -101,14 +102,14 @@ const flushAnalyticsQueue = async (): Promise<void> => {
       // For now, just log
       logInfo(`Flushed ${events.length} analytics events`, {
         eventCount: events.length
-      }, 'analytics');
+      }, 'info');
     } else {
       // Fall back to local storage if client not available
       const storedEvents = JSON.parse(localStorage.getItem('gadget_analytics_events') || '[]');
       localStorage.setItem('gadget_analytics_events', JSON.stringify([...storedEvents, ...events]));
     }
   } catch (error) {
-    logError('Error flushing analytics queue', { error }, 'analytics');
+    logError('Error flushing analytics queue', { error }, 'error');
     
     // Store in localStorage as fallback
     try {

@@ -22,7 +22,7 @@ export const initGadgetClientV2 = async (): Promise<any> => {
   try {
     const config = getGadgetConfig();
     if (!config) {
-      logInfo('No Gadget configuration found', {}, 'clientV2');
+      logInfo('No Gadget configuration found', {}, 'info');
       return null;
     }
 
@@ -63,10 +63,10 @@ export const initGadgetClientV2 = async (): Promise<any> => {
       }
     };
 
-    logInfo('Gadget client V2 initialized', { environment: config.environment }, 'clientV2');
+    logInfo('Gadget client V2 initialized', { environment: config.environment }, 'info');
     return gadgetClientV2;
   } catch (error) {
-    logError('Error initializing Gadget client V2', { error }, 'clientV2');
+    logError('Error initializing Gadget client V2', { error }, 'error');
     return null;
   }
 };
@@ -76,7 +76,7 @@ export const initGadgetClientV2 = async (): Promise<any> => {
  */
 export const resetGadgetClientV2 = (): void => {
   gadgetClientV2 = null;
-  logInfo('Gadget client V2 reset', {}, 'clientV2');
+  logInfo('Gadget client V2 reset', {}, 'info');
 };
 
 /**
@@ -119,7 +119,7 @@ export const checkGadgetV2Health = async (): Promise<any> => {
 
     return health;
   } catch (error) {
-    logError('Error checking Gadget V2 health', { error }, 'healthV2');
+    logError('Error checking Gadget V2 health', { error }, 'error');
     return { status: 'error', error };
   }
 };
@@ -151,7 +151,7 @@ export const migrateToV2Client = async (): Promise<{
       message: 'Successfully migrated to v2 client'
     };
   } catch (error) {
-    logError('Error migrating to v2 client', { error }, 'migration');
+    logError('Error migrating to v2 client', { error }, 'error');
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error'

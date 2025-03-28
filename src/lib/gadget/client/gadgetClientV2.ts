@@ -7,6 +7,9 @@ import { logInfo, logError } from '../logging';
 import { GadgetConfig } from '../types';
 import { getGadgetConfig } from '@/utils/gadget/config';
 
+// Define LogLevel type to match the one in logging.ts
+type LogLevel = 'error' | 'info' | 'warning' | 'debug';
+
 // Cache client instance for reuse
 let gadgetClientV2: any = null;
 
@@ -22,7 +25,7 @@ export const initGadgetClientV2 = async (): Promise<any> => {
   try {
     const config = getGadgetConfig();
     if (!config) {
-      logInfo('No Gadget configuration found', {}, 'info');
+      logInfo('No Gadget configuration found', {}, 'info' as LogLevel);
       return null;
     }
 
@@ -63,10 +66,10 @@ export const initGadgetClientV2 = async (): Promise<any> => {
       }
     };
 
-    logInfo('Gadget client V2 initialized', { environment: config.environment }, 'info');
+    logInfo('Gadget client V2 initialized', { environment: config.environment }, 'info' as LogLevel);
     return gadgetClientV2;
   } catch (error) {
-    logError('Error initializing Gadget client V2', { error }, 'error');
+    logError('Error initializing Gadget client V2', { error }, 'error' as LogLevel);
     return null;
   }
 };
@@ -76,7 +79,7 @@ export const initGadgetClientV2 = async (): Promise<any> => {
  */
 export const resetGadgetClientV2 = (): void => {
   gadgetClientV2 = null;
-  logInfo('Gadget client V2 reset', {}, 'info');
+  logInfo('Gadget client V2 reset', {}, 'info' as LogLevel);
 };
 
 /**
@@ -119,7 +122,7 @@ export const checkGadgetV2Health = async (): Promise<any> => {
 
     return health;
   } catch (error) {
-    logError('Error checking Gadget V2 health', { error }, 'error');
+    logError('Error checking Gadget V2 health', { error }, 'error' as LogLevel);
     return { status: 'error', error };
   }
 };
@@ -151,7 +154,7 @@ export const migrateToV2Client = async (): Promise<{
       message: 'Successfully migrated to v2 client'
     };
   } catch (error) {
-    logError('Error migrating to v2 client', { error }, 'error');
+    logError('Error migrating to v2 client', { error }, 'error' as LogLevel);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error'

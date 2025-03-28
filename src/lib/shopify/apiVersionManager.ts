@@ -19,6 +19,8 @@ interface ShopifyApiVersionManager {
   updateToLatest: () => string;
   updateToVersion: (version: string) => boolean;
   isSupported: (version: string) => boolean;
+  init: () => void; // Add the missing init method
+  checkForUpdates: () => Promise<boolean>; // Add checkForUpdates method
 }
 
 // API versions data
@@ -131,6 +133,33 @@ export const shopifyApiVersionManager: ShopifyApiVersionManager = {
     }
     
     return foundVersion.status !== 'deprecated';
+  },
+  
+  // Initialize the API version manager
+  init: () => {
+    const storedVersion = localStorage.getItem('shopify_api_version');
+    
+    // If no version is stored or the stored version is not supported, set to latest stable
+    if (!storedVersion || !shopifyApiVersionManager.isSupported(storedVersion)) {
+      const latestStable = shopifyApiVersionManager.getLatestStable().version;
+      shopifyApiVersionManager.updateToVersion(latestStable);
+      console.log(`Initialized Shopify API version to ${latestStable}`);
+    } else {
+      currentVersion = storedVersion;
+      console.log(`Using Shopify API version ${currentVersion}`);
+    }
+  },
+  
+  // Check for updates and notify if newer version is available
+  checkForUpdates: async () => {
+    const latestStable = shopifyApiVersionManager.getLatestStable().version;
+    const needsUpdate = latestStable !== currentVersion;
+    
+    if (needsUpdate) {
+      console.log(`Newer Shopify API version ${latestStable} is available (currently using ${currentVersion})`);
+    }
+    
+    return needsUpdate;
   }
 };
 

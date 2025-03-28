@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -30,8 +31,8 @@ function App() {
     
     // Check for updates periodically
     const checkInterval = setInterval(() => {
-      // Using public methods only
-      shopifyApiVersionManager.init();
+      // Check for updates
+      shopifyApiVersionManager.checkForUpdates();
     }, 24 * 60 * 60 * 1000); // Check once a day
     
     return () => clearInterval(checkInterval);

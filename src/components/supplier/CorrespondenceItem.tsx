@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export interface Correspondence {
@@ -23,6 +24,9 @@ export interface Correspondence {
     content: string;
     read: boolean;
   }[];
+  timestamp?: string; // Optional timestamp field for sorting
+  emails?: any[]; // Optional emails array
+  queryItems?: any[]; // Optional query items array
 }
 
 interface CorrespondenceItemProps {

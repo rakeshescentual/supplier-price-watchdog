@@ -1,220 +1,237 @@
+/**
+ * Shopify API rate limiting management
+ * Handles rate limiting and usage tracking to prevent hitting Shopify's limits
+ */
 
-import { toast } from 'sonner';
+import { shopifyApiVersionManager } from '../../shopify/apiVersionManager';
 import { gadgetAnalytics } from '../analytics';
 
-interface RateLimitInfo {
-  remaining: number;
-  limit: number;
-  percentage: number;
-  isWarning: boolean;
-  isCritical: boolean;
-  reset?: Date;
+// Shopify rate limit buckets (leaky bucket algorithm)
+// Standard is 40 requests in flight, 2 req/sec steady state
+interface RateLimitBucket {
+  maxRequests: number;        // Maximum concurrent requests
+  fillRate: number;           // Requests per second fill rate
+  available: number;          // Currently available request slots
+  lastUpdated: number;        // Last time the bucket was updated
+  endpoint: string;           // API endpoint this bucket tracks
+  queuedRequests: number;     // Number of requests waiting
+  completedRequests: number;  // Number of completed requests
+  failedRequests: number;     // Number of failed requests
+  totalTime: number;          // Total request time in ms
+  waitTime: number;           // Total wait time in ms
 }
 
-interface RateLimitOptions {
-  showToasts?: boolean;
-  trackMetrics?: boolean;
-  warningThreshold?: number;
-  criticalThreshold?: number;
+// Rate limit configuration per endpoint
+interface RateLimitConfig {
+  maxRequestsPerSecond: number;  // Requests allowed per second
+  maxConcurrent: number;         // Maximum concurrent requests
+  enforceLocally: boolean;       // Whether to enforce rate limits locally
+  buffer: number;                // Buffer percentage (0-100)
 }
 
-const DEFAULT_OPTIONS: RateLimitOptions = {
-  showToasts: true,
-  trackMetrics: true,
-  warningThreshold: 20, // 20% remaining
-  criticalThreshold: 10, // 10% remaining
+// Create default rate limit config
+const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  maxRequestsPerSecond: 2,
+  maxConcurrent: 35, // Leave buffer of 5 from Shopify's 40
+  enforceLocally: true,
+  buffer: 10 // 10% buffer
 };
 
-/**
- * Monitors Shopify API rate limits from response headers
- */
-export const monitorShopifyRateLimit = (
-  response: Response,
-  options: RateLimitOptions = {}
-): RateLimitInfo => {
-  const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
+// Rate limit buckets for different API endpoints
+const rateLimitBuckets: Record<string, RateLimitBucket> = {};
+
+// Last time we recorded analytics
+let lastAnalyticsTime = 0;
+
+// Initialization
+export const initRateLimits = (): void => {
+  // Reset all buckets
+  Object.keys(rateLimitBuckets).forEach(key => {
+    const bucket = rateLimitBuckets[key];
+    bucket.available = bucket.maxRequests;
+    bucket.lastUpdated = Date.now();
+    bucket.queuedRequests = 0;
+    bucket.completedRequests = 0;
+    bucket.failedRequests = 0;
+    bucket.totalTime = 0;
+    bucket.waitTime = 0;
+  });
   
-  try {
-    // Extract rate limit headers from Shopify response
-    const limitHeader = response.headers.get('X-Shopify-Shop-Api-Call-Limit');
+  lastAnalyticsTime = Date.now();
+};
+
+// Get or create a rate limit bucket for an endpoint
+const getBucket = (endpoint: string, config?: Partial<RateLimitConfig>): RateLimitBucket => {
+  const endpointKey = normalizeEndpoint(endpoint);
+  
+  if (!rateLimitBuckets[endpointKey]) {
+    const finalConfig = { ...DEFAULT_RATE_LIMIT_CONFIG, ...config };
     
-    if (!limitHeader) {
-      console.warn('No rate limit header found in Shopify response');
-      return {
-        remaining: 40,
-        limit: 40,
-        percentage: 100,
-        isWarning: false,
-        isCritical: false
+    rateLimitBuckets[endpointKey] = {
+      maxRequests: finalConfig.maxConcurrent,
+      fillRate: finalConfig.maxRequestsPerSecond,
+      available: finalConfig.maxConcurrent,
+      lastUpdated: Date.now(),
+      endpoint: endpointKey,
+      queuedRequests: 0,
+      completedRequests: 0,
+      failedRequests: 0,
+      totalTime: 0,
+      waitTime: 0
+    };
+  }
+  
+  return rateLimitBuckets[endpointKey];
+};
+
+// Normalize an endpoint to a key for rate limiting
+// e.g. /admin/api/2023-01/products.json -> products
+const normalizeEndpoint = (endpoint: string): string => {
+  // Extract API version from the endpoint
+  const versionMatch = endpoint.match(/\/admin\/api\/(\d{4}-\d{2})\//);
+  const version = versionMatch ? versionMatch[1] : shopifyApiVersionManager.getCurrent();
+  
+  // Extract the main resource type
+  let resource = "unknown";
+  
+  if (endpoint.includes("graphql")) {
+    resource = "graphql";
+  } else if (endpoint.includes("products")) {
+    resource = "products";
+  } else if (endpoint.includes("orders")) {
+    resource = "orders";
+  } else if (endpoint.includes("customers")) {
+    resource = "customers";
+  } else if (endpoint.includes("inventory")) {
+    resource = "inventory";
+  } else if (endpoint.includes("metafields")) {
+    resource = "metafields";
+  } else if (endpoint.includes("price_rules")) {
+    resource = "price_rules";
+  } else {
+    // Extract the last part of the path before any query params
+    const pathParts = endpoint.split("?")[0].split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    resource = lastPart.split(".")[0] || "api";
+  }
+  
+  return `${version}/${resource}`;
+};
+
+// Update a bucket based on elapsed time
+const updateBucket = (bucket: RateLimitBucket): void => {
+  const now = Date.now();
+  const elapsedSeconds = (now - bucket.lastUpdated) / 1000;
+  
+  // Add requests back to the bucket based on fill rate and elapsed time
+  const newRequests = elapsedSeconds * bucket.fillRate;
+  bucket.available = Math.min(bucket.maxRequests, bucket.available + newRequests);
+  bucket.lastUpdated = now;
+};
+
+// Wait for capacity in a rate limit bucket
+export const waitForCapacity = async (
+  endpoint: string, 
+  config?: Partial<RateLimitConfig>
+): Promise<void> => {
+  const bucket = getBucket(endpoint, config);
+  updateBucket(bucket);
+  
+  // If we have capacity, return immediately
+  if (bucket.available >= 1) {
+    bucket.available -= 1;
+    return;
+  }
+  
+  // Otherwise, calculate wait time
+  const requestsNeeded = 1 - bucket.available;
+  const waitTimeMs = (requestsNeeded / bucket.fillRate) * 1000;
+  bucket.queuedRequests += 1;
+  bucket.waitTime += waitTimeMs;
+  
+  // Wait for capacity
+  await new Promise(resolve => setTimeout(resolve, waitTimeMs));
+  
+  // Update again after waiting
+  updateBucket(bucket);
+  bucket.available -= 1;
+  bucket.queuedRequests -= 1;
+};
+
+// Track a completed request
+export const trackCompletedRequest = (
+  endpoint: string, 
+  durationMs: number, 
+  success: boolean
+): void => {
+  const bucket = getBucket(endpoint);
+  
+  if (success) {
+    bucket.completedRequests += 1;
+    bucket.totalTime += durationMs;
+  } else {
+    bucket.failedRequests += 1;
+  }
+  
+  // Record analytics occasionally
+  const now = Date.now();
+  if (now - lastAnalyticsTime > 60000) { // Every minute
+    recordAnalytics();
+    lastAnalyticsTime = now;
+  }
+};
+
+// Record analytics about rate limiting
+const recordAnalytics = (): void => {
+  // For each bucket with activity
+  Object.values(rateLimitBuckets)
+    .filter(bucket => bucket.completedRequests > 0 || bucket.failedRequests > 0)
+    .forEach(bucket => {
+      const totalRequests = bucket.completedRequests + bucket.failedRequests;
+      if (totalRequests === 0) return;
+      
+      const avgTime = bucket.completedRequests > 0
+        ? bucket.totalTime / bucket.completedRequests
+        : 0;
+      
+      const stats = {
+        endpoint: bucket.endpoint,
+        completedRequests: bucket.completedRequests,
+        failedRequests: bucket.failedRequests,
+        avgRequestTime: Math.round(avgTime),
+        avgWaitTime: bucket.queuedRequests > 0
+          ? Math.round(bucket.waitTime / bucket.queuedRequests)
+          : 0,
+        usagePercentage: Math.round((1 - (bucket.available / bucket.maxRequests)) * 100)
       };
-    }
-    
-    const [usedStr, limitStr] = limitHeader.split('/');
-    const used = parseInt(usedStr || '0');
-    const limit = parseInt(limitStr || '40');
-    const remaining = limit - used;
-    const percentage = (remaining / limit) * 100;
-    
-    // Determine if we're approaching limits
-    const isWarning = percentage <= mergedOptions.warningThreshold!;
-    const isCritical = percentage <= mergedOptions.criticalThreshold!;
-    
-    // Extract retry-after header if present
-    const retryAfter = response.headers.get('Retry-After');
-    const reset = retryAfter ? new Date(Date.now() + parseInt(retryAfter) * 1000) : undefined;
-    
-    // Log rate limit usage
-    console.log(`Shopify API Rate Limit: ${used}/${limit} (${percentage.toFixed(1)}% remaining)`);
-    
-    // Track as metric if enabled and usage is high
-    if (mergedOptions.trackMetrics) {
-      gadgetAnalytics.trackBusinessMetric('shopify_rate_limit', percentage, {
-        used,
-        remaining,
-        limit,
-        critical: isCritical,
-        warning: isWarning,
-        retryAfter: retryAfter ? parseInt(retryAfter) : undefined
-      });
-    }
-    
-    // Show toast if enabled and usage is critical
-    if (mergedOptions.showToasts) {
-      if (isCritical) {
-        console.warn('Critical Shopify API rate limit usage!');
-        
-        toast.warning('API Rate Limit Warning', {
-          description: `Using ${used}/${limit} API calls. Operations may be delayed.${
-            reset ? ` Rate limit resets at ${reset.toLocaleTimeString()}.` : ''
-          }`
-        });
-      } else if (isWarning && percentage < 15) {
-        // Only show warning toasts when it's getting quite low to avoid spam
-        toast.info('API Rate Limit Notice', {
-          description: `Approaching Shopify API rate limits (${percentage.toFixed(0)}% remaining)`
-        });
-      }
-    }
-    
-    return { 
-      remaining, 
-      limit, 
-      percentage, 
-      isWarning,
-      isCritical,
-      reset
-    };
-  } catch (error) {
-    console.error('Error monitoring rate limit:', error);
-    return { 
-      remaining: 40, 
-      limit: 40, 
-      percentage: 100,
-      isWarning: false,
-      isCritical: false
-    };
-  }
-};
-
-/**
- * Implements exponential backoff strategy for rate limited requests
- */
-export const handleRateLimitBackoff = async (
-  fn: () => Promise<Response>,
-  maxRetries = 5
-): Promise<Response> => {
-  let retries = 0;
-  
-  while (retries < maxRetries) {
-    try {
-      const response = await fn();
       
-      // Check if we hit a rate limit
-      if (response.status === 429) {
-        retries++;
-        
-        // Get retry-after header or use exponential backoff
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter 
-          ? parseInt(retryAfter) * 1000
-          : Math.min(1000 * Math.pow(2, retries), 30000); // Max 30 second wait
-        
-        console.warn(`Rate limited by Shopify. Retrying in ${waitTime/1000}s (Attempt ${retries}/${maxRetries})`);
-        
-        // Track rate limit event
-        gadgetAnalytics.trackBusinessMetric('shopify_rate_limited', retries, {
-          waitTime,
-          retryAfter: retryAfter ? parseInt(retryAfter) : null
-        });
-        
-        if (retries === 1) {
-          // Only show toast on first rate limit to avoid spamming
-          toast.warning('API Rate Limit Reached', {
-            description: `Request was rate limited. Retrying automatically.`
-          });
-        }
-        
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-      
-      // If not rate limited, return the response
-      return response;
-    } catch (error) {
-      // If it's a network error, retry with backoff
-      retries++;
-      const waitTime = Math.min(1000 * Math.pow(2, retries), 30000);
-      
-      console.error(`Error during request (Attempt ${retries}/${maxRetries}):`, error);
-      
-      if (retries < maxRetries) {
-        console.warn(`Retrying in ${waitTime/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      } else {
-        throw error; // Max retries exceeded, propagate the error
-      }
-    }
-  }
-  
-  throw new Error(`Max retries (${maxRetries}) exceeded for request`);
-};
-
-/**
- * Batch requests to ensure they don't exceed rate limits
- */
-export const batchShopifyRequests = async <T>(
-  requests: (() => Promise<T>)[],
-  batchSize = 5,
-  delayBetweenBatches = 1000
-): Promise<T[]> => {
-  const results: T[] = [];
-  
-  // Process in batches
-  for (let i = 0; i < requests.length; i += batchSize) {
-    const batch = requests.slice(i, i + batchSize);
-    
-    // Track batch execution
-    const batchStart = performance.now();
-    
-    // Execute current batch in parallel
-    const batchResults = await Promise.all(batch.map(request => request()));
-    results.push(...batchResults);
-    
-    const batchDuration = performance.now() - batchStart;
-    
-    // Track performance of batch
-    gadgetAnalytics.trackPerformance('shopify_batch_request', batchDuration, {
-      batchSize: batch.length,
-      totalBatches: Math.ceil(requests.length / batchSize),
-      currentBatch: Math.floor(i / batchSize) + 1
+      // Track performance
+      gadgetAnalytics.trackPerformance(`shopify_api:${bucket.endpoint}`, avgTime);
     });
-    
-    // If this isn't the last batch, wait before the next one
-    if (i + batchSize < requests.length) {
-      await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-    }
-  }
+};
+
+// Get rate limit usage for all buckets
+export const getRateLimitUsage = (): Record<string, {
+  used: number;
+  available: number;
+  percentUsed: number;
+}> => {
+  const usage: Record<string, {
+    used: number;
+    available: number;
+    percentUsed: number;
+  }> = {};
   
-  return results;
+  Object.entries(rateLimitBuckets).forEach(([key, bucket]) => {
+    updateBucket(bucket);
+    
+    const used = bucket.maxRequests - bucket.available;
+    usage[key] = {
+      used,
+      available: bucket.available,
+      percentUsed: Math.round((used / bucket.maxRequests) * 100)
+    };
+  });
+  
+  return usage;
 };

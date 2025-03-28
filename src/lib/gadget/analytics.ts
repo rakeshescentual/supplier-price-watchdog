@@ -11,7 +11,7 @@ import { initGadgetClientV2, isGadgetV2Initialized } from './client/gadgetClient
 // Helper type for usage tracking
 type UsageAction = 'viewed' | 'used' | 'configured' | 'error';
 type UsageCategory = 'page' | 'feature' | 'integration' | 'workflow';
-type LogCategory = 'error' | 'info' | 'warning' | 'debug';
+type LogLevel = 'error' | 'info' | 'warning' | 'debug'; // Changed from LogCategory to LogLevel
 
 interface AnalyticsEvent {
   category: string;
@@ -69,9 +69,9 @@ const trackUsage = (
       label,
       value,
       metadata
-    }, 'info');
+    }, 'info' as LogLevel);
   } catch (error) {
-    logError('Error tracking analytics event', { error }, 'error');
+    logError('Error tracking analytics event', { error }, 'error' as LogLevel);
   }
 };
 
@@ -102,14 +102,14 @@ const flushAnalyticsQueue = async (): Promise<void> => {
       // For now, just log
       logInfo(`Flushed ${events.length} analytics events`, {
         eventCount: events.length
-      }, 'info');
+      }, 'info' as LogLevel);
     } else {
       // Fall back to local storage if client not available
       const storedEvents = JSON.parse(localStorage.getItem('gadget_analytics_events') || '[]');
       localStorage.setItem('gadget_analytics_events', JSON.stringify([...storedEvents, ...events]));
     }
   } catch (error) {
-    logError('Error flushing analytics queue', { error }, 'error');
+    logError('Error flushing analytics queue', { error }, 'error' as LogLevel);
     
     // Store in localStorage as fallback
     try {
@@ -203,5 +203,9 @@ export const gadgetAnalytics = {
   trackBusinessMetric,
   trackError,
   createUsageTracker,
-  flushAnalyticsQueue
+  flushAnalyticsQueue,
+  // Add performance tracking
+  trackPerformance: (label: string, durationMs: number) => {
+    trackUsage('performance', 'measure', label, durationMs);
+  }
 };

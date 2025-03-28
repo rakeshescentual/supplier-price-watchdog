@@ -1,28 +1,47 @@
 
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { CorrespondenceItem, Correspondence } from './CorrespondenceItem';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
+import CorrespondenceItem, { Correspondence } from "./CorrespondenceItem";
 
 interface CorrespondenceListProps {
-  correspondence: Correspondence[];
-  selectedCorrespondence: Correspondence | null;
-  onSelectCorrespondence: (item: Correspondence) => void;
+  items: Correspondence[];
+  isLoading?: boolean;
+  selectedItemId?: string;
+  onSelectItem: (item: Correspondence) => void;
 }
 
 export const CorrespondenceList: React.FC<CorrespondenceListProps> = ({
-  correspondence,
-  selectedCorrespondence,
-  onSelectCorrespondence
+  items,
+  isLoading = false,
+  selectedItemId,
+  onSelectItem
 }) => {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64 text-muted-foreground">
+        No correspondence found
+      </div>
+    );
+  }
+
   return (
-    <ScrollArea className="h-[50vh]">
-      <div className="space-y-3">
-        {correspondence.map(item => (
+    <ScrollArea className="h-[calc(100vh-250px)]">
+      <div className="divide-y">
+        {items.map((item) => (
           <CorrespondenceItem
             key={item.id}
-            correspondence={item}
-            isSelected={selectedCorrespondence?.id === item.id}
-            onClick={() => onSelectCorrespondence(item)}
+            item={item}
+            isSelected={item.id === selectedItemId}
+            onClick={onSelectItem}
           />
         ))}
       </div>

@@ -1,102 +1,114 @@
 
+/**
+ * Shopify-specific analytics for tracking feature usage
+ */
 import { gadgetAnalytics } from '../analytics';
 
-export interface ShopifyPlusMetrics {
-  apiUsage: {
-    rest: number;
-    graphql: number;
-    totalRequests: number;
-    rateLimited: number;
-  };
-  features: {
-    scripts: number;
-    flow: number;
-    launchpad: number;
-    b2b: number;
-  };
-  performance: {
-    averageResponseTime: number;
-    slowRequests: number;
-    failedRequests: number;
-  };
-}
-
-/**
- * Track Shopify Plus metrics for enhanced monitoring
- */
-export const trackShopifyPlusMetrics = (metrics: Partial<ShopifyPlusMetrics>): Promise<boolean> => {
-  return gadgetAnalytics.trackBusinessMetric('shopify_plus_usage', 1, {
-    ...metrics,
-    timestamp: new Date().toISOString()
-  });
-};
-
-/**
- * Track Shopify Scripts usage
- */
-export const trackScriptsUsage = (
-  action: 'viewed' | 'used' | 'configured',
-  scriptType: 'discount' | 'shipping' | 'payment',
-  metadata?: Record<string, any>
-): Promise<boolean> => {
-  return gadgetAnalytics.trackFeatureUsage('shopify_scripts', action, {
-    scriptType,
-    ...metadata
-  });
-};
-
-/**
- * Track Shopify Flow usage
- */
-export const trackFlowUsage = (
-  action: 'viewed' | 'used' | 'configured',
-  flowType: string,
-  metadata?: Record<string, any>
-): Promise<boolean> => {
-  return gadgetAnalytics.trackFeatureUsage('shopify_flow', action, {
-    flowType,
-    ...metadata
-  });
-};
-
-/**
- * Track B2B feature usage
- */
-export const trackB2BUsage = (
-  action: 'viewed' | 'used' | 'configured',
-  feature: 'pricelist' | 'company' | 'locations' | 'payment_terms',
-  metadata?: Record<string, any>
-): Promise<boolean> => {
-  return gadgetAnalytics.trackFeatureUsage('shopify_b2b', action, {
-    feature,
-    ...metadata
-  });
-};
-
-/**
- * Create a Shopify feature tracker
- */
+// Creates a Shopify feature-specific tracker
 export const createShopifyFeatureTracker = (featureName: string) => {
+  const baseFeature = `shopify:${featureName}`;
+  
   return {
-    trackView: (subfeature?: string) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'viewed', {
-        subfeature
-      });
+    trackView: (subfeature?: string): void => {
+      const feature = subfeature ? `${baseFeature}:${subfeature}` : baseFeature;
+      gadgetAnalytics.trackFeatureUsage(feature, 'viewed');
     },
-    trackCreate: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
+    
+    trackUse: (action: string, metadata?: Record<string, any>): void => {
+      gadgetAnalytics.trackFeatureUsage(`${baseFeature}:${action}`, 'used', metadata);
     },
-    trackUpdate: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
+    
+    trackError: (error: Error | string, metadata?: Record<string, any>): void => {
+      gadgetAnalytics.trackError(
+        error instanceof Error ? error.message : error,
+        { feature: baseFeature, ...metadata }
+      );
     },
-    trackDelete: (metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', metadata);
+    
+    trackSuccess: async (operation: string, metadata?: Record<string, any>): Promise<boolean> => {
+      try {
+        gadgetAnalytics.trackFeatureUsage(
+          `${baseFeature}:${operation}:success`, 
+          'used',
+          metadata
+        );
+        return true;
+      } catch (e) {
+        console.error(`Failed to track success for ${baseFeature}:${operation}`, e);
+        return false;
+      }
     },
-    trackUse: (action: string, metadata?: Record<string, any>) => {
-      return gadgetAnalytics.trackFeatureUsage(`shopify_${featureName}`, 'used', {
-        action,
-        ...metadata
-      });
+    
+    trackFailure: async (operation: string, error: Error | string, metadata?: Record<string, any>): Promise<boolean> => {
+      try {
+        const errorMessage = error instanceof Error ? error.message : error;
+        gadgetAnalytics.trackFeatureUsage(
+          `${baseFeature}:${operation}:failure`, 
+          'error',
+          { error: errorMessage, ...metadata }
+        );
+        return true;
+      } catch (e) {
+        console.error(`Failed to track failure for ${baseFeature}:${operation}`, e);
+        return false;
+      }
+    },
+    
+    trackPerformance: async (operation: string, durationMs: number, metadata?: Record<string, any>): Promise<boolean> => {
+      try {
+        gadgetAnalytics.trackPerformance(`${baseFeature}:${operation}`, durationMs);
+        return true;
+      } catch (e) {
+        console.error(`Failed to track performance for ${baseFeature}:${operation}`, e);
+        return false;
+      }
+    },
+    
+    trackConfiguration: async (config: Record<string, any>): Promise<boolean> => {
+      try {
+        gadgetAnalytics.trackFeatureUsage(
+          `${baseFeature}:configured`,
+          'configured',
+          { config }
+        );
+        return true;
+      } catch (e) {
+        console.error(`Failed to track configuration for ${baseFeature}`, e);
+        return false;
+      }
     }
   };
 };
+
+// Track Shopify store metrics
+export const trackShopifyStoreMetrics = (
+  metrics: {
+    products?: number;
+    collections?: number;
+    orders?: number;
+    customers?: number;
+  }
+) => {
+  if (metrics.products) {
+    gadgetAnalytics.trackBusinessMetric('shopify:products:count', metrics.products);
+  }
+  
+  if (metrics.collections) {
+    gadgetAnalytics.trackBusinessMetric('shopify:collections:count', metrics.collections);
+  }
+  
+  if (metrics.orders) {
+    gadgetAnalytics.trackBusinessMetric('shopify:orders:count', metrics.orders);
+  }
+  
+  if (metrics.customers) {
+    gadgetAnalytics.trackBusinessMetric('shopify:customers:count', metrics.customers);
+  }
+};
+
+// Create specific feature trackers
+export const shopifyWebhookTracker = createShopifyFeatureTracker('webhooks');
+export const shopifyScriptTracker = createShopifyFeatureTracker('scripts');
+export const shopifyFlowTracker = createShopifyFeatureTracker('flow');
+export const shopifyB2BTracker = createShopifyFeatureTracker('b2b');
+export const shopifyMultipassTracker = createShopifyFeatureTracker('multipass');

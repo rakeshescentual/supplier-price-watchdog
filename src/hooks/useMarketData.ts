@@ -18,6 +18,7 @@ import {
   identifyCompetitiveCategories,
   identifyProductSizeStrategies
 } from '@/utils/crossSupplierAnalysis';
+import { useGadgetAnalytics } from '@/components/gadget/GadgetAnalyticsProvider';
 
 export const useMarketData = (
   items: PriceItem[],
@@ -37,6 +38,9 @@ export const useMarketData = (
     competitiveCategories?: { category: string; competitionScore: number; supplierCount: number; priceVariance: number }[];
     productSizeStrategies?: { sizeStrategies: { category: string; trend: 'smaller' | 'larger' | 'stable'; confidence: number }[] };
   }>({});
+  
+  const analytics = useGadgetAnalytics();
+  const marketDataTracker = useMemo(() => analytics.createFeatureTracker('marketData'), [analytics]);
   
   // Cache validation - Only perform operations if data has changed
   const itemsFingerprint = useMemo(() => {
@@ -71,6 +75,9 @@ export const useMarketData = (
     setIsEnrichingData(true);
     setLastError(null);
     
+    marketDataTracker.trackUse('enrich_start', { itemCount: items.length });
+    const perfTracker = analytics.startTracking('enrichDataWithMarketInfo', { itemCount: items.length });
+    
     try {
       // Optimized implementation with batching for large datasets
       const enrichedItems = await enrichDataWithSearch(items);
@@ -78,6 +85,11 @@ export const useMarketData = (
       
       toast.success("Market data enrichment complete", {
         description: "Items have been enriched with market insights.",
+      });
+      
+      marketDataTracker.trackUse('enrich_success', { 
+        itemCount: items.length, 
+        enrichedCount: enrichedItems.length 
       });
       
       // Update analysis with new data
@@ -90,21 +102,32 @@ export const useMarketData = (
           toast.warning("Analysis update partial", {
             description: "Market data was updated but analysis couldn't be refreshed.",
           });
+          
+          marketDataTracker.trackError(analysisError instanceof Error ? analysisError : String(analysisError), {
+            operation: 'analysis_after_enrichment'
+          });
         }
       }
       
+      await perfTracker();
       return enrichedItems;
     } catch (error) {
       console.error("Error enriching data:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setLastError(errorMessage);
+      
+      marketDataTracker.trackError(error instanceof Error ? error : String(error), {
+        operation: 'enrich_data'
+      });
+      
       toast.error("Error enriching data", {
         description: "Could not fetch market data. Please try again later.",
       });
     } finally {
       setIsEnrichingData(false);
+      await perfTracker();
     }
-  }, [items, updateItems, onAnalysisNeeded, itemsFingerprint]);
+  }, [items, updateItems, onAnalysisNeeded, itemsFingerprint, analytics, marketDataTracker]);
 
   // Fetch category trends with improved error handling
   const fetchCategoryTrends = useCallback(async (category: string): Promise<any | void> => {
@@ -118,6 +141,9 @@ export const useMarketData = (
     setIsFetchingTrends(true);
     setLastError(null);
     
+    marketDataTracker.trackUse('fetch_trends', { category });
+    const perfTracker = analytics.startTracking('fetchCategoryTrends', { category });
+    
     try {
       const trends = await getMarketTrends(category);
       setMarketTrends(trends);
@@ -126,18 +152,31 @@ export const useMarketData = (
         description: `Market trends for ${category} are now available.`,
       });
       
+      marketDataTracker.trackUse('fetch_trends_success', { 
+        category,
+        dataPoints: trends?.dataPoints?.length || 0
+      });
+      
+      await perfTracker();
       return trends;
     } catch (error) {
       console.error("Error fetching market trends:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setLastError(errorMessage);
+      
+      marketDataTracker.trackError(error instanceof Error ? error : String(error), {
+        operation: 'fetch_trends',
+        category
+      });
+      
       toast.error("Error fetching market trends", {
         description: "Could not fetch market trends. Please try again later.",
       });
     } finally {
       setIsFetchingTrends(false);
+      await perfTracker();
     }
-  }, []);
+  }, [analytics, marketDataTracker]);
 
   // Analyze advanced pricing patterns
   const analyzeAdvancedPatterns = useCallback(async (): Promise<void> => {
@@ -149,6 +188,9 @@ export const useMarketData = (
     }
     
     setIsAnalyzingPatterns(true);
+    
+    marketDataTracker.trackUse('analyze_patterns', { itemCount: items.length });
+    const perfTracker = analytics.startTracking('analyzeAdvancedPatterns', { itemCount: items.length });
     
     try {
       // Perform various advanced analyses
@@ -171,24 +213,49 @@ export const useMarketData = (
       toast.success("Advanced analysis complete", {
         description: "Advanced pricing patterns and market insights are now available.",
       });
+      
+      marketDataTracker.trackUse('analyze_patterns_success', {
+        itemCount: items.length,
+        supplierCount: Object.keys(priceVolatility.supplierVolatility).length,
+        categoryCount: Object.keys(priceVolatility.categoryVolatility).length
+      });
     } catch (error) {
       console.error("Error analyzing patterns:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setLastError(errorMessage);
+      
+      marketDataTracker.trackError(error instanceof Error ? error : String(error), {
+        operation: 'analyze_patterns'
+      });
+      
       toast.error("Error analyzing patterns", {
         description: "Could not complete advanced analysis. Please try again later.",
       });
     } finally {
       setIsAnalyzingPatterns(false);
+      await perfTracker();
     }
-  }, [items]);
+  }, [items, analytics, marketDataTracker]);
 
   // Batch process items for market analysis
   const batchProcessItems = useCallback(async (processFn: (item: PriceItem) => Promise<any>): Promise<any[]> => {
     if (items.length === 0) return [];
     
-    return performBatchOperations(items, processFn, 50);
-  }, [items]);
+    marketDataTracker.trackUse('batch_process', { itemCount: items.length });
+    const perfTracker = analytics.startTracking('batchProcessItems', { itemCount: items.length });
+    
+    try {
+      const results = await performBatchOperations(items, processFn, 50);
+      await perfTracker();
+      return results;
+    } catch (error) {
+      marketDataTracker.trackError(error instanceof Error ? error : String(error), {
+        operation: 'batch_process'
+      });
+      await perfTracker();
+      throw error;
+    }
+  }, [items, analytics, marketDataTracker]);
 
   // Reset error state
   const clearError = useCallback(() => {

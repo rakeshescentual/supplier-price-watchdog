@@ -28,10 +28,62 @@ interface UsageTracker {
   trackError: (error: Error | string, metadata?: Record<string, any>) => void;
 }
 
+// Performance tracking
+interface PerformanceMarker {
+  id: string;
+  label: string;
+  startTime: number;
+  metadata?: Record<string, any>;
+}
+
 // Queue for batching events
 let analyticsQueue: AnalyticsEvent[] = [];
 let isFlushScheduled = false;
 const FLUSH_INTERVAL = 5000; // 5 seconds
+
+// Store for performance markers
+const performanceMarkers: Map<string, PerformanceMarker> = new Map();
+
+/**
+ * Start tracking performance for an operation
+ * @returns Function to call when operation is complete
+ */
+const startPerformanceTracking = (
+  label: string,
+  metadata?: Record<string, any>
+): (() => Promise<void>) => {
+  const id = `perf-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const marker: PerformanceMarker = {
+    id,
+    label,
+    startTime: performance.now(),
+    metadata
+  };
+  
+  performanceMarkers.set(id, marker);
+  
+  return async () => {
+    const endTime = performance.now();
+    const marker = performanceMarkers.get(id);
+    
+    if (marker) {
+      performanceMarkers.delete(id);
+      const durationMs = Math.round(endTime - marker.startTime);
+      
+      // Track the performance metric
+      trackUsage('performance', 'measure', marker.label, durationMs, {
+        ...marker.metadata,
+        durationMs
+      });
+      
+      logInfo(`Performance: ${marker.label} completed in ${durationMs}ms`, {
+        label: marker.label,
+        durationMs,
+        ...marker.metadata
+      }, 'telemetry');
+    }
+  };
+};
 
 /**
  * Track a usage event
@@ -194,6 +246,33 @@ const trackError = (
   trackUsage('error', 'occurred', errorMessage, undefined, metadata);
 };
 
+/**
+ * Identify user for analytics
+ * @param userId User ID to associate with subsequent events
+ */
+const identifyUser = (
+  userId: string,
+  traits?: Record<string, any>
+): void => {
+  trackUsage('user', 'identify', userId, undefined, traits);
+};
+
+/**
+ * Track page view
+ */
+const trackPageView = (
+  path: string,
+  title?: string,
+  metadata?: Record<string, any>
+): void => {
+  trackUsage('page', 'view', path, undefined, {
+    title,
+    url: window.location.href,
+    referrer: document.referrer,
+    ...metadata
+  });
+};
+
 // Export analytics API
 export const gadgetAnalytics = {
   trackUsage,
@@ -203,8 +282,11 @@ export const gadgetAnalytics = {
   trackError,
   createUsageTracker,
   flushAnalyticsQueue,
+  startPerformanceTracking,
+  identifyUser,
+  trackPageView,
   // Add performance tracking
-  trackPerformance: (label: string, durationMs: number) => {
-    trackUsage('performance', 'measure', label, durationMs);
+  trackPerformance: (label: string, durationMs: number, metadata?: Record<string, any>) => {
+    trackUsage('performance', 'measure', label, durationMs, metadata);
   }
 };

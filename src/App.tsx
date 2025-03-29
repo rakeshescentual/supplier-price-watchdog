@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 import { FileAnalysisProvider } from './contexts/FileAnalysisContext';
 import { ShopifyProvider } from './contexts/shopify';
+import { GadgetAnalyticsProvider } from './components/gadget/GadgetAnalyticsProvider';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -44,36 +45,38 @@ function App() {
         <Router>
           <ShopifyProvider>
             <FileAnalysisProvider>
-              <div className="flex h-screen overflow-hidden bg-background">
-                <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-                
-                <div className="flex flex-col flex-1 overflow-hidden">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+              <GadgetAnalyticsProvider>
+                <div className="flex h-screen overflow-hidden bg-background">
+                  <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
                   
-                  {isOffline && (
-                    <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm text-center">
-                      You are currently offline. Some features may be unavailable.
-                    </div>
-                  )}
-                  
-                  <main className="flex-1 overflow-auto">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/analysis" element={<Analysis />} />
-                      <Route path="/pricing" element={<Pricing />} />
-                      <Route path="/competitive" element={<Competitive />} />
-                      <Route path="/integrations" element={<Integrations />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/documentation" element={<Documentation />} />
-                      <Route path="/shopify" element={<ShopifyIntegrationDashboard />} />
-                      <Route path="/404" element={<NotFound />} />
-                      <Route path="*" element={<Navigate to="/404" replace />} />
-                    </Routes>
-                  </main>
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    
+                    {isOffline && (
+                      <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm text-center">
+                        You are currently offline. Some features may be unavailable.
+                      </div>
+                    )}
+                    
+                    <main className="flex-1 overflow-auto">
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/analysis" element={<Analysis />} />
+                        <Route path="/pricing" element={<Pricing />} />
+                        <Route path="/competitive" element={<Competitive />} />
+                        <Route path="/integrations" element={<Integrations />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/documentation" element={<Documentation />} />
+                        <Route path="/shopify" element={<ShopifyIntegrationDashboard />} />
+                        <Route path="/404" element={<NotFound />} />
+                        <Route path="*" element={<Navigate to="/404" replace />} />
+                      </Routes>
+                    </main>
+                  </div>
                 </div>
-              </div>
-              
-              <Toaster position="top-right" closeButton={true} />
+                
+                <Toaster position="top-right" closeButton={true} />
+              </GadgetAnalyticsProvider>
             </FileAnalysisProvider>
           </ShopifyProvider>
         </Router>

@@ -134,7 +134,7 @@ const Documentation = () => {
                   ))}
                 </div>
               ) : (
-                <Alert variant="info">
+                <Alert variant="warning">
                   <Info className="h-4 w-4" />
                   <AlertTitle>No results found</AlertTitle>
                   <AlertDescription>

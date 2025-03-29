@@ -1,3 +1,4 @@
+
 /**
  * Enhanced analytics module for Gadget.dev
  * Supports the upcoming analytics API changes
@@ -69,7 +70,7 @@ const trackUsage = (
       metadata
     }, 'telemetry');
   } catch (error) {
-    logError('Error tracking analytics event', { error }, 'error');
+    logError('Error tracking analytics event', { error }, 'system');
   }
 };
 
@@ -100,14 +101,14 @@ const flushAnalyticsQueue = async (): Promise<void> => {
       // For now, just log
       logInfo(`Flushed ${events.length} analytics events`, {
         eventCount: events.length
-      }, 'info');
+      }, 'telemetry');
     } else {
       // Fall back to local storage if client not available
       const storedEvents = JSON.parse(localStorage.getItem('gadget_analytics_events') || '[]');
       localStorage.setItem('gadget_analytics_events', JSON.stringify([...storedEvents, ...events]));
     }
   } catch (error) {
-    logError('Error flushing analytics queue', { error }, 'error');
+    logError('Error flushing analytics queue', { error }, 'system');
     
     // Store in localStorage as fallback
     try {

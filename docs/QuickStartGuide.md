@@ -24,7 +24,7 @@ Welcome to Supplier Price Watch! This guide will help you get started in just 5 
 
 ## Step 3: Upload Your First Price List (1 minute)
 
-1. From the dashboard, click the prominent "Upload New Price List" button
+1. From the dashboard, click the prominent "Upload Price List" button
 2. Either drag and drop your file onto the upload area or click to select a file (.xlsx, .csv, or .pdf format)
 3. Select the supplier name from the dropdown or enter a new supplier
 4. Click "Upload and Process"
@@ -55,10 +55,10 @@ The analysis dashboard will immediately show you:
 ## Step 5: Explore Market Insights (1 minute)
 
 1. Navigate to the "Market Insights" section
-2. Click the clearly labeled "Fetch Market Insights" button
-3. Review your price positioning (low, average, high) compared to market rates
-4. Identify opportunities for price adjustments with the help of visual indicators
-5. Explore competitive analysis and market trends with interactive charts
+2. Review your price positioning (low, average, high) compared to market rates
+3. Identify opportunities for price adjustments with the help of visual indicators
+4. Explore competitive analysis and market trends with interactive charts
+5. Use the AI-powered recommendations to optimize your pricing strategy
 
 ## What's Next?
 
@@ -68,7 +68,10 @@ Now that you've completed the basic setup, here are some additional features to 
 - Click "Integrations" in the sidebar menu
 - Select "Connect Shopify Store"
 - Follow the simple authentication steps
-- Map your product identifiers
+- Use the Shopify dashboard to:
+  - Sync prices with your store
+  - Set up automated webhooks
+  - Manage bulk operations
 
 ### Set Up Customer Notifications
 - Go to "Notifications" in the sidebar
@@ -87,8 +90,9 @@ Now that you've completed the basic setup, here are some additional features to 
 Need assistance? We're here to help:
 
 - Click the "?" icon in any screen for contextual help
-- Visit our knowledge base at help.supplierpricewatcher.com
+- Visit our documentation center by clicking "Documentation" in the sidebar
 - Email our support team at support@supplierpricewatcher.com
+- Use the in-app chat for immediate assistance
 - Schedule a personalized walkthrough via the "Book Demo" button
 
 Congratulations! You've successfully set up Supplier Price Watch and processed your first price list. You're now ready to make more informed pricing decisions and save hours of manual work.

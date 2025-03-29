@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
-import { useMarketData } from "@/hooks/useMarketData";
+import { useMarketData } from "@/hooks/market-data";
 import { Separator } from "./ui/separator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { PriceItem } from "@/types/price";

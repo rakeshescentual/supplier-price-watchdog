@@ -29,7 +29,8 @@ export const shopifyClient = {
   }
 };
 
-export const initializeShopifyClient = (shop: string, accessToken: string, apiVersion = "2024-04") => {
+export const initializeShopifyClient = (shop: string, accessToken: string, apiVersion = "2025-04") => {
+  console.log(`Initializing Shopify client for ${shop} with API version ${apiVersion}`);
   initialized = true;
   return shopifyClient;
 };
@@ -40,4 +41,4 @@ export const resetShopifyClient = () => {
 
 export const isShopifyClientInitialized = () => initialized;
 
-export const getShopifyApiVersion = () => "2024-04";
+export const getShopifyApiVersion = () => "2025-04";

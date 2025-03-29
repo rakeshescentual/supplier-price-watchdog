@@ -19,11 +19,13 @@ import { FlowsAutomation } from "@/components/shopify/plus/FlowsAutomation";
 import { ShopifyOAuth } from "@/components/shopify/ShopifyOAuth";
 import { MultipassManager } from "@/components/shopify/plus/MultipassManager";
 import { GiftCardManager } from "@/components/shopify/plus/GiftCardManager";
+import { GraphQLMigrationAlert } from "@/components/shopify/GraphQLMigrationAlert";
 import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound, HelpCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider, TooltipContent, Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import { isGraphQLOnlyVersion } from "@/lib/shopify/api-version";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -40,6 +42,7 @@ export function ShopifyIntegrationDashboard() {
   const currentApiVersion = shopifyApiVersionManager.getCurrent();
   const latestApiVersion = shopifyApiVersionManager.getLatestStable().version;
   const isLatestApiVersion = currentApiVersion === latestApiVersion;
+  const isUsingGraphQLOnly = isGraphQLOnlyVersion(currentApiVersion);
   
   const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');
 
@@ -66,7 +69,14 @@ export function ShopifyIntegrationDashboard() {
   };
 
   const handleDocumentation = () => {
-    window.open('/docs/ShopifyIntegration', '_blank');
+    window.open('/documentation/docs/ShopifyIntegration', '_blank');
+  };
+  
+  const handleUpdateApiVersion = () => {
+    shopifyApiVersionManager.updateToVersion('2025-04');
+    toast.success("API Version Updated", {
+      description: `Updated to Shopify API version 2025-04 (GraphQL-only)`
+    });
   };
 
   return (
@@ -139,7 +149,14 @@ export function ShopifyIntegrationDashboard() {
         </Alert>
       )}
       
-      {isShopifyConnected && !isLatestApiVersion && (
+      {isShopifyConnected && !isUsingGraphQLOnly && (
+        <GraphQLMigrationAlert 
+          currentApiVersion={currentApiVersion} 
+          onUpdateVersion={handleUpdateApiVersion}
+        />
+      )}
+      
+      {isShopifyConnected && isUsingGraphQLOnly && !isLatestApiVersion && (
         <Alert variant="warning" className="mb-6">
           <Activity className="h-4 w-4" />
           <AlertTitle>API Version Update Available</AlertTitle>
@@ -212,57 +229,6 @@ export function ShopifyIntegrationDashboard() {
             <ShopifyIntegrationStatus />
             <ShopifyApiHealthCheck />
           </div>
-          
-          <Separator className="my-8" />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Store className="h-5 w-5 mr-2" />
-                Quick Actions
-              </CardTitle>
-              <CardDescription>Common tasks and operations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-auto py-6 flex flex-col items-center justify-center gap-2"
-                  onClick={() => setActiveTab("bulk")}
-                >
-                  <Activity className="h-8 w-8 mb-2" />
-                  <span className="font-medium">Sync Prices</span>
-                  <span className="text-xs text-muted-foreground text-center">
-                    Update product prices in Shopify
-                  </span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="h-auto py-6 flex flex-col items-center justify-center gap-2"
-                  onClick={() => setActiveTab("webhooks")}
-                >
-                  <ExternalLink className="h-8 w-8 mb-2" />
-                  <span className="font-medium">Manage Webhooks</span>
-                  <span className="text-xs text-muted-foreground text-center">
-                    Set up notifications for Shopify events
-                  </span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="h-auto py-6 flex flex-col items-center justify-center gap-2"
-                  onClick={() => setActiveTab("insights")}
-                >
-                  <Activity className="h-8 w-8 mb-2" />
-                  <span className="font-medium">Market Analysis</span>
-                  <span className="text-xs text-muted-foreground text-center">
-                    View market trends and price insights
-                  </span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
           
           <Separator className="my-8" />
           

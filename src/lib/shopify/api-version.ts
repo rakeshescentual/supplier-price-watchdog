@@ -6,10 +6,10 @@
  */
 
 // Supported API versions in order of preference (newest first)
-export const SUPPORTED_VERSIONS = ['2024-04', '2024-01', '2023-10', '2023-07'];
+export const SUPPORTED_VERSIONS = ['2025-04', '2024-04', '2024-01', '2023-10', '2023-07'];
 
 // Recommended stable version
-export const RECOMMENDED_VERSION = '2024-04';
+export const RECOMMENDED_VERSION = '2025-04';
 
 // Minimum supported version
 export const MINIMUM_VERSION = '2023-07';
@@ -48,8 +48,8 @@ export function getBestVersion(version?: string): string {
  */
 export async function fetchShopifyVersions(): Promise<string[]> {
   try {
-    // In a real implementation, this would call:
-    // GET https://shopify.dev/api/usage/versioning/release-notes.json
+    // In a real implementation, this would call the Shopify GraphQL API:
+    // query { shopifyApiVersions { version supported handle } }
     
     // Mock implementation for demo purposes
     return Promise.resolve(SUPPORTED_VERSIONS);
@@ -101,5 +101,30 @@ export function getVersionStatusMessage(version: string): {
   return {
     status: 'supported',
     message: `Version ${version} is supported but not the latest. Latest is ${RECOMMENDED_VERSION}.`
+  };
+}
+
+/**
+ * Checks if a version is compatible with GraphQL-only operations
+ * (Shopify requires GraphQL for all operations after April 1, 2025)
+ */
+export function isGraphQLOnlyVersion(version: string): boolean {
+  // All versions from 2025-04 onwards are GraphQL-only
+  const graphqlOnlyVersions = ['2025-04'];
+  return graphqlOnlyVersions.includes(version);
+}
+
+/**
+ * Gets information about GraphQL-only requirements
+ */
+export function getGraphQLRequirementInfo(): {
+  required: boolean;
+  message: string;
+  deadline: string;
+} {
+  return {
+    required: true,
+    message: "As of April 1, 2025, Shopify requires all app store submissions to use GraphQL exclusively.",
+    deadline: "April 1, 2025"
   };
 }

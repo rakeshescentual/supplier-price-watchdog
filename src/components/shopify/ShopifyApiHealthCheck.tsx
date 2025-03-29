@@ -10,6 +10,7 @@ import { Activity, AlertTriangle, ChevronDown, ChevronUp, HelpCircle, RefreshCw 
 import { toast } from 'sonner';
 import { useShopify } from '@/contexts/shopify';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { isGraphQLOnlyVersion } from '@/lib/shopify/api-version';
 
 export function ShopifyApiHealthCheck() {
   const { isShopifyConnected, shopifyContext } = useShopify();
@@ -23,7 +24,8 @@ export function ShopifyApiHealthCheck() {
     rateLimitRemaining: 0,
     lastChecked: null as Date | null,
     apiVersion: '',
-    scopes: [] as string[]
+    scopes: [] as string[],
+    graphqlPercentage: 100 // Default to 100% for new API versions
   });
   const [isOpen, setIsOpen] = useState(false);
 
@@ -62,6 +64,11 @@ export function ShopifyApiHealthCheck() {
     return 'Critical';
   };
 
+  // Helper function to check if version requires GraphQL only
+  const isGraphQLOnly = (version: string) => {
+    return isGraphQLOnlyVersion(version);
+  };
+
   const checkHealth = async () => {
     if (!isShopifyConnected || !shopifyContext) {
       toast.error("Shopify not connected", {
@@ -77,16 +84,20 @@ export function ShopifyApiHealthCheck() {
       await new Promise(resolve => setTimeout(resolve, 1200));
       
       // Mock data (in a real app, this would come from the API)
+      const apiVersion = shopifyContext?.apiVersion || '2024-04';
+      const isUsingGQLOnly = isGraphQLOnly(apiVersion);
+      
       const mockHealthData = {
         status: Math.random() > 0.9 ? 'degraded' : 'healthy',
         adminLatency: Math.floor(Math.random() * 600) + 200,
         storefrontLatency: Math.floor(Math.random() * 200) + 50,
         graphqlSuccess: true,
-        restSuccess: true,
+        restSuccess: !isUsingGQLOnly, // REST will fail on 2025-04+ versions
         rateLimitRemaining: Math.floor(Math.random() * 40) + 10,
         lastChecked: new Date(),
-        apiVersion: '2024-04',
-        scopes: ['read_products', 'write_products', 'read_inventory', 'write_inventory', 'read_orders']
+        apiVersion: apiVersion,
+        scopes: ['read_products', 'write_products', 'read_inventory', 'write_inventory', 'read_orders'],
+        graphqlPercentage: isUsingGQLOnly ? 100 : 85 // For older versions, assume 85% GraphQL usage
       };
       
       setHealthStats(mockHealthData);
@@ -210,11 +221,10 @@ export function ShopifyApiHealthCheck() {
               <Progress 
                 value={Math.min(100, (healthStats.adminLatency / 2000) * 100)} 
                 className="h-2"
-                // Use style for the indicator color instead of removed prop
                 style={{
                   '--progress-foreground': healthStats.adminLatency > 1500 ? 'rgb(239 68 68)' : 
-                                           healthStats.adminLatency > 800 ? 'rgb(234 179 8)' : 
-                                           'rgb(34 197 94)'
+                                          healthStats.adminLatency > 800 ? 'rgb(234 179 8)' : 
+                                          'rgb(34 197 94)'
                 } as React.CSSProperties}
               />
             )}
@@ -239,6 +249,59 @@ export function ShopifyApiHealthCheck() {
                                           'rgb(34 197 94)'
                 } as React.CSSProperties}
               />
+            )}
+          </div>
+
+          {/* GraphQL Migration Status - New Component */}
+          <div className="space-y-2 mt-4">
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-1">
+                <span className="font-medium">GraphQL Migration</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 p-0 ml-1">
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        As of April 1, 2025, Shopify requires all app store submissions to use GraphQL exclusively.
+                        This shows your progress in migrating from REST to GraphQL.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <span className="text-muted-foreground">
+                {isChecking ? 
+                  <Skeleton className="h-4 w-16" /> : 
+                  `${healthStats.graphqlPercentage}%`}
+              </span>
+            </div>
+            {isChecking ? (
+              <Skeleton className="h-2 w-full" />
+            ) : (
+              <Progress 
+                value={healthStats.graphqlPercentage} 
+                className="h-2"
+                style={{
+                  '--progress-foreground': healthStats.graphqlPercentage < 50 ? 'rgb(239 68 68)' : 
+                                          healthStats.graphqlPercentage < 90 ? 'rgb(234 179 8)' : 
+                                          'rgb(34 197 94)'
+                } as React.CSSProperties}
+              />
+            )}
+            {isGraphQLOnly(healthStats.apiVersion) ? (
+              <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                <Badge variant="outline" className="text-xs bg-green-50">Ready</Badge>
+                Using GraphQL-only API version (2025-04+)
+              </div>
+            ) : (
+              <div className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                <Badge variant="outline" className="text-xs bg-amber-50">Action Needed</Badge>
+                Update to API version 2025-04 before April 1, 2025
+              </div>
             )}
           </div>
 
@@ -279,7 +342,7 @@ export function ShopifyApiHealthCheck() {
                 </div>
                 <div className="flex items-center gap-1">
                   <div className={`h-2 w-2 rounded-full ${healthStats.restSuccess ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>REST Endpoint</span>
+                  <span>REST Endpoint {isGraphQLOnly(healthStats.apiVersion) && <Badge variant="outline" className="text-xs ml-1">Deprecated</Badge>}</span>
                 </div>
               </div>
               
@@ -298,6 +361,17 @@ export function ShopifyApiHealthCheck() {
                 <span className="font-medium">Connected Store:</span>
                 <div className="text-muted-foreground mt-1">{shopifyContext?.shop || 'Unknown'}</div>
               </div>
+              
+              {/* GraphQL Migration Notice */}
+              {!isGraphQLOnly(healthStats.apiVersion) && (
+                <div className="text-sm mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="font-medium text-amber-800">April 1, 2025 Deadline</div>
+                  <p className="text-amber-700 mt-1">
+                    After April 1, 2025, Shopify will no longer accept app store submissions that use REST API calls. 
+                    Upgrade to API version 2025-04 to ensure compliance.
+                  </p>
+                </div>
+              )}
             </CollapsibleContent>
           </Collapsible>
         </div>

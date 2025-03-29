@@ -19,7 +19,7 @@ import { FlowsAutomation } from "@/components/shopify/plus/FlowsAutomation";
 import { ShopifyOAuth } from "@/components/shopify/ShopifyOAuth";
 import { MultipassManager } from "@/components/shopify/plus/MultipassManager";
 import { GiftCardManager } from "@/components/shopify/plus/GiftCardManager";
-import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound, HelpCircle, Refresh } from "lucide-react";
+import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound, HelpCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
@@ -89,7 +89,7 @@ export function ShopifyIntegrationDashboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleRefreshConnection} disabled={isRefreshing}>
-                  <Refresh className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
               </TooltipTrigger>

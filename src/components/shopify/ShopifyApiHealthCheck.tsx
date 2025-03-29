@@ -210,9 +210,12 @@ export function ShopifyApiHealthCheck() {
               <Progress 
                 value={Math.min(100, (healthStats.adminLatency / 2000) * 100)} 
                 className="h-2"
-                indicatorClassName={healthStats.adminLatency > 1500 ? 'bg-red-500' : 
-                                   healthStats.adminLatency > 800 ? 'bg-yellow-500' : 
-                                   'bg-green-500'}
+                // Use style for the indicator color instead of removed prop
+                style={{
+                  '--progress-foreground': healthStats.adminLatency > 1500 ? 'rgb(239 68 68)' : 
+                                           healthStats.adminLatency > 800 ? 'rgb(234 179 8)' : 
+                                           'rgb(34 197 94)'
+                } as React.CSSProperties}
               />
             )}
           </div>
@@ -230,9 +233,11 @@ export function ShopifyApiHealthCheck() {
               <Progress 
                 value={Math.min(100, (healthStats.storefrontLatency / 1000) * 100)} 
                 className="h-2"
-                indicatorClassName={healthStats.storefrontLatency > 800 ? 'bg-red-500' : 
-                                   healthStats.storefrontLatency > 300 ? 'bg-yellow-500' : 
-                                   'bg-green-500'}
+                style={{
+                  '--progress-foreground': healthStats.storefrontLatency > 800 ? 'rgb(239 68 68)' : 
+                                          healthStats.storefrontLatency > 300 ? 'rgb(234 179 8)' : 
+                                          'rgb(34 197 94)'
+                } as React.CSSProperties}
               />
             )}
           </div>

@@ -33,7 +33,7 @@ export const useMarketData = (
   const { 
     isEnrichingData, 
     enrichDataWithMarketInfo 
-  } = useMarketDataEnrichment(items, updateItems, onAnalysisNeeded, analytics, marketDataTracker);
+  } = useMarketDataEnrichment(items, updateItems, analytics, marketDataTracker, onAnalysisNeeded);
   
   const { 
     isFetchingTrends, 

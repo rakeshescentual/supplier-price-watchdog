@@ -7,9 +7,9 @@ import { enrichDataWithSearch } from '@/utils/marketDataUtils';
 export const useMarketDataEnrichment = (
   items: PriceItem[],
   updateItems: (items: PriceItem[]) => void,
-  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>,
   analytics: any,
-  marketDataTracker: any
+  marketDataTracker: any,
+  onAnalysisNeeded?: (items: PriceItem[]) => Promise<PriceAnalysis | void>
 ) => {
   const [isEnrichingData, setIsEnrichingData] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);

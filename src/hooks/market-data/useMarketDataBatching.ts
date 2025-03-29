@@ -9,21 +9,22 @@ export const useMarketDataBatching = (
   marketDataTracker: any
 ) => {
   // Batch process items for market analysis
-  const batchProcessItems = useCallback(async (processFn: (item: PriceItem) => Promise<any>): Promise<any[]> => {
-    if (items.length === 0) return [];
+  const batchProcessItems = useCallback(<T, R>(processFn: (item: T) => Promise<R>): Promise<R[]> => {
+    if (items.length === 0) return Promise.resolve([]) as Promise<R[]>;
     
     marketDataTracker.trackUse('batch_process', { itemCount: items.length });
     const perfTracker = analytics.startTracking('batchProcessItems', { itemCount: items.length });
     
     try {
-      const results = await performBatchOperations(items, processFn, 50);
-      await perfTracker();
+      // We need to cast here since our items are PriceItem[] but we want to allow generic processing
+      const results = performBatchOperations(items as unknown as T[], processFn, 50);
+      perfTracker();
       return results;
     } catch (error) {
       marketDataTracker.trackError(error instanceof Error ? error : String(error), {
         operation: 'batch_process'
       });
-      await perfTracker();
+      perfTracker();
       throw error;
     }
   }, [items, analytics, marketDataTracker]);

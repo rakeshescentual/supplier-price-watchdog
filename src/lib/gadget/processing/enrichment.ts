@@ -1,11 +1,8 @@
 
-/**
- * Data enrichment utilities for Gadget
- */
-import type { PriceItem } from '@/types/price';
-import { initGadgetClient } from '../client';
 import { logInfo, logError } from '../logging';
 import { startPerformanceTracking } from '../telemetry';
+import { PriceItem } from '@/types/price';
+import { toast } from 'sonner';
 
 /**
  * Enrich price data with market information via Gadget
@@ -13,11 +10,6 @@ import { startPerformanceTracking } from '../telemetry';
  * @returns Promise resolving to enriched items
  */
 export const enrichPriceData = async (items: PriceItem[]): Promise<PriceItem[]> => {
-  const client = initGadgetClient();
-  if (!client) {
-    return items;
-  }
-  
   // Start performance tracking
   const finishTracking = startPerformanceTracking('enrichPriceData', {
     itemCount: items.length
@@ -25,13 +17,6 @@ export const enrichPriceData = async (items: PriceItem[]): Promise<PriceItem[]> 
   
   try {
     logInfo(`Enriching ${items.length} price items with market data`, {}, 'processing');
-    
-    // In production: Use Gadget SDK for data enrichment
-    // const result = await client.mutate.enrichMarketData({
-    //   items: JSON.stringify(items)
-    // });
-    // 
-    // return JSON.parse(result.enrichedItems);
     
     // For development: Simple mock enrichment
     const enrichedItems = await mockEnrichItems(items);
@@ -58,7 +43,7 @@ export const enrichPriceData = async (items: PriceItem[]): Promise<PriceItem[]> 
  * @param items Items to enrich
  * @returns Enriched items
  */
-const mockEnrichItems = async (items: PriceItem[]): Promise<PriceItem[]> => {
+export const mockEnrichItems = async (items: PriceItem[]): Promise<PriceItem[]> => {
   // Simulate processing time
   await new Promise(resolve => setTimeout(resolve, 1500));
   

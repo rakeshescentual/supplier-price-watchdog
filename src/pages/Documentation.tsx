@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -109,9 +110,9 @@ const Documentation = () => {
 
             <TabsContent value="content">
               <ScrollArea className="h-[calc(65vh)] w-full">
-                <ReactMarkdown className="prose dark:prose-invert max-w-none">
-                  {markdownContent}
-                </ReactMarkdown>
+                <div className="prose dark:prose-invert max-w-none">
+                  <ReactMarkdown>{markdownContent}</ReactMarkdown>
+                </div>
               </ScrollArea>
             </TabsContent>
 

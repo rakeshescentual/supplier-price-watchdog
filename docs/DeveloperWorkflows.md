@@ -1,4 +1,3 @@
-
 # Developer Workflows
 
 ## Development Environment Setup
@@ -44,14 +43,19 @@ src/
 │   ├── ui/          # UI components from shadcn
 │   ├── index/       # Index page components
 │   ├── auth/        # Authentication components
+│   ├── market-insights/ # Market data visualization components
 │   └── ...          # Feature-specific components
 ├── contexts/        # React context providers
 │   ├── shopify/     # Shopify integration context
 │   ├── fileAnalysis/ # File analysis context
 │   └── ...
 ├── hooks/           # Custom React hooks
+│   ├── market-data/ # Market data related hooks
+│   └── ...
 ├── lib/             # Utility functions
 │   ├── gadget/      # Gadget.dev integration
+│   │   ├── processing/ # Data processing modules
+│   │   └── ...
 │   └── ...
 ├── pages/           # Page components
 ├── services/        # Service modules
@@ -94,7 +98,23 @@ src/
 - Follow accessibility best practices
 - Use Storybook for component development and documentation
 
-### 4. Integration Patterns
+### 4. Market Data Implementation
+
+For market data and competitive analysis:
+
+1. Use the modular market data hooks:
+   - `useMarketData`: Core market data state management
+   - `useMarketDataEnrichment`: Web data enrichment operations
+   - `useMarketDataAnalysis`: Statistical analysis and insights
+   - `useMarketDataTrends`: Trend identification and monitoring
+   - `useMarketDataBatching`: Efficient batch processing
+
+2. Implement market data components:
+   - `WebEnrichmentSection`: UI for web data enrichment
+   - `MarketPositioningCard`: Visualize market position data
+   - `CategoryTrendsSection`: Display category trends
+
+### 5. Integration Patterns
 
 #### Shopify Integration
 
@@ -126,6 +146,20 @@ For leveraging Gadget.dev capabilities:
 1. Use the Gadget client initialization pattern
 2. Implement fallback mechanisms when Gadget is not available
 3. Use batch operations for efficient API usage
+4. Utilize modular processing functions:
+   - `enrichPriceData`: Enhance items with market information
+   - `analyzeCompetitiveLandscape`: Get competitive insights
+
+Example:
+```typescript
+import { enrichPriceData } from '../lib/gadget/processing/enrichment';
+
+const handleEnrichData = async () => {
+  const enrichedItems = await enrichPriceData(items);
+  updateItems(enrichedItems);
+  toast.success("Data enriched successfully");
+};
+```
 
 ## Testing Strategy
 
@@ -152,4 +186,3 @@ Common development issues and solutions:
 - **React Hook Warnings**: Ensure proper dependency arrays in useEffect, useMemo, etc.
 - **API Connection Issues**: Verify credentials and network connectivity
 - **Performance Issues**: Use React DevTools profiler to identify bottlenecks
-

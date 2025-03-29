@@ -1,4 +1,3 @@
-
 # Supplier Price Watch - Gadget.dev Integration Guide
 
 ## Purpose & Overview
@@ -53,17 +52,61 @@ export const processPdfWithGadget = async (file: File): Promise<PriceItem[]> => 
 
 ### 4. Data Enrichment with Market Information
 
-Gadget.dev is used to enrich product data with market information:
+Gadget.dev is used to enrich product data with market information through modular processing functions:
 
 ```typescript
-export const enrichDataWithSearch = async (items: PriceItem[]): Promise<PriceItem[]> => {
-  // Send items to Gadget for web search
-  // Extract competitive pricing information
-  // Return enhanced items with market context
-}
+// From lib/gadget/processing/enrichment.ts
+export const enrichPriceData = async (items: PriceItem[]): Promise<PriceItem[]> => {
+  // Start performance tracking
+  const finishTracking = startPerformanceTracking('enrichPriceData', {
+    itemCount: items.length
+  });
+  
+  try {
+    logInfo(`Enriching ${items.length} price items with market data`, {}, 'processing');
+    
+    // Enrich items with market data
+    const enrichedItems = await mockEnrichItems(items);
+    
+    // Complete performance tracking
+    await finishTracking();
+    
+    return enrichedItems;
+  } catch (error) {
+    logError('Error enriching data with Gadget', { error }, 'processing');
+    await finishTracking();
+    return items;
+  }
+};
 ```
 
-### 5. Efficient Batch Operations
+### 5. Competitive Analysis
+
+The application provides competitive landscape analysis through dedicated processing modules:
+
+```typescript
+// From lib/gadget/processing/competitive.ts
+export const analyzeCompetitiveLandscape = async (
+  items: PriceItem[]
+): Promise<Record<string, any>> => {
+  // Start performance tracking
+  const finishTracking = startPerformanceTracking('analyzeCompetitiveLandscape', {
+    itemCount: items.length
+  });
+  
+  try {
+    // Analyze competitive landscape
+    // Generate insights
+    await finishTracking();
+    return result;
+  } catch (error) {
+    await finishTracking();
+    return {};
+  }
+};
+```
+
+### 6. Efficient Batch Operations
 
 When syncing with Shopify, Gadget.dev handles batch operations to prevent rate limiting:
 
@@ -103,6 +146,67 @@ File Processing                            │
          ▼
    AI Analysis &
    User Actions
+```
+
+## Market Data Components
+
+The application includes dedicated UI components for market data visualization:
+
+### 1. Web Enrichment Section
+
+```typescript
+// WebEnrichmentSection.tsx
+export const WebEnrichmentSection = ({ 
+  isEnrichingData, 
+  hasMarketData, 
+  items, 
+  handleEnrichData 
+}: WebEnrichmentSectionProps) => {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Search className="w-4 h-4 text-blue-500" />
+        <h4 className="font-medium">Web Data Enrichment</h4>
+      </div>
+      
+      <p className="text-sm text-muted-foreground mb-3">
+        Enhance your price analysis with real-time market data from the web.
+      </p>
+      
+      <Button 
+        onClick={handleEnrichData} 
+        disabled={isEnrichingData || items.length === 0}
+        variant="outline"
+        size="sm"
+        className="w-full"
+      >
+        {/* Button content */}
+      </Button>
+
+      <MarketPositioningCard items={items} hasMarketData={hasMarketData} />
+    </div>
+  );
+};
+```
+
+### 2. Market Positioning Card
+
+```typescript
+// MarketPositioningCard.tsx
+export const MarketPositioningCard = ({ items, hasMarketData }: MarketPositioningCardProps) => {
+  if (!hasMarketData) return null;
+  
+  const positions = ['low', 'average', 'high'] as const;
+  
+  return (
+    <div className="mt-4 space-y-3">
+      <h5 className="text-sm font-medium">Price positioning:</h5>
+      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        {/* Card content */}
+      </div>
+    </div>
+  );
+};
 ```
 
 ## Implementation Details

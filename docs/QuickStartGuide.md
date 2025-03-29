@@ -47,19 +47,13 @@ This guide will help you get started with Supplier Price Watch in just 5 minutes
    - New items
    - Specific categories
 
-## Step 5: Take Action (1 minute)
+## Step 5: Explore Market Insights (1 minute)
 
-1. Select items to update by:
-   - Checking individual items
-   - Using "Select All" for filtered results
-   - Using bulk selection options
-
-2. Choose your action:
-   - "Export Selected" for external use
-   - "Save Analysis" to keep for future reference
-   - "Connect Shopify" to enable direct updates (optional)
-
-3. Click "Complete Setup" to finish your initial configuration
+1. Navigate to the "Market Insights" section
+2. Click "Fetch Market Insights" to enrich your data with web information
+3. Review your price positioning (low, average, high) compared to market rates
+4. Identify opportunities for price adjustments based on market positioning
+5. Explore competitive analysis and trends 
 
 ## Next Steps
 

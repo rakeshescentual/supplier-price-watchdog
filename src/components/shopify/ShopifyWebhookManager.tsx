@@ -23,8 +23,8 @@ export function ShopifyWebhookManager() {
   // Get list of essential webhooks
   useEffect(() => {
     if (isShopifyConnected) {
-      const essentials = getEssentialWebhooks(shopifyContext?.shopPlan);
-      setEssentialWebhooks(essentials.map(webhook => webhook.topic));
+      const essentialWebhookDefs = getEssentialWebhooks(shopifyContext?.shopPlan);
+      setEssentialWebhooks(essentialWebhookDefs.map(webhook => webhook.topic));
     }
   }, [isShopifyConnected, shopifyContext]);
   

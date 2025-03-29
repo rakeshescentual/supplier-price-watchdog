@@ -63,6 +63,22 @@ export function getRecommendedWebhooks(): WebhookDefinition[] {
   ];
 }
 
+// Function to get essential webhooks based on shop plan
+export function getEssentialWebhooks(shopPlan?: string): WebhookDefinition[] {
+  const allWebhooks = getRecommendedWebhooks();
+  
+  // For Plus stores, we might want to include additional essential webhooks
+  if (shopPlan === 'plus' || shopPlan === 'shopify_plus') {
+    return allWebhooks.filter(webhook => 
+      webhook.recommended || 
+      webhook.topic === 'fulfillments/create'
+    );
+  }
+  
+  // For regular stores, just return the recommended ones
+  return allWebhooks.filter(webhook => webhook.recommended);
+}
+
 // Function to validate webhook input
 export function validateWebhook(address: string, topic: WebhookTopic) {
   const errors: string[] = [];

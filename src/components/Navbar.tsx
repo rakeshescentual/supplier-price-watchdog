@@ -1,48 +1,82 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MenuIcon, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Menu, Settings, Bell, GitBranch } from 'lucide-react';
+import { useShopify } from '@/contexts/shopify';
+import { getShopifyApiVersion } from '@/lib/shopify/client';
+import { isGraphQLOnlyVersion } from '@/lib/shopify/api-version';
 
 interface NavbarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  onApiManagerToggle?: () => void;
+  showApiManager?: boolean;
 }
 
-const Navbar = ({ sidebarOpen, setSidebarOpen }: NavbarProps) => {
-  const navigate = useNavigate();
+const Navbar = ({ sidebarOpen, setSidebarOpen, onApiManagerToggle, showApiManager }: NavbarProps) => {
+  const { isShopifyConnected, shopifyContext } = useShopify();
+  const currentApiVersion = getShopifyApiVersion();
+  const isGraphQLReady = isGraphQLOnlyVersion(currentApiVersion);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-      <Button 
-        variant="ghost" 
-        size="icon"
-        className="md:hidden" 
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
-        <span className="sr-only">Toggle Menu</span>
-      </Button>
-      
-      <div className="flex items-center gap-2">
-        <img 
-          src="/placeholder.svg" 
-          alt="Escentual Logo" 
-          width={32} 
-          height={32} 
-          className="rounded-md"
-        />
-        <h1 className="text-lg font-semibold">Escentual Price Watch</h1>
-      </div>
-      
-      <div className="ml-auto flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => navigate('/documentation')}
+    <header className="fixed top-0 z-40 w-full border-b bg-background">
+      <div className="container flex h-16 items-center px-4">
+        <Button
+          variant="ghost"
+          className="mr-4 flex lg:hidden"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          Documentation
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle sidebar</span>
         </Button>
+        
+        <div className="flex items-center gap-2">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 font-semibold text-lg"
+          >
+            <img src="/placeholder.svg" alt="Logo" className="h-8 w-8" />
+            <span>EscentPriceManager</span>
+          </Link>
+          
+          {isShopifyConnected && (
+            <Badge variant="outline" className="ml-2 hidden md:flex">
+              Connected to {shopifyContext?.shop}
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex-1" />
+        
+        <div className="flex items-center gap-2">
+          {isShopifyConnected && (
+            <Button
+              variant={showApiManager ? "secondary" : "ghost"}
+              size="sm"
+              className="hidden md:flex items-center gap-1"
+              onClick={onApiManagerToggle}
+            >
+              <GitBranch className="h-4 w-4" />
+              API
+              <Badge 
+                variant={isGraphQLReady ? "success" : "outline"}
+                className={`ml-1 text-xs ${isGraphQLReady ? "bg-green-100 text-green-800" : ""}`}
+              >
+                {currentApiVersion}
+              </Badge>
+            </Button>
+          )}
+          
+          <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+          </Button>
+          
+          <Button variant="ghost" size="icon">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );

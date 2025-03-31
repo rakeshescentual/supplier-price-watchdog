@@ -7,10 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InputWithCopy } from "@/components/ui/input-with-copy";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { GraphQLMigrationAlert } from "@/components/shopify/GraphQLMigrationAlert";
-import { getShopifyApiVersion } from "@/lib/shopify/client";
-import { isGraphQLOnlyVersion, SUPPORTED_VERSIONS, RECOMMENDED_VERSION, isVersionSupported } from "@/lib/shopify/api-version";
-import { ArrowRight, CheckCircle, Code, Info, RefreshCw, GitBranch, AlertTriangle } from "lucide-react";
+import { getShopifyApiVersion, setShopifyApiVersion } from "@/lib/shopify/client";
+import { 
+  isGraphQLOnlyVersion, 
+  SUPPORTED_VERSIONS, 
+  RECOMMENDED_VERSION, 
+  isVersionSupported,
+  getDaysUntilGraphQLOnly,
+  API_VERSION_DETAILS,
+  LATEST_API_VERSION
+} from "@/lib/shopify/api-version";
+import { ArrowRight, CheckCircle, Code, Info, RefreshCw, GitBranch, AlertTriangle, Calendar } from "lucide-react";
 import { useShopify } from "@/contexts/shopify";
 import { toast } from "sonner";
 
@@ -32,6 +41,8 @@ export function ShopifyApiVersionManager() {
   const [isRunningQuery, setIsRunningQuery] = useState(false);
 
   const isCurrentVersionGraphQLOnly = isGraphQLOnlyVersion(currentApiVersion);
+  const daysUntilDeadline = getDaysUntilGraphQLOnly();
+  const migrationProgress = isCurrentVersionGraphQLOnly ? 100 : Math.min(80, Math.max(10, 100 - (daysUntilDeadline / 365 * 100)));
   
   const handleRunQuery = async () => {
     if (!isShopifyConnected || !shopifyContext) {
@@ -86,10 +97,16 @@ export function ShopifyApiVersionManager() {
   };
   
   const handleUpdateVersion = () => {
-    // This would be implemented to change the Shopify API version
-    toast.info("Feature coming soon", {
-      description: "API version update will be available in the next release."
-    });
+    const success = setShopifyApiVersion(LATEST_API_VERSION);
+    if (success) {
+      toast.success("API Version Updated", {
+        description: `Updated to Shopify API version ${LATEST_API_VERSION}`
+      });
+    } else {
+      toast.error("Update Failed", {
+        description: "Failed to update API version"
+      });
+    }
   };
   
   return (
@@ -121,6 +138,21 @@ export function ShopifyApiVersionManager() {
           onUpdateVersion={handleUpdateVersion}
         />
         
+        <div className="px-6 pb-4">
+          <div className="mb-1 flex justify-between text-sm">
+            <span className="text-muted-foreground">GraphQL Migration Progress</span>
+            <span className="font-medium">{isCurrentVersionGraphQLOnly ? "Complete" : `${Math.round(migrationProgress)}%`}</span>
+          </div>
+          <Progress value={migrationProgress} className="h-2" />
+          <div className="mt-1 flex text-xs text-muted-foreground justify-between">
+            <span>Today</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              April 1, 2025
+            </span>
+          </div>
+        </div>
+        
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="px-6">
           <TabsList className="mb-4 grid grid-cols-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -143,7 +175,7 @@ export function ShopifyApiVersionManager() {
               
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Recommended Version</h3>
-                <Badge variant="outline" className="text-base py-1">{RECOMMENDED_VERSION}</Badge>
+                <Badge variant="outline" className="text-base py-1">{LATEST_API_VERSION}</Badge>
               </div>
               
               <div className="space-y-2">
@@ -166,7 +198,7 @@ export function ShopifyApiVersionManager() {
                   <Badge 
                     key={version}
                     variant={version === currentApiVersion ? "default" : "outline"}
-                    className="text-sm"
+                    className={`text-sm ${version in API_VERSION_DETAILS && API_VERSION_DETAILS[version as keyof typeof API_VERSION_DETAILS].graphqlOnly ? "border-green-200" : ""}`}
                   >
                     {version}
                     {isGraphQLOnlyVersion(version) && (
@@ -182,7 +214,7 @@ export function ShopifyApiVersionManager() {
               <AlertTitle className="text-blue-700">GraphQL Migration Required by April 2025</AlertTitle>
               <AlertDescription className="text-blue-600">
                 Shopify will no longer accept public app submissions using REST API after April 1, 2025.
-                Update to API version 2025-04 to ensure your app is compliant.
+                Update to API version {LATEST_API_VERSION} or later to ensure your app is compliant.
               </AlertDescription>
             </Alert>
           </TabsContent>

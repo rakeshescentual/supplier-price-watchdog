@@ -1,4 +1,20 @@
+
 export const changelogData = [
+  {
+    version: "3.7.0",
+    date: "October 15, 2024",
+    title: "Shopify API 2024-10 Support & GraphQL Migration Tools",
+    type: "feature" as const,
+    description: "This release adds support for Shopify's latest API version (2024-10) and provides comprehensive tools to help with the GraphQL migration required by April 2025.",
+    details: [
+      "Updated to Shopify API version 2024-10",
+      "GraphQL Migration Guide with code examples for converting REST to GraphQL",
+      "GraphQL query testing environment in the API Version Manager",
+      "API version compatibility status notifications",
+      "Automated compatibility checks for all Shopify API calls"
+    ],
+    technicalNotes: "This version improves the API version management system with real-time validation of GraphQL compatibility. It also adds a comprehensive GraphQL migration guide with practical examples for converting common REST endpoints to their GraphQL equivalents."
+  },
   {
     version: "3.6.0",
     date: "July 15, 2024",

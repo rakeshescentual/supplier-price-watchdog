@@ -4,7 +4,7 @@
  */
 
 let initialized = false;
-let currentApiVersion = "2025-04"; // Default to the GraphQL-compatible version
+let currentApiVersion = "2024-10"; // Updated to the latest stable version
 
 export const shopifyClient = {
   graphql: async <T>(query: string, variables?: Record<string, any>): Promise<T> => {
@@ -47,7 +47,7 @@ export const shopifyClient = {
   }
 };
 
-export const initializeShopifyClient = (shop: string, accessToken: string, apiVersion = "2025-04") => {
+export const initializeShopifyClient = (shop: string, accessToken: string, apiVersion = "2024-10") => {
   console.log(`Initializing Shopify client for ${shop} with API version ${apiVersion}`);
   currentApiVersion = apiVersion;
   initialized = true;
@@ -56,7 +56,7 @@ export const initializeShopifyClient = (shop: string, accessToken: string, apiVe
 
 export const resetShopifyClient = () => {
   initialized = false;
-  currentApiVersion = "2025-04"; // Reset to default version
+  currentApiVersion = "2024-10"; // Reset to latest stable version
 };
 
 export const isShopifyClientInitialized = () => initialized;

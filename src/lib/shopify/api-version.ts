@@ -1,130 +1,183 @@
 
 /**
- * Shopify API Version Management
- * 
- * This module handles Shopify API version compatibility and updates.
+ * Shopify API version information
+ * Updated based on Shopify's changelog: https://shopify.dev/changelog
  */
 
-// Supported API versions in order of preference (newest first)
-export const SUPPORTED_VERSIONS = ['2025-04', '2024-04', '2024-01', '2023-10', '2023-07'];
+// Latest stable API version
+export const LATEST_API_VERSION = "2024-10";
 
-// Recommended stable version
-export const RECOMMENDED_VERSION = '2025-04';
+// Recommended version (usually the latest stable)
+export const RECOMMENDED_VERSION = LATEST_API_VERSION;
 
-// Minimum supported version
-export const MINIMUM_VERSION = '2023-07';
+// Upcoming version (usually the next planned release)
+export const UPCOMING_API_VERSION = "2025-01";
+
+// Date when GraphQL-only requirement begins
+export const GRAPHQL_ONLY_DATE = new Date("2025-04-01");
+
+// API versions that are GraphQL-only compatible
+export const GRAPHQL_ONLY_VERSIONS = ["2024-10", "2024-07", "2024-04", "2025-01"];
+
+// All supported API versions (most recent first)
+export const SUPPORTED_VERSIONS = [
+  "2024-10", // October 2024 (Latest)
+  "2024-07", // July 2024
+  "2024-04", // April 2024
+  "2024-01", // January 2024
+  "2023-10", // October 2023
+  "2023-07", // July 2023 (Legacy)
+  "2023-04", // April 2023 (Legacy)
+];
+
+// Version release information with features
+export const API_VERSION_DETAILS = {
+  "2024-10": {
+    releaseDate: "2024-10-01",
+    endOfSupport: "2025-10-01",
+    majorChanges: [
+      "Enhanced GraphQL support for fulfillment services",
+      "Improved bulk operations with progress tracking",
+      "New customer segmentation features",
+      "Support for additional payment methods"
+    ],
+    breaking: [
+      "Removal of legacy order processing endpoints",
+      "Changes to customer metafield structure"
+    ],
+    graphqlOnly: true
+  },
+  "2024-07": {
+    releaseDate: "2024-07-01",
+    endOfSupport: "2025-07-01",
+    majorChanges: [
+      "Enhanced support for marketplace integrations",
+      "Improved B2B capabilities",
+      "New checkout extension APIs",
+      "Expanded multi-currency support"
+    ],
+    breaking: [
+      "Deprecation of legacy discount APIs",
+      "Changes to inventory adjustment API structure"
+    ],
+    graphqlOnly: true
+  },
+  "2024-04": {
+    releaseDate: "2024-04-02",
+    endOfSupport: "2025-04-02",
+    majorChanges: [
+      "First GraphQL-only API version",
+      "Enhanced App Bridge 2.0 integration",
+      "Improved multi-location inventory management",
+      "New subscription management capabilities"
+    ],
+    breaking: [
+      "Removal of all legacy REST endpoints for public apps",
+      "New authentication flow requirements"
+    ],
+    graphqlOnly: true
+  },
+  "2024-01": {
+    releaseDate: "2024-01-04",
+    endOfSupport: "2025-01-04",
+    majorChanges: [
+      "Last API version with full REST support",
+      "Webhook API improvements",
+      "Enhanced metafield support",
+      "New discount combinations API"
+    ],
+    breaking: [
+      "Changes to product publishing workflow",
+      "Revised order editing permissions"
+    ],
+    graphqlOnly: false
+  }
+};
 
 /**
- * Determines if a given API version is supported
+ * Checks if a given API version is supported
  */
-export function isVersionSupported(version: string): boolean {
+export const isVersionSupported = (version: string): boolean => {
   return SUPPORTED_VERSIONS.includes(version);
-}
+};
 
 /**
- * Checks if a version is deprecated
+ * Checks if a given API version is GraphQL-only
  */
-export function isVersionDeprecated(version: string): boolean {
-  return isVersionSupported(version) && 
-         SUPPORTED_VERSIONS.indexOf(version) > SUPPORTED_VERSIONS.indexOf(RECOMMENDED_VERSION);
-}
+export const isGraphQLOnlyVersion = (version: string): boolean => {
+  return GRAPHQL_ONLY_VERSIONS.includes(version);
+};
 
 /**
- * Gets the most appropriate API version
- * 
- * If the provided version is supported, it will be used.
- * Otherwise, falls back to the recommended version.
+ * Returns information about compatibility status for a given version
  */
-export function getBestVersion(version?: string): string {
-  if (version && isVersionSupported(version)) {
-    return version;
-  }
-  return RECOMMENDED_VERSION;
-}
-
-/**
- * Fetches supported Shopify API versions from the Shopify API
- * (This would normally call the Shopify REST API to get current versions)
- */
-export async function fetchShopifyVersions(): Promise<string[]> {
-  try {
-    // In a real implementation, this would call the Shopify GraphQL API:
-    // query { shopifyApiVersions { version supported handle } }
-    
-    // Mock implementation for demo purposes
-    return Promise.resolve(SUPPORTED_VERSIONS);
-  } catch (error) {
-    console.error("Failed to fetch Shopify API versions:", error);
-    return SUPPORTED_VERSIONS;
-  }
-}
-
-/**
- * Checks if the store's current version needs updating
- */
-export function needsVersionUpdate(currentVersion: string): boolean {
-  if (!isVersionSupported(currentVersion)) {
-    return true;
-  }
+export const getVersionCompatibility = (version: string): {
+  supported: boolean;
+  graphqlOnly: boolean;
+  recommended: boolean;
+  daysUntilDeprecation?: number;
+} => {
+  const isSupported = isVersionSupported(version);
+  const isGraphQLOnly = isGraphQLOnlyVersion(version);
   
-  return SUPPORTED_VERSIONS.indexOf(currentVersion) > 0;
-}
-
-/**
- * Gets a human-readable message about version status
- */
-export function getVersionStatusMessage(version: string): {
-  status: 'current' | 'supported' | 'deprecated' | 'unsupported',
-  message: string
-} {
-  if (!isVersionSupported(version)) {
-    return {
-      status: 'unsupported',
-      message: `Version ${version} is not supported. Please update to ${RECOMMENDED_VERSION}.`
-    };
-  }
-  
-  if (version === RECOMMENDED_VERSION) {
-    return {
-      status: 'current',
-      message: `You're using the current recommended Shopify API version.`
-    };
-  }
-  
-  if (isVersionDeprecated(version)) {
-    return {
-      status: 'deprecated',
-      message: `Version ${version} will be deprecated soon. Consider updating to ${RECOMMENDED_VERSION}.`
-    };
+  let daysUntilDeprecation;
+  if (isSupported && version in API_VERSION_DETAILS) {
+    const endDate = new Date(API_VERSION_DETAILS[version as keyof typeof API_VERSION_DETAILS].endOfSupport);
+    const today = new Date();
+    daysUntilDeprecation = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   }
   
   return {
-    status: 'supported',
-    message: `Version ${version} is supported but not the latest. Latest is ${RECOMMENDED_VERSION}.`
+    supported: isSupported,
+    graphqlOnly: isGraphQLOnly,
+    recommended: version === RECOMMENDED_VERSION,
+    daysUntilDeprecation
   };
-}
+};
 
 /**
- * Checks if a version is compatible with GraphQL-only operations
- * (Shopify requires GraphQL for all operations after April 1, 2025)
+ * Returns the latest GraphQL-only version
  */
-export function isGraphQLOnlyVersion(version: string): boolean {
-  // All versions from 2025-04 onwards are GraphQL-only
-  const graphqlOnlyVersions = ['2025-04'];
-  return graphqlOnlyVersions.includes(version);
-}
+export const getLatestGraphQLOnlyVersion = () => {
+  return GRAPHQL_ONLY_VERSIONS[0];
+};
 
 /**
- * Gets information about GraphQL-only requirements
+ * Returns the latest stable version
  */
-export function getGraphQLRequirementInfo(): {
-  required: boolean;
-  message: string;
-  deadline: string;
-} {
+export const getLatestStable = () => {
   return {
-    required: true,
-    message: "As of April 1, 2025, Shopify requires all app store submissions to use GraphQL exclusively.",
-    deadline: "April 1, 2025"
+    version: LATEST_API_VERSION,
+    details: API_VERSION_DETAILS[LATEST_API_VERSION as keyof typeof API_VERSION_DETAILS]
   };
-}
+};
+
+/**
+ * Returns days until GraphQL-only requirement
+ */
+export const getDaysUntilGraphQLOnly = (): number => {
+  const today = new Date();
+  return Math.max(0, Math.floor((GRAPHQL_ONLY_DATE.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+};
+
+/**
+ * Shopify API version manager
+ */
+export const shopifyApiVersionManager = {
+  getCurrent: getShopifyApiVersion,
+  setCurrent: setShopifyApiVersion,
+  getSupported: () => SUPPORTED_VERSIONS,
+  getLatestStable,
+  getLatestGraphQLOnly: getLatestGraphQLOnlyVersion,
+  isSupported: isVersionSupported,
+  isGraphQLOnly: isGraphQLOnlyVersion,
+  getCompatibility: getVersionCompatibility,
+  getDaysToGraphQLOnly: getDaysUntilGraphQLOnly,
+  updateToLatest: () => setShopifyApiVersion(LATEST_API_VERSION),
+  updateToVersion: (version: string) => {
+    if (isVersionSupported(version)) {
+      return setShopifyApiVersion(version);
+    }
+    return false;
+  }
+};

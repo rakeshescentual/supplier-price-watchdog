@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,14 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, CheckCircle, AlertTriangle, Gauge, Server, ShieldCheck, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyHealthcheckResult } from '@/types/shopify';
-import { getBestVersion, getVersionStatusMessage } from '@/lib/shopify/api-version';
+import { LATEST_API_VERSION, getVersionStatusMessage } from '@/lib/shopify/api-version';
 
 export function ShopifyIntegrationStatus() {
   const { isShopifyConnected, isShopifyHealthy, shopifyContext, testConnection } = useShopify();
   const [activeTab, setActiveTab] = useState('overview');
   const [isRunningTest, setIsRunningTest] = useState(false);
   const [healthStatus, setHealthStatus] = useState<ShopifyHealthcheckResult | null>(null);
-  const [apiVersion, setApiVersion] = useState(shopifyContext?.apiVersion || getBestVersion());
+  const [apiVersion, setApiVersion] = useState(shopifyContext?.apiVersion || LATEST_API_VERSION);
   
   useEffect(() => {
     if (shopifyContext?.apiVersion) {

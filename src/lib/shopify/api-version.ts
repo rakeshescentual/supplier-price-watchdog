@@ -4,6 +4,8 @@
  * Updated based on Shopify's changelog: https://shopify.dev/changelog
  */
 
+import { getShopifyApiVersion, setShopifyApiVersion } from './client';
+
 // Latest stable API version
 export const LATEST_API_VERSION = "2024-10";
 
@@ -161,6 +163,28 @@ export const getDaysUntilGraphQLOnly = (): number => {
 };
 
 /**
+ * Gets the recommended API version to use based on compatibility
+ */
+export const getBestVersion = (): string => {
+  return RECOMMENDED_VERSION;
+};
+
+/**
+ * Returns a status message for a given version
+ */
+export const getVersionStatusMessage = (version: string): { status: 'current' | 'supported' | 'deprecated' | 'unknown', message: string } => {
+  if (version === LATEST_API_VERSION) {
+    return { status: 'current', message: 'Current API version' };
+  }
+  
+  if (isVersionSupported(version)) {
+    return { status: 'supported', message: 'Supported API version' };
+  }
+  
+  return { status: 'deprecated', message: 'Deprecated API version' };
+};
+
+/**
  * Shopify API version manager
  */
 export const shopifyApiVersionManager = {
@@ -173,6 +197,8 @@ export const shopifyApiVersionManager = {
   isGraphQLOnly: isGraphQLOnlyVersion,
   getCompatibility: getVersionCompatibility,
   getDaysToGraphQLOnly: getDaysUntilGraphQLOnly,
+  getBestVersion,
+  getVersionStatus: getVersionStatusMessage,
   updateToLatest: () => setShopifyApiVersion(LATEST_API_VERSION),
   updateToVersion: (version: string) => {
     if (isVersionSupported(version)) {

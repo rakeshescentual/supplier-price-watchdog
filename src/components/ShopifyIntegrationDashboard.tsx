@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useShopify } from "@/contexts/shopify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,7 @@ import { GiftCardManager } from "@/components/shopify/plus/GiftCardManager";
 import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
+import { shopifyApiVersionManager } from "@/lib/shopify/api-version";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");

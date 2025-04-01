@@ -4,7 +4,21 @@
  * Updated based on Shopify's changelog: https://shopify.dev/changelog
  */
 
-import { getShopifyApiVersion, setShopifyApiVersion } from './client';
+// Placeholder functions for API version management
+// In a real implementation, these would interact with persistent storage
+let currentApiVersion = "2024-10"; // Default to latest
+
+export const getShopifyApiVersion = (): string => {
+  return currentApiVersion;
+};
+
+export const setShopifyApiVersion = (version: string): boolean => {
+  if (isVersionSupported(version)) {
+    currentApiVersion = version;
+    return true;
+  }
+  return false;
+};
 
 // Latest stable API version
 export const LATEST_API_VERSION = "2024-10";

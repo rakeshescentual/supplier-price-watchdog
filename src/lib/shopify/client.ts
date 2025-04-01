@@ -1,74 +1,113 @@
 
 /**
- * Shopify API client
+ * Shopify API client utilities
  */
+import { LATEST_API_VERSION } from './api-version';
 
-let initialized = false;
-let currentApiVersion = "2024-10"; // Updated to the latest stable version
+// Current API version in memory storage
+let currentApiVersion = LATEST_API_VERSION;
 
-export const shopifyClient = {
-  graphql: async <T>(query: string, variables?: Record<string, any>): Promise<T> => {
-    // This is a mock implementation
-    console.log("Shopify GraphQL query:", query);
-    console.log("Variables:", variables);
-    console.log("Using API version:", currentApiVersion);
-    
-    // Return a mock response based on the query
-    if (query.includes("bulkOperationRunMutation")) {
-      return {
-        bulkOperationRunMutation: {
-          bulkOperation: {
-            id: "gid://shopify/BulkOperation/1",
-            status: "CREATED"
-          },
-          userErrors: []
-        }
-      } as unknown as T;
-    }
-    
-    // Mock shop query response
-    if (query.includes("shop")) {
-      return {
-        data: {
-          shop: {
-            name: "Example Shop",
-            email: "example@shop.com",
-            primaryDomain: {
-              url: "https://example.myshopify.com",
-              host: "example.myshopify.com"
-            }
-          }
-        }
-      } as unknown as T;
-    }
-    
-    // Default mock response
-    return {} as T;
-  }
-};
+// Shopify client instance
+let shopifyClient: any = null;
 
-export const initializeShopifyClient = (shop: string, accessToken: string, apiVersion = "2024-10") => {
-  console.log(`Initializing Shopify client for ${shop} with API version ${apiVersion}`);
+/**
+ * Initialize the Shopify client
+ * @param shop Shopify shop domain
+ * @param accessToken Shopify access token
+ * @param apiVersion Shopify API version
+ * @returns Shopify client instance
+ */
+export const initializeShopifyClient = (
+  shop: string,
+  accessToken: string,
+  apiVersion: string = LATEST_API_VERSION
+) => {
+  // In a real implementation, this would initialize the Shopify API client
+  // For example, using the @shopify/shopify-api library
+  
+  // Set the current API version
   currentApiVersion = apiVersion;
-  initialized = true;
+  
+  // Mock client for demonstration
+  shopifyClient = {
+    shop,
+    accessToken,
+    apiVersion,
+    graphql: async (query: string, variables?: any) => {
+      console.log("GraphQL query:", query, variables);
+      return { data: { shop: { name: shop } } };
+    },
+    rest: async (endpoint: string, method: string, data?: any) => {
+      console.log("REST API call:", endpoint, method, data);
+      return { data: {} };
+    }
+  };
+  
   return shopifyClient;
 };
 
-export const resetShopifyClient = () => {
-  initialized = false;
-  currentApiVersion = "2024-10"; // Reset to latest stable version
+/**
+ * Get the current Shopify client instance
+ * @returns Shopify client instance
+ */
+export const getShopifyClient = () => {
+  return shopifyClient;
 };
-
-export const isShopifyClientInitialized = () => initialized;
-
-export const getShopifyApiVersion = () => currentApiVersion;
 
 /**
- * Set the Shopify API version for all future requests
- * This allows dynamically changing the API version at runtime
+ * Reset the Shopify client
+ */
+export const resetShopifyClient = () => {
+  shopifyClient = null;
+  currentApiVersion = LATEST_API_VERSION;
+};
+
+/**
+ * Check if the Shopify client is initialized
+ * @returns True if initialized, false otherwise
+ */
+export const isShopifyClientInitialized = () => {
+  return shopifyClient !== null;
+};
+
+/**
+ * Get the current Shopify API version
+ * @returns Current API version
+ */
+export const getShopifyApiVersion = () => {
+  return currentApiVersion;
+};
+
+/**
+ * Set the Shopify API version
+ * @param version Shopify API version
+ * @returns True if successful, false otherwise
  */
 export const setShopifyApiVersion = (version: string) => {
-  console.log(`Changing Shopify API version from ${currentApiVersion} to ${version}`);
+  // In a real implementation, this would validate the version
+  // and update the client configuration
   currentApiVersion = version;
+  
+  if (shopifyClient) {
+    shopifyClient.apiVersion = version;
+  }
+  
   return true;
 };
+
+/**
+ * Execute a GraphQL query against the Shopify API
+ * @param query GraphQL query
+ * @param variables Query variables
+ * @returns Query result
+ */
+export const executeGraphQL = async (query: string, variables?: any) => {
+  if (!shopifyClient) {
+    throw new Error("Shopify client not initialized");
+  }
+  
+  return await shopifyClient.graphql(query, variables);
+};
+
+// Export the Shopify client for convenience
+export { shopifyClient };

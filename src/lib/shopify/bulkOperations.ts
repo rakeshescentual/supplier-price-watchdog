@@ -91,18 +91,7 @@ export async function bulkUpdatePrices(
     if (onProgress) onProgress(10);
     
     // Start the bulk operation
-    const response = await shopifyClient.graphql<{
-      bulkOperationRunMutation: {
-        bulkOperation: {
-          id: string;
-          status: BulkOperationStatus['status'];
-        };
-        userErrors: Array<{
-          field: string[];
-          message: string;
-        }>;
-      }
-    }>(`
+    const response = await shopifyClient.graphql(`
       mutation bulkOperationRunMutation($mutation: String!) {
         bulkOperationRunMutation(
           mutation: $mutation,
@@ -172,17 +161,7 @@ export async function bulkUpdatePrices(
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Check operation status
-      const statusResponse = await shopifyClient.graphql<{
-        node: {
-          id: string;
-          status: BulkOperationStatus['status'];
-          errorCode?: string;
-          objectCount?: number;
-          fileSize?: number;
-          url?: string;
-          partialDataUrl?: string;
-        } | null;
-      }>(`
+      const statusResponse = await shopifyClient.graphql(`
         query {
           node(id: "${operationId}") {
             ... on BulkOperation {
@@ -348,18 +327,7 @@ export async function cancelBulkOperation(
   operationId: string
 ): Promise<boolean> {
   try {
-    const response = await shopifyClient.graphql<{
-      bulkOperationCancel: {
-        bulkOperation: {
-          id: string;
-          status: BulkOperationStatus['status'];
-        };
-        userErrors: Array<{
-          field: string[];
-          message: string;
-        }>;
-      }
-    }>(`
+    const response = await shopifyClient.graphql(`
       mutation {
         bulkOperationCancel(id: "${operationId}") {
           bulkOperation {

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,7 @@ import { PriceItem as PriceFromShopifyTs } from "@/types/shopify";
 
 interface ShopifyBulkOperationsPanelProps {
   items?: PriceFromPriceTs[];
+  onOperationComplete?: () => void;
 }
 
 // Adapter function to convert PriceItem from price.ts to PriceItem from shopify.ts
@@ -52,7 +54,7 @@ const adaptPriceItems = (items: PriceFromPriceTs[]): PriceFromShopifyTs[] => {
   }));
 };
 
-export function ShopifyBulkOperationsPanel({ items = [] }: ShopifyBulkOperationsPanelProps) {
+export function ShopifyBulkOperationsPanel({ items = [], onOperationComplete }: ShopifyBulkOperationsPanelProps) {
   const { isShopifyConnected, bulkOperations, shopifyContext } = useShopify();
   const [operationType, setOperationType] = useState("price-update");
   const [dryRun, setDryRun] = useState(true);
@@ -107,6 +109,11 @@ export function ShopifyBulkOperationsPanel({ items = [] }: ShopifyBulkOperations
           toast.error("Bulk operation failed", {
             description: result.message
           });
+        }
+        
+        // Call the onOperationComplete callback if provided
+        if (onOperationComplete) {
+          onOperationComplete();
         }
       }
     } catch (error) {

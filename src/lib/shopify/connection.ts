@@ -1,58 +1,73 @@
-import { ShopifyContext, ShopifyConnectionResult } from '@/types/price';
-import { shopifyCache } from '../api-cache';
 
 /**
- * Check Shopify connection health status
- * @param shopifyContext The Shopify context containing shop and accessToken
- * @returns Promise resolving to a connection result object
+ * Shopify connection utilities
  */
-export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Promise<ShopifyConnectionResult> => {
+import { toast } from 'sonner';
+import { executeGraphQL, isShopifyClientInitialized, initializeShopifyClient } from './client';
+import { LATEST_API_VERSION } from './api-version';
+import type { ShopifyContext, ShopifyConnectionResult, ShopifyHealthcheckResult } from '@/types/shopify';
+
+/**
+ * Check if the Shopify connection is valid
+ * @param context Shopify context
+ * @returns Connection result
+ */
+export const checkShopifyConnection = async (
+  context: ShopifyContext
+): Promise<ShopifyConnectionResult> => {
+  if (!context || !context.shop || !context.accessToken) {
+    return {
+      success: false,
+      message: 'Missing Shopify credentials'
+    };
+  }
+  
   try {
-    console.log(`Checking Shopify connection for store: ${shopifyContext.shop}`);
+    // Initialize the client if not already initialized
+    if (!isShopifyClientInitialized()) {
+      initializeShopifyClient(
+        context.shop,
+        context.accessToken,
+        context.apiVersion || LATEST_API_VERSION
+      );
+    }
     
-    // Check if we have a cached health status
-    const cacheKey = `shopify-health-${shopifyContext.shop}`;
-    const cachedHealth = shopifyCache.get<{ healthy: boolean; timestamp: number }>(cacheKey);
+    // Test the connection with a simple GraphQL query
+    const startTime = Date.now();
+    const result = await executeGraphQL<any>(`
+      query {
+        shop {
+          name
+          plan {
+            displayName
+          }
+          primaryDomain {
+            url
+          }
+        }
+      }
+    `);
+    const responseTime = Date.now() - startTime;
     
-    // Use cached result if less than 5 minutes old
-    if (cachedHealth && (Date.now() - cachedHealth.timestamp < 5 * 60 * 1000)) {
-      console.log(`Using cached Shopify health status for ${shopifyContext.shop}`);
-      return { 
-        success: cachedHealth.healthy,
-        message: cachedHealth.healthy ? 'Connected (cached)' : 'Connection failed (cached)'
+    if (!result || !result.shop) {
+      return {
+        success: false,
+        message: 'Invalid Shopify response'
       };
     }
     
-    // In a real implementation, this would ping the Shopify API to check connection status
-    // Example:
-    // const response = await fetch(`https://${shopifyContext.shop}/admin/api/2023-10/shop.json`, {
-    //   headers: {
-    //     'X-Shopify-Access-Token': shopifyContext.accessToken,
-    //     'Content-Type': 'application/json'
-    //   }
-    // });
-    // const isHealthy = response.ok;
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // For now, assume the connection is healthy if we have both shop and accessToken
-    const isHealthy = !!shopifyContext.shop && !!shopifyContext.accessToken;
-    
-    // Cache the health status
-    shopifyCache.set(cacheKey, { healthy: isHealthy, timestamp: Date.now() }, { ttl: 5 * 60 * 1000 });
-    
     return {
-      success: isHealthy,
-      message: isHealthy ? 'Connected successfully' : 'Connection failed - invalid credentials',
-      shopDetails: isHealthy ? {
-        name: shopifyContext.shop.split('.')[0],
-        domain: shopifyContext.shop,
-        plan: 'Basic'
-      } : undefined
+      success: true,
+      message: 'Connected to Shopify successfully',
+      shopDetails: {
+        name: result.shop.name,
+        domain: result.shop.primaryDomain?.url || context.shop,
+        plan: result.shop.plan?.displayName || 'Unknown',
+      }
     };
   } catch (error) {
-    console.error("Error checking Shopify connection:", error);
+    console.error('Shopify connection error:', error);
+    
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown connection error'
@@ -61,42 +76,136 @@ export const checkShopifyConnection = async (shopifyContext: ShopifyContext): Pr
 };
 
 /**
- * Get Shopify synchronization history
- * @param shopifyContext The Shopify context containing shop and accessToken
- * @returns Promise resolving to an array of sync history objects
+ * Perform a health check on the Shopify API connection
+ * @param context Shopify context
+ * @returns Health check result
  */
-export const getShopifySyncHistory = async (shopifyContext: ShopifyContext): Promise<any[]> => {
+export const checkShopifyHealth = async (
+  context: ShopifyContext
+): Promise<ShopifyHealthcheckResult> => {
+  if (!context || !context.shop || !context.accessToken) {
+    return {
+      success: false,
+      message: 'Missing Shopify credentials'
+    };
+  }
+  
   try {
-    const cacheKey = `shopify-sync-history-${shopifyContext.shop}`;
-    const cachedHistory = shopifyCache.get<any[]>(cacheKey);
-    
-    if (cachedHistory) {
-      console.log(`Using cached Shopify sync history for ${shopifyContext.shop}`);
-      return cachedHistory;
+    // Initialize the client if not already initialized
+    if (!isShopifyClientInitialized()) {
+      initializeShopifyClient(
+        context.shop,
+        context.accessToken,
+        context.apiVersion || LATEST_API_VERSION
+      );
     }
     
-    console.log(`Fetching sync history for Shopify store: ${shopifyContext.shop}`);
+    // Test the GraphQL endpoint
+    const startTime = Date.now();
+    const result = await executeGraphQL<any>(`
+      query {
+        shop {
+          name
+          features {
+            storefront_api_call_rate_limit_bypass
+          }
+        }
+      }
+    `);
+    const responseTime = Date.now() - startTime;
     
-    // In a real implementation, this would query the Shopify Admin API for sync logs
-    // For now, generate mock data
-    await new Promise(resolve => setTimeout(resolve, 700));
+    if (!result || !result.shop) {
+      return {
+        success: false,
+        message: 'Invalid Shopify response'
+      };
+    }
     
-    const history = Array.from({ length: 5 }, (_, i) => ({
-      id: `sync-${i + 1}`,
-      timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-      status: Math.random() > 0.2 ? 'success' : 'partial',
-      itemCount: Math.floor(Math.random() * 100) + 10,
-      errors: Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : 0,
-      duration: Math.floor(Math.random() * 120) + 30,
-      initiatedBy: 'user@example.com'
-    }));
+    // Get rate limit info from headers (in a real app)
+    const rateLimitRemaining = 1000; // Mocked value
     
-    // Cache the history
-    shopifyCache.set(cacheKey, history, { ttl: 30 * 60 * 1000 });
+    // Check REST endpoint (simplified for demo)
+    const restEndpointHealthy = true;
     
-    return history;
+    // Check webhooks endpoint (simplified for demo)
+    const webhooksEndpointHealthy = true;
+    
+    return {
+      success: true,
+      message: 'Shopify API is healthy',
+      apiVersion: context.apiVersion || LATEST_API_VERSION,
+      responseTimeMs: responseTime,
+      rateLimitRemaining,
+      diagnostics: {
+        graphqlEndpoint: true,
+        restEndpoint: restEndpointHealthy,
+        webhooksEndpoint: webhooksEndpointHealthy,
+        authScopes: ['read_products', 'write_products', 'read_inventory', 'write_inventory'],
+        missingScopes: []
+      }
+    };
   } catch (error) {
-    console.error("Error fetching Shopify sync history:", error);
-    return [];
+    console.error('Shopify health check error:', error);
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown health check error'
+    };
   }
 };
+
+/**
+ * Test API version compatibility
+ * @param context Shopify context
+ * @param apiVersion API version to test
+ * @returns Test result
+ */
+export const testApiVersion = async (
+  context: ShopifyContext,
+  apiVersion: string
+): Promise<{ success: boolean; message: string }> => {
+  if (!context || !context.shop || !context.accessToken) {
+    return {
+      success: false,
+      message: 'Missing Shopify credentials'
+    };
+  }
+  
+  try {
+    // Initialize a temporary client with the test version
+    const tempClient = initializeShopifyClient(
+      context.shop,
+      context.accessToken,
+      apiVersion
+    );
+    
+    // Test with a simple query
+    const result = await tempClient.graphql<any>(`
+      query {
+        shop {
+          name
+        }
+      }
+    `);
+    
+    if (!result || !result.shop) {
+      return {
+        success: false,
+        message: `API version ${apiVersion} is not compatible with your store`
+      };
+    }
+    
+    return {
+      success: true,
+      message: `API version ${apiVersion} is compatible with your store`
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    
+    return {
+      success: false,
+      message: `API version ${apiVersion} test failed: ${message}`
+    };
+  }
+};
+

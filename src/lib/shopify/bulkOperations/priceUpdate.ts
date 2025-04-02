@@ -23,7 +23,7 @@ export async function bulkUpdatePrices(
       return `
         productVariantUpdate(input: {
           id: "${item.variantId}",
-          price: "${item.price.toFixed(2)}"
+          price: "${item.newPrice.toFixed(2)}"
         }) {
           productVariant {
             id

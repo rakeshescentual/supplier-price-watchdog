@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/contexts/shopify';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, CheckCircle, AlertTriangle, Gauge, Server, ShieldCheck, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyHealthcheckResult } from '@/types/shopify';
-import { LATEST_API_VERSION, getVersionStatusMessage } from '@/lib/shopify/api-version';
+import { LATEST_API_VERSION } from '@/lib/shopify/api-version';
+
+interface VersionStatus {
+  status: 'current' | 'supported' | 'deprecated' | 'unknown';
+  message: string;
+}
 
 export function ShopifyIntegrationStatus() {
   const { isShopifyConnected, isShopifyHealthy, shopifyContext, testConnection } = useShopify();
@@ -66,9 +72,20 @@ export function ShopifyIntegrationStatus() {
     return "red";
   };
 
-  const getVersionStatus = () => {
+  const getVersionStatus = (): VersionStatus => {
     if (!apiVersion) return { status: 'unknown', message: 'Unknown API version' };
-    return getVersionStatusMessage(apiVersion);
+    
+    // This is a simplified version of the implementation
+    // In a real app, this would check against known versions
+    if (apiVersion === LATEST_API_VERSION) {
+      return { status: 'current', message: `Version ${apiVersion} is the latest API version.` };
+    } else if (['2024-01', '2023-10', '2023-07'].includes(apiVersion)) {
+      return { status: 'supported', message: `Version ${apiVersion} is supported, but not the latest.` };
+    } else if (['2023-04', '2023-01', '2022-10'].includes(apiVersion)) {
+      return { status: 'deprecated', message: `Version ${apiVersion} is deprecated and will be removed soon.` };
+    }
+    
+    return { status: 'unknown', message: `Unknown status for version ${apiVersion}` };
   };
 
   const versionStatus = getVersionStatus();

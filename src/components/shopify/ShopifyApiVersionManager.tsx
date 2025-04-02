@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +11,10 @@ import { GraphQLMigrationAlert } from "@/components/shopify/GraphQLMigrationAler
 import { getShopifyApiVersion, setShopifyApiVersion } from "@/lib/shopify/client";
 import { 
   isGraphQLOnlyVersion, 
-  SUPPORTED_VERSIONS, 
-  RECOMMENDED_VERSION, 
-  isVersionSupported,
+  SUPPORTED_API_VERSIONS, 
+  LATEST_API_VERSION,
   getDaysUntilGraphQLOnly,
-  API_VERSION_DETAILS,
-  LATEST_API_VERSION
+  API_VERSION_DETAILS
 } from "@/lib/shopify/api-version";
 import { ArrowRight, CheckCircle, Code, Info, RefreshCw, GitBranch, AlertTriangle, Calendar } from "lucide-react";
 import { useShopify } from "@/contexts/shopify";
@@ -194,11 +191,11 @@ export function ShopifyApiVersionManager() {
             <div className="space-y-2">
               <h3 className="text-sm font-medium mb-2">Supported Versions</h3>
               <div className="flex flex-wrap gap-2">
-                {SUPPORTED_VERSIONS.map(version => (
+                {SUPPORTED_API_VERSIONS.map(version => (
                   <Badge 
                     key={version}
                     variant={version === currentApiVersion ? "default" : "outline"}
-                    className={`text-sm ${version in API_VERSION_DETAILS && API_VERSION_DETAILS[version as keyof typeof API_VERSION_DETAILS].graphqlOnly ? "border-green-200" : ""}`}
+                    className={`text-sm ${version in API_VERSION_DETAILS && API_VERSION_DETAILS[version].isGraphQLOnly ? "border-green-200" : ""}`}
                   >
                     {version}
                     {isGraphQLOnlyVersion(version) && (

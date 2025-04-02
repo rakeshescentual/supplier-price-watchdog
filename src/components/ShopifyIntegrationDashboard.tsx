@@ -23,7 +23,8 @@ import { GiftCardManager } from "@/components/shopify/plus/GiftCardManager";
 import { ExternalLink, AlertTriangle, Settings, Store, Activity, MapPin, Zap, Gift, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import { shopifyApiVersionManager } from "@/lib/shopify/api-version";
+import { shopifyApiVersionManager } from "@/lib/shopify/apiVersionManager";
+import { LATEST_API_VERSION } from "@/lib/shopify/api-version";
 
 export function ShopifyIntegrationDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -37,7 +38,7 @@ export function ShopifyIntegrationDashboard() {
   };
 
   const currentApiVersion = shopifyApiVersionManager.getCurrent();
-  const latestApiVersion = shopifyApiVersionManager.getLatestStable().version;
+  const latestApiVersion = LATEST_API_VERSION;
   const isLatestApiVersion = currentApiVersion === latestApiVersion;
   
   const isPlusStore = shopifyContext?.shopPlan?.toLowerCase().includes('plus');

@@ -1,247 +1,121 @@
 
 /**
- * Bulk price update operations
+ * Functions for bulk price updates
  */
 import { shopifyClient } from '../client';
 import { ShopifyContext, PriceItem } from '@/types/shopify';
-import { 
-  BulkOperationStatus, 
-  BulkPriceUpdateOptions, 
-  BulkOperationResult 
-} from './types';
+import { BulkOperationResult, BulkPriceUpdateOptions } from './types';
 import { saveToOperationHistory } from './history';
 
 /**
- * Start a bulk price update operation
+ * Bulk update product prices
  */
 export async function bulkUpdatePrices(
   context: ShopifyContext,
-  prices: PriceItem[],
+  items: PriceItem[],
   options: BulkPriceUpdateOptions = {}
 ): Promise<BulkOperationResult> {
-  if (!context) {
-    return {
-      success: false,
-      message: "No Shopify context provided",
-      updatedCount: 0,
-      failedCount: prices.length
-    };
-  }
-  
-  if (prices.length === 0) {
-    return {
-      success: false,
-      message: "No prices to update",
-      updatedCount: 0,
-      failedCount: 0
-    };
-  }
-  
   try {
-    const { onProgress, dryRun = false, notifyCustomers = false } = options;
+    console.log(`Starting bulk price update for ${items.length} items`);
     
-    // Report initial progress
-    if (onProgress) onProgress(5);
-    
-    // Create a JSON string containing the price updates
-    const priceUpdates = prices.map(item => {
-      if (!item.shopifyVariantId) {
-        throw new Error(`Missing Shopify variant ID for item: ${item.sku}`);
-      }
-      
-      return {
-        id: item.shopifyVariantId,
-        price: String(item.newPrice),
-        oldPrice: String(item.oldPrice),
-        sku: item.sku,
-        dryRun
-      };
-    });
-    
-    // Report preparation progress
-    if (onProgress) onProgress(10);
-    
-    // Start the bulk operation
-    const response = await shopifyClient.graphql(`
-      mutation bulkOperationRunMutation($mutation: String!) {
-        bulkOperationRunMutation(
-          mutation: $mutation,
-          stagedUploadPath: "bulk_price_updates.jsonl"
-        ) {
-          bulkOperation {
+    // Create mutation for each item
+    const mutations = items.map(item => {
+      return `
+        productVariantUpdate(input: {
+          id: "${item.variantId}",
+          price: "${item.price.toFixed(2)}"
+        }) {
+          productVariant {
             id
-            status
+            price
           }
           userErrors {
             field
             message
           }
         }
-      }
-    `, {
-      mutation: `
-        mutation {
-          ${priceUpdates.map((update, index) => `
-            _${index}: productVariantUpdate(
-              input: {
-                id: "${update.id}",
-                price: "${update.price}"
-                ${notifyCustomers ? ', inventoryNotifyCustomers: true' : ''}
-              }
-            ) {
-              productVariant {
-                id
-                price
-              }
-              userErrors {
-                field
-                message
-              }
-            }
-          `).join('\n')}
-        }
-      `
+      `;
     });
     
-    if (response.bulkOperationRunMutation.userErrors.length > 0) {
-      const errorMessage = response.bulkOperationRunMutation.userErrors
-        .map(error => error.message)
-        .join(', ');
-      
-      return {
-        success: false,
-        message: `Bulk operation failed: ${errorMessage}`,
-        updatedCount: 0,
-        failedCount: prices.length
-      };
+    // Split mutations into chunks to avoid hitting GraphQL complexity limits
+    const chunkSize = 50;
+    const chunks = [];
+    for (let i = 0; i < mutations.length; i += chunkSize) {
+      chunks.push(mutations.slice(i, i + chunkSize));
     }
     
-    // Get the bulk operation ID
-    const operationId = response.bulkOperationRunMutation.bulkOperation.id;
+    // Mock bulk operation id
+    const operationId = `bulkop_${Date.now()}`;
     
-    // Report operation started progress
-    if (onProgress) onProgress(20);
+    let updatedCount = 0;
+    let failedCount = 0;
     
-    // Poll for operation status
-    let status: BulkOperationStatus['status'] = response.bulkOperationRunMutation.bulkOperation.status;
-    let pollCount = 0;
-    const maxPolls = 30; // Maximum number of status checks (30 * 2s = 60s max)
-    
-    while (status === 'CREATED' || status === 'RUNNING') {
-      // Wait 2 seconds before checking status again
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    // Process each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkMutation = `
+        mutation {
+          ${chunk.join('\n')}
+        }
+      `;
       
-      // Check operation status
-      const statusResponse = await shopifyClient.graphql(`
-        query {
-          node(id: "${operationId}") {
-            ... on BulkOperation {
-              id
-              status
-              errorCode
-              objectCount
-              fileSize
-              url
-              partialDataUrl
+      // If this is a dry run, log but don't execute
+      if (options.dryRun) {
+        console.log('Dry run mutation:', chunkMutation);
+        continue;
+      }
+      
+      try {
+        const response = await shopifyClient.graphql(chunkMutation);
+        
+        // Process results
+        for (const key in response) {
+          if (key.startsWith('productVariantUpdate')) {
+            if (response[key].userErrors && response[key].userErrors.length > 0) {
+              failedCount++;
+            } else {
+              updatedCount++;
             }
           }
         }
-      `);
-      
-      if (!statusResponse.node) {
-        break;
-      }
-      
-      status = statusResponse.node.status;
-      
-      // Calculate progress percentage based on poll count
-      // This is an approximation since we don't know exactly how long it will take
-      if (onProgress) {
-        const progressPercent = Math.min(20 + (pollCount / maxPolls) * 70, 90);
-        onProgress(progressPercent);
-      }
-      
-      pollCount++;
-      
-      // If we've polled too many times or the operation is no longer running, break
-      if (pollCount >= maxPolls || (status !== 'CREATED' && status !== 'RUNNING')) {
-        break;
+        
+        // Report progress
+        if (options.onProgress) {
+          const progress = Math.round(((i + 1) / chunks.length) * 100);
+          options.onProgress(progress);
+        }
+      } catch (error) {
+        console.error(`Error processing chunk ${i}:`, error);
+        failedCount += chunk.length;
       }
     }
     
-    // Handle final status
-    if (status === 'COMPLETED') {
-      // Save to operation history in localStorage
-      saveToOperationHistory({
-        id: operationId,
-        type: 'priceUpdate',
-        status,
-        createdAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        itemCount: prices.length
-      });
-      
-      if (onProgress) onProgress(100);
-      
-      return {
-        success: true,
-        message: dryRun 
-          ? `Dry run completed successfully for ${prices.length} prices` 
-          : `Successfully updated ${prices.length} prices`,
-        operationId,
-        updatedCount: prices.length,
-        failedCount: 0
-      };
-    } else if (status === 'FAILED') {
-      // Save failed operation to history
-      saveToOperationHistory({
-        id: operationId,
-        type: 'priceUpdate',
-        status,
-        createdAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        itemCount: prices.length,
-        errorMessage: 'Bulk operation failed'
-      });
-      
-      if (onProgress) onProgress(100);
-      
-      return {
-        success: false,
-        message: `Bulk operation failed`,
-        operationId,
-        updatedCount: 0,
-        failedCount: prices.length
-      };
-    } else {
-      // Operation timed out or was canceled
-      saveToOperationHistory({
-        id: operationId,
-        type: 'priceUpdate',
-        status,
-        createdAt: new Date().toISOString(),
-        itemCount: prices.length,
-        errorMessage: `Operation ended with status: ${status}`
-      });
-      
-      if (onProgress) onProgress(100);
-      
-      return {
-        success: false,
-        message: `Operation ended with status: ${status}`,
-        operationId,
-        updatedCount: 0,
-        failedCount: prices.length
-      };
-    }
+    // Save operation to history
+    saveToOperationHistory({
+      id: operationId,
+      type: 'priceUpdate',
+      status: failedCount === 0 ? 'COMPLETED' : 'COMPLETED',
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      itemCount: items.length,
+      errorMessage: failedCount > 0 ? `Failed to update ${failedCount} items` : undefined
+    });
+    
+    return {
+      success: failedCount === 0,
+      message: `Updated ${updatedCount} prices${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
+      operationId,
+      updatedCount,
+      failedCount
+    };
   } catch (error) {
-    console.error("Error in bulk price update:", error);
+    console.error("Bulk price update error:", error);
     
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unknown error during bulk update",
+      message: error instanceof Error ? error.message : "Unknown error during bulk price update",
       updatedCount: 0,
-      failedCount: prices.length
+      failedCount: items.length
     };
   }
 }

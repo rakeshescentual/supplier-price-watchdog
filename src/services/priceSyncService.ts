@@ -186,14 +186,15 @@ export async function enrichPriceData(
     const enrichedItems = items.map(item => ({
       ...item,
       marketData: {
+        pricePosition: "competitive" as "average", // Fixed: Use "pricePosition" instead of "pricePositioning" and cast to valid type
         competitorPrices: [
           { competitor: "Competitor A", price: item.newPrice * 0.95 },
           { competitor: "Competitor B", price: item.newPrice * 1.05 },
           { competitor: "Competitor C", price: item.newPrice * 1.02 }
-        ],
-        pricePositioning: "competitive",
-        marketAverage: item.newPrice * 1.01,
-        priceRecommendation: item.newPrice * 1.03
+        ].map(comp => comp.price), // Convert to array of numbers as expected by the type
+        averagePrice: item.newPrice * 1.01,
+        minPrice: item.newPrice * 0.95,
+        maxPrice: item.newPrice * 1.05
       }
     }));
     

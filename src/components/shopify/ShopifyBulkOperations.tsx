@@ -17,8 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFileAnalysis } from "@/contexts/FileAnalysisContext";
-import { getBulkOperationHistory, clearBulkOperationHistory } from "@/lib/shopify/bulkOperations";
-import { BulkOperationHistory } from "@/lib/shopify/bulkOperations";
+import { getBulkOperationHistory, clearBulkOperationHistory, BulkOperationHistoryItem } from "@/lib/shopify/bulkOperations";
 import { useShopify } from "@/contexts/shopify";
 import { Alert, AlertDescription } from "../ui/alert";
 
@@ -26,7 +25,7 @@ export function ShopifyBulkOperations() {
   const { items } = useFileAnalysis();
   const { isShopifyConnected } = useShopify();
   const [activeTab, setActiveTab] = useState("price-updates");
-  const [operationsHistory, setOperationsHistory] = useState<BulkOperationHistory[]>([]);
+  const [operationsHistory, setOperationsHistory] = useState<BulkOperationHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
@@ -241,4 +240,3 @@ export function ShopifyBulkOperations() {
     </div>
   );
 }
-

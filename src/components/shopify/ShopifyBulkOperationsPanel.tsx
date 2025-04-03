@@ -14,7 +14,7 @@ import { useShopify } from "@/contexts/shopify";
 import { PriceItem } from "@/types/price";
 import { PriceUpdateOperationForm } from "./bulk-operations/PriceUpdateOperationForm";
 import { OperationProgress } from "./bulk-operations/OperationProgress";
-import { useBulkOperation } from "./hooks/useBulkOperation";
+import useBulkOperation from "./hooks/useBulkOperation";
 
 interface ShopifyBulkOperationsPanelProps {
   items?: PriceItem[];
@@ -36,7 +36,8 @@ export function ShopifyBulkOperationsPanel({
     isProcessing,
     progress,
     operationResult,
-    handleBulkOperation
+    handleBulkOperation,
+    canUseGadget
   } = useBulkOperation(items, onOperationComplete);
 
   const isPlusStore = shopifyContext?.shopPlan === "Shopify Plus";
@@ -62,6 +63,7 @@ export function ShopifyBulkOperationsPanel({
           notifyCustomers={notifyCustomers}
           setNotifyCustomers={setNotifyCustomers}
           isPlusStore={isPlusStore}
+          canUseGadget={canUseGadget}
         />
         
         <OperationProgress 

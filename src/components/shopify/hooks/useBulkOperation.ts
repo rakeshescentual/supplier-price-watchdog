@@ -1,16 +1,12 @@
 
 import { useState } from "react";
-import { toast } from "sonner";
-import { useShopify } from "@/contexts/shopify";
 import { PriceItem } from "@/types/price";
-import { adaptPriceItems } from "../utils/priceItemAdapter";
+import { useShopify } from "@/contexts/shopify";
+import { syncPriceItems, isGadgetAvailable } from "@/services/shopify";
 
-export function useBulkOperation(
-  items: PriceItem[] = [],
-  onOperationComplete?: () => void
-) {
-  const { isShopifyConnected, bulkOperations } = useShopify();
-  const [operationType, setOperationType] = useState("price-update");
+export function useBulkOperation(items: PriceItem[] = [], onOperationComplete?: () => void) {
+  const { shopifyContext } = useShopify();
+  const [operationType, setOperationType] = useState<"update" | "schedule" | "discount">("update");
   const [dryRun, setDryRun] = useState(true);
   const [notifyCustomers, setNotifyCustomers] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,69 +18,63 @@ export function useBulkOperation(
     failedCount?: number;
   } | null>(null);
 
+  // Determine if Gadget.dev integration can be used
+  const canUseGadget = isGadgetAvailable();
+
   const handleBulkOperation = async () => {
-    if (!isShopifyConnected || !items.length) {
-      toast.error("Cannot perform operation", {
-        description: !isShopifyConnected 
-          ? "Please connect to Shopify first" 
-          : "No items to process"
-      });
-      return;
-    }
+    if (!shopifyContext || items.length === 0) return;
 
     setIsProcessing(true);
     setProgress(0);
     setOperationResult(null);
 
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + Math.random() * 5;
+        return newProgress >= 100 ? 100 : newProgress;
+      });
+    }, 200);
+
     try {
-      // Different operations based on selected type
-      if (operationType === "price-update") {
-        // Use the adapter function to convert items to the expected type
-        const adaptedItems = adaptPriceItems(items);
-        
-        const result = await bulkOperations.updatePrices(adaptedItems, {
+      // Use the new service function
+      const result = await syncPriceItems(
+        shopifyContext,
+        items,
+        {
+          useGadget: canUseGadget,
           dryRun,
-          notifyCustomers,
-          onProgress: setProgress
-        });
-
-        setOperationResult({
-          success: result.success,
-          message: result.message,
-          updatedCount: result.updatedCount,
-          failedCount: result.failedCount
-        });
-
-        if (result.success) {
-          toast.success("Bulk operation complete", {
-            description: `Updated ${result.updatedCount} products in Shopify`
-          });
-        } else {
-          toast.error("Bulk operation failed", {
-            description: result.message
-          });
+          notifyCustomers
         }
-        
-        // Call the onOperationComplete callback if provided
-        if (onOperationComplete) {
-          onOperationComplete();
-        }
+      );
+
+      // Ensure progress reaches 100%
+      setProgress(100);
+      
+      // Process the result
+      setOperationResult({
+        success: result.success,
+        message: result.message,
+        updatedCount: result.syncedItems?.length || 0,
+        failedCount: result.success ? 0 : items.length
+      });
+
+      // Call the completion callback if provided
+      if (onOperationComplete) {
+        onOperationComplete();
       }
     } catch (error) {
       console.error("Bulk operation error:", error);
+      
       setOperationResult({
         success: false,
-        message: error instanceof Error ? error.message : "Unknown error during bulk operation",
+        message: error instanceof Error ? error.message : "An unknown error occurred",
         updatedCount: 0,
         failedCount: items.length
       });
-      
-      toast.error("Bulk operation failed", {
-        description: "An error occurred during the operation"
-      });
     } finally {
+      clearInterval(progressInterval);
       setIsProcessing(false);
-      setProgress(100);
     }
   };
 
@@ -98,6 +88,9 @@ export function useBulkOperation(
     isProcessing,
     progress,
     operationResult,
-    handleBulkOperation
+    handleBulkOperation,
+    canUseGadget
   };
 }
+
+export default useBulkOperation;

@@ -53,12 +53,12 @@ The server will be available at http://localhost:8000 (or the port you specified
 
 ## Using the MCP Utilities
 
-Our application includes built-in utilities for working with the MCP server. These utilities can be found in `src/lib/shopify/mcp.ts`.
+Our application includes built-in utilities for working with the MCP server. These are organized in the `src/lib/shopify/mcp` directory.
 
 ### Configuration
 
 ```typescript
-import { configureMcp } from '@/lib/shopify/bulkOperations';
+import { configureMcp } from '@/lib/shopify/mcp';
 
 // Configure the MCP client
 configureMcp({
@@ -71,7 +71,7 @@ configureMcp({
 ### Testing GraphQL Queries
 
 ```typescript
-import { executeMcpQuery } from '@/lib/shopify/bulkOperations';
+import { executeMcpQuery } from '@/lib/shopify/mcp';
 
 // Example query
 const query = `
@@ -94,22 +94,36 @@ console.log(result);
 ### Opening the MCP Explorer
 
 ```typescript
-import { openInMcpExplorer } from '@/lib/shopify/bulkOperations';
+import { openInMcpExplorer, getSampleQueries } from '@/lib/shopify/mcp';
 
-// Open a query in the MCP explorer
-openInMcpExplorer(`
-  query {
-    shop {
-      name
-    }
-  }
-`);
+// Get a sample query
+const { query, variables } = getSampleQueries().productList;
+
+// Open it in the MCP explorer
+openInMcpExplorer(query, variables);
+```
+
+### Debugging Queries
+
+```typescript
+import { debugQuery, validateQuerySyntax, explainQuery } from '@/lib/shopify/mcp';
+
+// Validate query syntax
+const validation = await validateQuerySyntax(myQuery);
+if (validation.valid) {
+  // Explain the query structure
+  const explanation = explainQuery(myQuery);
+  console.log(explanation);
+  
+  // Debug the query execution
+  await debugQuery(myQuery, variables);
+}
 ```
 
 ### Testing Bulk Operation Capabilities
 
 ```typescript
-import { testBulkOperationCapabilities } from '@/lib/shopify/bulkOperations';
+import { testBulkOperationCapabilities } from '@/lib/shopify/mcp';
 
 // Check if bulk operations are supported
 const capabilities = await testBulkOperationCapabilities();
@@ -130,10 +144,39 @@ if (capabilities.supported) {
 
 4. **Version Control**: Consider saving successful queries in your application for reference.
 
+5. **Bulk Operations**: Test bulk operations with small datasets first to ensure they work as expected.
+
 ## Troubleshooting
 
 - **Connection Issues**: Ensure the MCP server is running and accessible at the configured endpoint.
 - **Authentication Errors**: Check that your API key and shop domain are correctly configured.
 - **GraphQL Errors**: Carefully review error messages, which often provide helpful details about what went wrong.
+- **Server Conflicts**: Make sure no other processes are using the same port.
+
+## Advanced Features
+
+### Query Optimization
+
+The MCP utilities provide functions to help optimize your queries:
+
+```typescript
+import { optimizeQuery } from '@/lib/shopify/mcp';
+
+const optimizedQuery = optimizeQuery(myQuery);
+```
+
+### Saving and Loading Configurations
+
+You can save and load MCP configurations to/from localStorage:
+
+```typescript
+import { saveMcpConfigToStorage, loadMcpConfigFromStorage } from '@/lib/shopify/mcp';
+
+// Save current configuration
+saveMcpConfigToStorage();
+
+// Load saved configuration
+loadMcpConfigFromStorage();
+```
 
 For more help, refer to the [official MCP documentation](https://github.com/Shopify/dev-mcp).

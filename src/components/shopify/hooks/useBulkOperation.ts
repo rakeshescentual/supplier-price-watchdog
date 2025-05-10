@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { PriceItem } from "@/types/price";
 import { useShopify } from "@/contexts/shopify";
-import { syncPriceItems, isGadgetAvailable } from "@/services/shopify";
+import { syncPriceItems, isGadgetAvailable } from "@/services/shopify/index";
 
 export function useBulkOperation(items: PriceItem[] = [], onOperationComplete?: () => void) {
   const { shopifyContext } = useShopify();

@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, ShoppingBag, Zap, Server } from "lucide-react";
+import { Info, ShoppingBag, Zap, Server, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PriceItem } from "@/types/price";
-import { isGadgetAvailable } from "@/services/shopify";
+import { isGadgetAvailable } from "@/services/shopify/index";
+import { Link } from "react-router-dom";
 
 interface ShopifyTabProps {
   integrationStatus: Record<string, boolean>;
@@ -49,7 +50,12 @@ export const ShopifyTab: React.FC<ShopifyTabProps> = ({
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border rounded-lg p-4 space-y-2">
-            <h3 className="font-medium">Pricing Scripts</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium">Pricing Scripts</h3>
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                <Sparkles className="h-3 w-3 mr-1" /> AI Enhanced
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">
               Deploy custom pricing rules based on customer segments, order value, and product combinations
             </p>
@@ -100,6 +106,29 @@ export const ShopifyTab: React.FC<ShopifyTabProps> = ({
               )}
             </div>
           </div>
+        </div>
+        
+        <div className="border rounded-md p-4">
+          <h3 className="font-medium mb-2 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-purple-500" />
+            New: Shopify MCP & AI Development Tools
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Use Shopify's Merchant Commerce Platform (MCP) local server with AI assistance to develop and test queries
+          </p>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              toast.info("MCP AI Assistant", {
+                description: "We'll be adding this to the Shopify Integration Dashboard soon!"
+              });
+            }}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Launch MCP AI Assistant
+          </Button>
         </div>
         
         <div className="border rounded-md p-4">
